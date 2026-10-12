@@ -74,10 +74,15 @@ jobs:
       - name: Install Inno Setup
         shell: pwsh
         run: choco install innosetup --no-progress -y
+      - name: License page
+        shell: pwsh
+        run: |
+          $text = (Get-Content -Raw LICENSE) -replace "`r?`n", "`r`n"
+          [IO.File]::WriteAllText("$PWD\dist\windows\license-page.txt", $text, [Text.UTF8Encoding]::new($false))
       - name: Installer
         shell: pwsh
         run: |
-          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=$env:VERSION" "/DNumericVersion=$env:NUMERIC" packaging\windows\pixgo.iss
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=$env:VERSION" "/DNumericVersion=$env:NUMERIC" "/DLicensePage=$PWD\dist\windows\license-page.txt" packaging\windows\pixgo.iss
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify installer
         shell: pwsh

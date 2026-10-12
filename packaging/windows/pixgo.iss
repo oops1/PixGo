@@ -7,6 +7,9 @@
 #ifndef SourceDir
   #define SourceDir "..\..\dist\windows"
 #endif
+#ifndef LicensePage
+  #define LicensePage "..\..\LICENSE"
+#endif
 #define AppName "PixGo"
 #define AppExe "pixgo.exe"
 #define ProgId "PixGo.Image"
@@ -27,7 +30,7 @@ DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 ChangesAssociations=yes
-LicenseFile=..\..\LICENSE
+LicenseFile={#LicensePage}
 OutputDir=..\..\dist
 OutputBaseFilename=pixgo-{#AppVersion}-windows-x64-setup
 SetupIconFile=..\icons\pixgo.ico
