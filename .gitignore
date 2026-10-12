@@ -1,0 +1,10 @@
+bin/
+*.exe
+*.test
+/out/
+/docs/ARCHITECTURE.md
+/ROADMAP.md
+/go.work
+/go.work.sum
+/.idea/
+/docs/ENGINE_TASKS.md
