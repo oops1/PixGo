@@ -14,6 +14,7 @@ PixGo follows the simplicity of the classic Windows Photo Viewer: the image fill
 - Information panel with EXIF, color profile and GPS.
 - Dark and light themes, English and Russian interface.
 - Decoding never blocks the interface; a corrupt file never crashes the program.
+- Tells you when a newer release is available, see [Updates](#updates).
 
 ## Install
 
@@ -38,6 +39,16 @@ pixgo -set-default
 ```
 
 It writes `~/.config/mimeapps.list`; no extra tools are needed. `install.sh --set-default` does the same during installation.
+
+## Updates
+
+Once every three days, a moment after start, PixGo reads the public release feed of this repository (`github.com/oops1/PixGo/releases.atom`) and asks whether to open the download page when a newer version exists. Nothing is downloaded or installed by the program itself, and nothing but the request for the feed is sent. **Check for updates** in the context menu runs the check at once.
+
+To turn the automatic check off, set it in `settings.json` (`%APPDATA%\PixGo` on Windows, `~/.config/pixgo` on Linux):
+
+```json
+{ "updates": { "check": false } }
+```
 
 ## Build
 

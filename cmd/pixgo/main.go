@@ -33,6 +33,8 @@ const (
 	defaultHeight = 700
 	minWidth      = 420
 	minHeight     = 320
+
+	updateCheckDelay = 4 * time.Second
 )
 
 func main() {
@@ -174,6 +176,7 @@ func main() {
 		a.Root.Refresh()
 		a.Root.Wake()
 	})
+	eng.After(updateCheckDelay, a.ScheduleUpdateCheck)
 	eng.Start()
 	if err := win.Run(); err != nil {
 		slog.Error("window", "err", err)

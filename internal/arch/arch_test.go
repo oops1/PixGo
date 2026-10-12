@@ -27,6 +27,7 @@ var engineFree = []string{
 	"internal/commands",
 	"internal/fsutil",
 	"internal/thumbs",
+	"internal/updates",
 }
 
 var vendorCodecs = map[string]string{
@@ -134,6 +135,7 @@ func TestDependenciesPointDownward(t *testing.T) {
 		"internal/jobs":     {"internal/ui", "internal/app", "internal/codec"},
 		"internal/settings": {"internal/ui", "internal/app"},
 		"internal/i18n":     {"internal/ui", "internal/app"},
+		"internal/updates":  {"internal/ui", "internal/app"},
 	}
 	for _, fi := range scan(t) {
 		if fi.isTest {

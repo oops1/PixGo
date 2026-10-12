@@ -50,6 +50,7 @@ var en = map[string]string{
 	"cmd.saveAs":          "Save as…",
 	"cmd.reveal":          "Show in folder",
 	"cmd.settings":        "Settings",
+	"cmd.checkUpdates":    "Check for updates",
 	"cmd.slideshow":       "Slideshow",
 	"cmd.slideshowPause":  "Pause",
 	"cmd.slideshowResume": "Resume",
@@ -103,6 +104,12 @@ var en = map[string]string{
 	"dialog.noTrash.title":           "Recycle bin not available",
 	"dialog.noTrash.message":         "\"%s\" cannot be moved to the recycle bin. Delete it permanently?",
 	"dialog.dontAsk":                 "Don't ask again",
+
+	"update.title":       "Updates",
+	"update.available":   "PixGo %s is available, you have %s. Open the download page?",
+	"update.upToDate":    "You have the latest version of PixGo (%s).",
+	"update.failed":      "Could not check for updates. Check the connection and try again.",
+	"update.rateLimited": "GitHub is limiting requests right now. Try again later.",
 
 	"save.title":        "Save as",
 	"save.type.jpeg":    "JPEG image",

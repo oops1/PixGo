@@ -63,6 +63,59 @@ func TestDefaultsRoundTrip(t *testing.T) {
 	}
 }
 
+func TestUpdateCheckIsOnByDefaultAndNeverRan(t *testing.T) {
+	d := Defaults()
+
+	if !d.Updates.Check || !d.Updates.LastCheck.IsZero() {
+		t.Fatalf("update defaults: %+v", d.Updates)
+	}
+}
+
+func TestSettingsWithoutUpdatesBlockKeepTheCheckOn(t *testing.T) {
+	got, err := Decode([]byte(`{"version":1,"theme":"dark"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !got.Updates.Check {
+		t.Fatal("a file written before the update check existed must not switch it off")
+	}
+}
+
+func TestUpdateCheckChoiceAndTimeSurviveARestart(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	st, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	when := time.Date(2026, 10, 12, 18, 30, 0, 0, time.UTC)
+	st.Update(func(s *Settings) { s.Updates = Updates{Check: false, LastCheck: when} })
+	if err := st.Flush(); err != nil {
+		t.Fatal(err)
+	}
+
+	again, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got := again.Get().Updates
+	if got.Check || !got.LastCheck.Equal(when) {
+		t.Fatalf("updates after restart: %+v", got)
+	}
+}
+
+func TestPartialUpdatesBlockKeepsTheOtherDefault(t *testing.T) {
+	got, err := Decode([]byte(`{"updates":{"lastCheck":"2026-10-12T18:30:00Z"}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !got.Updates.Check || got.Updates.LastCheck.IsZero() {
+		t.Fatalf("updates: %+v", got.Updates)
+	}
+}
+
 func TestUnknownKeysKept(t *testing.T) {
 	s, err := Decode([]byte(`{"version":1,"theme":"dark","futureKey":{"a":1}}`))
 	if err != nil {

@@ -55,6 +55,11 @@ type Slideshow struct {
 	Transition string `json:"transition"`
 }
 
+type Updates struct {
+	Check     bool      `json:"check"`
+	LastCheck time.Time `json:"lastCheck"`
+}
+
 type Settings struct {
 	Version int `json:"version"`
 
@@ -81,6 +86,7 @@ type Settings struct {
 
 	Formats   map[string]Format `json:"formats"`
 	Slideshow Slideshow         `json:"slideshow"`
+	Updates   Updates           `json:"updates"`
 
 	CacheMB       int `json:"cacheMB"`
 	MaxPixels     int `json:"maxPixels"`
@@ -109,6 +115,7 @@ func Defaults() Settings {
 
 		Formats:   formats,
 		Slideshow: Slideshow{Interval: 5, Loop: true, Shuffle: false, Transition: TransitionNone},
+		Updates:   Updates{Check: true},
 
 		CacheMB: DefaultCacheMB(), MaxPixels: 100, DecodeThreads: 0,
 		AnimationFPS: DefaultAnimationFPS(), ThumbCacheMB: 256,

@@ -29,6 +29,7 @@ const (
 	CmdReveal          commands.ID = "file.reveal"
 	CmdFavorite        commands.ID = "file.favorite"
 	CmdSettings        commands.ID = "app.settings"
+	CmdCheckUpdates    commands.ID = "app.checkUpdates"
 	CmdSlideshow       commands.ID = "slideshow.start"
 	CmdSlideshowToggle commands.ID = "slideshow.toggle"
 	CmdEscape          commands.ID = "app.escape"
@@ -71,6 +72,7 @@ var Specs = []Spec{
 	{CmdReveal, "cmd.reveal", "", []commands.Chord{commands.C(commands.Ctrl|commands.Shift, 'R')}},
 	{CmdFavorite, "cmd.favorite.add", "heart", []commands.Chord{commands.C(commands.Ctrl, 'D')}},
 	{CmdSettings, "cmd.settings", "settings", []commands.Chord{commands.C(commands.Ctrl, commands.KeyComma)}},
+	{CmdCheckUpdates, "cmd.checkUpdates", "", nil},
 	{CmdSlideshow, "cmd.slideshow", "play", []commands.Chord{commands.C(0, commands.KeyF5)}},
 	{CmdSlideshowToggle, "cmd.slideshowPause", "pause", []commands.Chord{commands.C(0, commands.KeySpace)}},
 	{CmdEscape, "dialog.cancel", "", []commands.Chord{commands.C(0, commands.KeyEscape)}},

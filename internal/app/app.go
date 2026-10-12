@@ -50,6 +50,7 @@ type App struct {
 	info         *infopanel.Panel
 	menu         *widget.PopupMenu
 	infoKey      string
+	upd          updateHooks
 }
 
 func New(eng *engine.Engine, opt Options) *App {
@@ -81,6 +82,7 @@ func New(eng *engine.Engine, opt Options) *App {
 		a.Root.Refresh()
 		a.refreshInfo()
 	}
+	a.initUpdates()
 	a.loadLists()
 	a.Ctl.OnLists = a.saveLists
 	a.registerCommands()

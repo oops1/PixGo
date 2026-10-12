@@ -39,6 +39,7 @@ func (a *App) registerCommands() {
 		CmdFullscreen:      a.toggleFullscreen,
 		CmdInfo:            a.toggleInfo,
 		CmdEscape:          a.escape,
+		CmdCheckUpdates:    a.CheckForUpdates,
 	}
 	enabled := map[commands.ID]func() bool{
 		CmdPrev:            a.CanPrev,

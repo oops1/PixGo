@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.1] - 2026-10-12
+
+### Added
+- Update check. At most once every three days PixGo reads the release feed of the project on GitHub and, when a newer version exists, offers to open its download page. The context menu has **Check for updates** to run the check on demand.
+- The automatic check can be turned off with `"updates": {"check": false}` in `settings.json`. Development builds never check by themselves.
+
 ## [0.2.0] - 2026-10-12
 
 First public release.

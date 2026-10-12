@@ -50,6 +50,7 @@ var ru = map[string]string{
 	"cmd.saveAs":          "Сохранить как…",
 	"cmd.reveal":          "Показать в папке",
 	"cmd.settings":        "Настройки",
+	"cmd.checkUpdates":    "Проверить обновления",
 	"cmd.slideshow":       "Слайд-шоу",
 	"cmd.slideshowPause":  "Пауза",
 	"cmd.slideshowResume": "Продолжить",
@@ -103,6 +104,12 @@ var ru = map[string]string{
 	"dialog.noTrash.title":           "Корзина недоступна",
 	"dialog.noTrash.message":         "Файл «%s» нельзя переместить в корзину. Удалить его навсегда?",
 	"dialog.dontAsk":                 "Больше не спрашивать",
+
+	"update.title":       "Обновления",
+	"update.available":   "Доступна версия PixGo %s, у вас %s. Открыть страницу загрузки?",
+	"update.upToDate":    "У вас последняя версия PixGo (%s).",
+	"update.failed":      "Не удалось проверить обновления. Проверьте подключение и повторите попытку.",
+	"update.rateLimited": "GitHub временно ограничивает запросы. Повторите попытку позже.",
 
 	"save.title":        "Сохранить как",
 	"save.type.jpeg":    "Изображение JPEG",
