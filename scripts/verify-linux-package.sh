@@ -9,13 +9,17 @@ root=$(cd "$(dirname "$0")/.." && pwd)
 cd "$root"
 
 fail=0
+failed=()
 check() {
     local label=$1
     shift
-    if "$@" >/dev/null 2>&1; then
+    local out
+    if out=$("$@" 2>&1); then
         echo "ok    $label"
     else
         echo "FAIL  $label"
+        echo "$out" | head -5 | sed 's/^/      /'
+        failed+=("$label: $(echo "$out" | head -2 | tr '\n' ' ')")
         fail=1
     fi
 }
@@ -80,6 +84,10 @@ fi
 
 if [ "$fail" -ne 0 ]; then
     echo "package verification failed"
+    if [ -n "${GITHUB_ACTIONS:-}" ]; then
+        msg=$(printf '%s%%0A' "${failed[@]}")
+        echo "::error title=package verification failed::$msg"
+    fi
     exit 1
 fi
 echo "package verified"

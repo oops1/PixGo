@@ -80,6 +80,9 @@ Check (-not (Test-Path "HKCU:\Software\Classes\$progId")) 'ProgID is not created
 Uninstall
 
 if ($failures.Count -gt 0) {
+    if ($env:GITHUB_ACTIONS) {
+        Write-Host "::error title=installer verification failed::$(($failures -join "%0A"))"
+    }
     Write-Host ""
     Write-Host "$($failures.Count) check(s) failed:"
     $failures | ForEach-Object { Write-Host "  - $_" }
