@@ -31,7 +31,14 @@ type fakeHost struct {
 	canPrev    bool
 	canNext    bool
 	ran        []commands.ID
+	page       Page
+	holes      []image.Rectangle
+
+	contentOverride widget.Widget
 }
+
+func (h *fakeHost) Page() Page                     { return h.page }
+func (h *fakeHost) HeaderHoles() []image.Rectangle { return h.holes }
 
 func newHost() *fakeHost {
 	h := &fakeHost{reg: commands.NewRegistry(), content: &fakeContent{has: true}, state: StateReady, canPrev: true, canNext: true}
@@ -53,11 +60,16 @@ func (h *fakeHost) Favorite() bool               { return false }
 func (h *fakeHost) InfoOpen() bool               { return h.info }
 func (h *fakeHost) CanPrev() bool                { return h.canPrev }
 func (h *fakeHost) CanNext() bool                { return h.canNext }
-func (h *fakeHost) Content() widget.Widget       { return h.content }
-func (h *fakeHost) Panel() widget.Widget         { return nil }
-func (h *fakeHost) Menu() widget.Widget          { return nil }
-func (h *fakeHost) AutoHide() bool               { return h.autoHide }
-func (h *fakeHost) Fullscreen() bool             { return h.fullscreen }
+func (h *fakeHost) Content() widget.Widget {
+	if h.contentOverride != nil {
+		return h.contentOverride
+	}
+	return h.content
+}
+func (h *fakeHost) Panel() widget.Widget { return nil }
+func (h *fakeHost) Menu() widget.Widget  { return nil }
+func (h *fakeHost) AutoHide() bool       { return h.autoHide }
+func (h *fakeHost) Fullscreen() bool     { return h.fullscreen }
 
 type timers struct {
 	pending []*timer

@@ -98,6 +98,38 @@ func (r *Root) drawTitle(c widget.DrawContext, l Layout) {
 	titleFont.DrawFit(c, r.host.Title(), TitleTextX-1, titleBaseline, limit-TitleTextX, t.TitleText)
 }
 
+func (r *Root) drawGalleryCaptions(c widget.DrawContext, l Layout) {
+	for _, z := range l.Zones {
+		if z.Kind != ZoneMin && z.Kind != ZoneMax && z.Kind != ZoneClose {
+			continue
+		}
+		t := r.Theme
+		cx, cy := (z.Rect.Min.X+z.Rect.Max.X)/2, (z.Rect.Min.Y+z.Rect.Max.Y)/2
+		col := t.TitleIcon
+		switch {
+		case r.pressing && r.pressed == z.Kind:
+			fill := t.CaptionPressed
+			if z.Kind == ZoneClose {
+				fill = gfxBlend(t.CloseHover, t.TitleBar, .8)
+				col = t.CloseText
+			}
+			c.FillRect(z.Rect.Min.X, z.Rect.Min.Y, z.Rect.Dx(), z.Rect.Dy(), fill)
+		case r.hover == z.Kind:
+			fill := t.CaptionHover
+			if z.Kind == ZoneClose {
+				fill = t.CloseHover
+				col = t.CloseText
+			}
+			c.FillRect(z.Rect.Min.X, z.Rect.Min.Y, z.Rect.Dx(), z.Rect.Dy(), fill)
+		}
+		name := map[ZoneKind]string{ZoneMin: "caption-min-sm", ZoneMax: "caption-max-sm", ZoneClose: "caption-close-sm"}[z.Kind]
+		if z.Kind == ZoneMax && l.Opt.Maximized {
+			name = "caption-restore"
+		}
+		drawIcon(c, name, cx, cy, col)
+	}
+}
+
 func (r *Root) hoverFill(c widget.DrawContext, z Zone, fill color.RGBA) {
 	gfx.FillRound(c, z.Rect, hoverRadius, fill)
 }

@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/oops1/headless-gui/v3/widget"
+
+	"github.com/oops1/PixGo/internal/commands"
 )
 
 const doubleClickInterval = 500 * time.Millisecond
@@ -108,6 +110,9 @@ func (r *Root) WantsCapture(e widget.MouseEvent) bool {
 
 func (r *Root) OnMouseButton(e widget.MouseEvent) bool {
 	if e.Button == widget.MouseButtonX1 || e.Button == widget.MouseButtonX2 {
+		if r.host.Page() == PageGallery {
+			return false
+		}
 		if e.Pressed {
 			k := ZonePrev
 			if e.Button == widget.MouseButtonX2 {
@@ -214,9 +219,37 @@ func (r *Root) activate(k ZoneKind) {
 	}
 }
 
+var galleryCommands = map[commands.ID]bool{
+	"app.escape":   true,
+	"view.gallery": true,
+	"file.open":    true,
+}
+
+func (r *Root) handleGalleryKey(e widget.KeyEvent) bool {
+	if h, ok := r.host.Content().(KeyHandler); ok && h.HandleKey(e) {
+		return true
+	}
+	ch, ok := ChordOf(e)
+	if !ok {
+		return false
+	}
+	cmd := r.host.Registry().ForChord(ch)
+	if cmd == nil || !galleryCommands[cmd.ID] {
+		return false
+	}
+	if cmd.IsEnabled() {
+		cmd.Run()
+		r.Refresh()
+	}
+	return true
+}
+
 func (r *Root) HandleKey(e widget.KeyEvent) bool {
 	if !e.Pressed {
 		return false
+	}
+	if r.host.Page() == PageGallery {
+		return r.handleGalleryKey(e)
 	}
 	ch, ok := ChordOf(e)
 	if !ok {

@@ -21,6 +21,7 @@ import (
 	"github.com/oops1/PixGo/internal/codec"
 	codecall "github.com/oops1/PixGo/internal/codec/all"
 	"github.com/oops1/PixGo/internal/fonts"
+	model "github.com/oops1/PixGo/internal/gallery"
 	"github.com/oops1/PixGo/internal/i18n"
 	"github.com/oops1/PixGo/internal/platform"
 	"github.com/oops1/PixGo/internal/settings"
@@ -48,6 +49,7 @@ func main() {
 	mockup := flag.Bool("mockup", false, "draw every control enabled")
 	showVersion := flag.Bool("version", false, "print the version and exit")
 	setDefault := flag.Bool("set-default", false, "make PixGo the default image viewer and exit")
+	galleryDir := flag.String("gallery", "", "open the gallery on this folder")
 	flag.Parse()
 	if *showVersion {
 		fmt.Println("PixGo", buildinfo.String())
@@ -124,14 +126,20 @@ func main() {
 		if len(paths) > 0 {
 			a.Ctl.Open(paths[0])
 		}
+		if *galleryDir != "" {
+			if abs, err := filepath.Abs(*galleryDir); err == nil {
+				a.OpenGalleryAt(model.Folder(abs), "")
+			}
+		}
 		waitForImage(eng, a)
+		waitForGallery(eng, a)
 		a.Root.Refresh()
 		eng.Flush()
 		if err := savePNG(*screenshot, eng.RenderOnce()); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
-		a.Ctl.Close()
+		a.Shutdown()
 		return
 	}
 
@@ -148,7 +156,7 @@ func main() {
 	a.Quit = func() {
 		saveWindowState(eng, win, a)
 		store.Flush()
-		a.Ctl.Close()
+		a.Shutdown()
 		win.Close()
 	}
 	win.SetOnCloseRequest(func() bool { a.Close(); return false })
@@ -166,13 +174,24 @@ func main() {
 		eng.Post(a.Close)
 	}()
 	eng.Post(func() {
+		opened := false
 		switch {
 		case len(paths) > 0:
 			a.OpenFiles(paths)
+			opened = true
 		case st.RestoreLastImage && ws.LastFile != "":
 			if _, err := os.Stat(ws.LastFile); err == nil {
 				a.OpenFiles([]string{ws.LastFile})
+				opened = true
 			}
+		}
+		switch {
+		case *galleryDir != "":
+			if abs, err := filepath.Abs(*galleryDir); err == nil {
+				a.OpenGalleryAt(model.Folder(abs), "")
+			}
+		case !opened:
+			a.OpenGallery()
 		}
 		a.Root.Refresh()
 		a.Root.Wake()
@@ -254,7 +273,7 @@ func waitForImage(eng *engine.Engine, a *app.App) {
 	deadline := time.Now().Add(10 * time.Second)
 	for time.Now().Before(deadline) {
 		eng.Flush()
-		if s := a.Ctl.Status(); s != app.StatusLoading {
+		if s := a.Ctl.Status(); s != app.StatusLoading && !a.GalleryBusy() {
 			break
 		}
 		time.Sleep(5 * time.Millisecond)
@@ -279,4 +298,23 @@ func savePNG(path string, img *image.RGBA) error {
 	}
 	defer f.Close()
 	return png.Encode(f, img)
+}
+
+func waitForGallery(eng *engine.Engine, a *app.App) {
+	if !a.GalleryOpen() {
+		return
+	}
+	deadline := time.Now().Add(15 * time.Second)
+	idle := 0
+	for time.Now().Before(deadline) && idle < 3 {
+		eng.Flush()
+		eng.RenderOnce()
+		if a.GalleryBusy() {
+			idle = 0
+		} else {
+			idle++
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	eng.Flush()
 }

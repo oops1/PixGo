@@ -9,6 +9,7 @@ PixGo follows the simplicity of the classic Windows Photo Viewer: the image fill
 - Opens a file and lets you page through the rest of its folder with preloading of the neighbours.
 - The mouse wheel pages through the folder; Ctrl + wheel zooms around the cursor. Fit to window or width, 100 %, pan by dragging, double click toggles fit and 100 %.
 - Opening an image from the file manager brings the running window to the front, even when it is minimized (Windows and X11).
+- Gallery (Ctrl+O): folders, favorites, recent files and drives on the side, a grid or list of thumbnails with a disk cache, address bar with history, filter by format.
 - Rotation and flips, EXIF orientation applied automatically.
 - JPEG, PNG, GIF (animated), BMP, TIFF, WebP, SVG, ICO and CUR; AVIF, JPEG XL, HEIC and RAW previews are planned.
 - Formats are detected by signature, not by extension.
@@ -75,6 +76,8 @@ go test ./...
 | `internal/imaging` | decode queue with priorities, cache, resolution pyramid |
 | `internal/render` | viewport renderer |
 | `internal/viewer` | folder, navigation, zoom and pan model, slideshow |
+| `internal/gallery` | gallery model: places, history, listing, thumbnail grid math |
+| `internal/thumbs` | thumbnail queue by visibility, memory and disk cache |
 | `internal/app` | controller and command table |
 | `internal/ui` | window, view widget, panels |
 | `internal/platform` | trash, themes, file associations, single instance, per-OS code |

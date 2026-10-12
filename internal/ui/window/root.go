@@ -90,7 +90,9 @@ func (r *Root) size() (int, int) {
 	return b.Dx(), b.Dy()
 }
 
-func (r *Root) autoHide() bool { return r.host.AutoHide() || r.host.Fullscreen() }
+func (r *Root) autoHide() bool {
+	return r.host.Page() == PageViewer && (r.host.AutoHide() || r.host.Fullscreen())
+}
 
 func (r *Root) overlayVisible() bool { return !r.autoHide() || r.shown }
 
@@ -99,9 +101,14 @@ func (r *Root) options() Options {
 		Fullscreen: r.host.Fullscreen(),
 		PanelOpen:  r.host.InfoOpen(),
 		Resizable:  r.ops.BeginResize != nil || r.ops.MoveBy != nil,
+		Page:       r.host.Page(),
 	}
 	if r.ops.Maximized != nil {
 		o.Maximized = r.ops.Maximized()
+	}
+	if o.Page == PageGallery {
+		o.Holes = r.host.HeaderHoles()
+		return o
 	}
 	if r.overlayVisible() {
 		o.Toolbar = true
@@ -253,6 +260,14 @@ func (r *Root) Draw(c widget.DrawContext) {
 	r.placeContent(l)
 	r.cacheZones(l)
 	r.drawBackdrop(c, l)
+	if l.Opt.Page == PageGallery {
+		gfx.DrawChildren(c, r)
+		r.drawGalleryCaptions(c, l)
+		r.drawToast(c, l)
+		r.drawTip(c)
+		r.drawFrame(c, l)
+		return
+	}
 	if !l.Title.Empty() {
 		r.drawTitle(c, l)
 	}

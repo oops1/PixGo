@@ -35,7 +35,10 @@ func (a *App) errorBox(message string) {
 }
 
 func (a *App) deleteCurrent(permanent bool) {
-	path, name := a.Ctl.Path(), a.Ctl.Name()
+	a.deletePath(a.Ctl.Path(), a.Ctl.Name(), permanent)
+}
+
+func (a *App) deletePath(path, name string, permanent bool) {
 	if path == "" {
 		return
 	}
@@ -66,6 +69,7 @@ func (a *App) removeFile(path string, permanent bool) {
 			return
 		}
 		a.Ctl.Removed(path)
+		a.fileRemoved(path)
 		if permanent {
 			a.Root.Toast(i18n.T("toast.deletedForever"))
 		} else {

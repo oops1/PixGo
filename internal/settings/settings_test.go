@@ -427,3 +427,32 @@ func TestWindowStatePathUsesStateDir(t *testing.T) {
 		t.Fatalf("%+v %v", got, err)
 	}
 }
+
+func TestGalleryDefaultsToGridWithMediumThumbnails(t *testing.T) {
+	d := Defaults()
+
+	if d.GalleryView != GalleryGrid || d.GalleryThumbSize != 128 {
+		t.Fatalf("gallery defaults: %q %d", d.GalleryView, d.GalleryThumbSize)
+	}
+}
+
+func TestGallerySettingsAreNormalized(t *testing.T) {
+	cases := map[string]struct {
+		view string
+		size int
+	}{
+		`{"galleryView":"list","galleryThumbSize":256}`: {GalleryList, 256},
+		`{"galleryView":"cloud","galleryThumbSize":10}`: {GalleryGrid, 128},
+		`{"galleryView":"grid","galleryThumbSize":900}`: {GalleryGrid, 128},
+		`{}`: {GalleryGrid, 128},
+	}
+	for in, want := range cases {
+		s, err := Decode([]byte(in))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if s.GalleryView != want.view || s.GalleryThumbSize != want.size {
+			t.Errorf("%s: view %q size %d, want %q %d", in, s.GalleryView, s.GalleryThumbSize, want.view, want.size)
+		}
+	}
+}

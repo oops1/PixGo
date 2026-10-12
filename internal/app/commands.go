@@ -1,12 +1,7 @@
 package app
 
 import (
-	"path/filepath"
-
-	"github.com/oops1/headless-gui/v3/widget"
-
 	"github.com/oops1/PixGo/internal/commands"
-	"github.com/oops1/PixGo/internal/i18n"
 )
 
 func (a *App) registerCommands() {
@@ -27,8 +22,9 @@ func (a *App) registerCommands() {
 		CmdFlipH:           a.Canvas.FlipH,
 		CmdFlipV:           a.Canvas.FlipV,
 		CmdFavorite:        func() { a.Ctl.ToggleFavorite() },
-		CmdOpen:            a.openDialog,
-		CmdGallery:         a.openDialog,
+		CmdOpen:            a.OpenGallery,
+		CmdGallery:         a.OpenGallery,
+		CmdBack:            a.OpenGallery,
 		CmdDelete:          func() { a.deleteCurrent(false) },
 		CmdDeletePermanent: func() { a.deleteCurrent(true) },
 		CmdCopy:            a.copyFile,
@@ -78,25 +74,4 @@ func (a *App) registerCommands() {
 			Enabled: enabled[s.ID],
 		})
 	}
-}
-
-func (a *App) openDialog() {
-	dir := ""
-	if p := a.Ctl.Path(); p != "" {
-		dir = filepath.Dir(p)
-	} else if a.Platform != nil && a.Platform.Folders != nil {
-		dir = a.Platform.Folders.Folders().Pictures
-	}
-	mb := widget.NewMessageBox(a.Eng)
-	mb.ShowOpenFile(widget.FileDialogOptions{
-		Title:    i18n.T("cmd.open"),
-		StartDir: dir,
-		Filters: []widget.FileFilter{
-			{Label: i18n.T("open.filter.images"), Exts: a.Ctl.env.Registry.Extensions()},
-		},
-	}, func(path string, ok bool) {
-		if ok {
-			a.OpenFiles([]string{path})
-		}
-	})
 }

@@ -559,3 +559,9 @@ func (s *Service) complete(j *job, t Thumb) {
 		sub.fn(j.key.Path)
 	}
 }
+
+func (s *Service) Pending() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return len(s.pending)
+}

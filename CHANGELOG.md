@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.3.0] - 2026-10-13
+
+### Added
+- Gallery. **Ctrl+O**, **Ctrl+G**, the gallery button of the toolbar and the back arrow of the viewer open a page that browses the folders for pictures; it replaces the Open dialog on every platform. PixGo with no file to show starts on it.
+- Side panel with All images, Recent and Favorites, the known folders of the system (Desktop, Pictures, Videos, Documents, Downloads) and the drives.
+- Grid of thumbnails with names. Subfolders come first and open with a double click. Thumbnails load in the background, the visible ones first, and are kept on disk, so a folder visited again fills at once.
+- Address bar with history (back, forward, up): click it to type a path or paste the path of a file, which opens it.
+- Filter by format, grid and list views, thumbnail sizes from 96 to 384 px; the choice is remembered.
+- Keyboard: arrows, Home, End, Page Up and Down, Enter, Delete, Ctrl+D for favorites, Alt+arrows for history, F5, Ctrl+L, typing a name selects it.
+- Context menu and the split **Open** button: open, open in a new window, show in folder, favorites, delete.
+- Command line: `pixgo -gallery FOLDER` opens the gallery on a folder.
+
+### Changed
+- The side buttons of the mouse page through the history of the gallery while it is open.
+
 ## [0.2.2] - 2026-10-12
 
 ### Changed

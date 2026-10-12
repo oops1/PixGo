@@ -2,6 +2,7 @@ package app
 
 import (
 	"errors"
+	"image"
 	"image/color"
 	"io/fs"
 	"sync"
@@ -51,6 +52,8 @@ type App struct {
 	menu         *widget.PopupMenu
 	infoKey      string
 	upd          updateHooks
+	page         window.Page
+	gal          *galleryState
 }
 
 func New(eng *engine.Engine, opt Options) *App {
@@ -144,7 +147,12 @@ func (a *App) CanNext() bool {
 	return n != nil && (n.Index() < n.Count()-1 || (n.Loop() && n.Count() > 1))
 }
 
-func (a *App) Content() widget.Widget { return a.Canvas }
+func (a *App) Content() widget.Widget {
+	if a.page == window.PageGallery && a.gal != nil {
+		return a.gal.page
+	}
+	return a.Canvas
+}
 
 func (a *App) AutoHide() bool { return a.Settings.Get().AutoHidePanels }
 
@@ -229,6 +237,7 @@ func (a *App) OpenFiles(paths []string) {
 	if len(paths) == 0 {
 		return
 	}
+	a.CloseGallery()
 	a.Ctl.Open(paths[0])
 	a.Root.Refresh()
 }
@@ -244,4 +253,13 @@ func (a *App) Close() {
 	if a.Quit != nil {
 		a.Quit()
 	}
+}
+
+func (a *App) Page() window.Page { return a.page }
+
+func (a *App) HeaderHoles() []image.Rectangle {
+	if a.page == window.PageGallery && a.gal != nil {
+		return a.gal.page.HeaderHoles()
+	}
+	return nil
 }

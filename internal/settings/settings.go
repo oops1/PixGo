@@ -40,6 +40,9 @@ const (
 
 	TransitionNone = "none"
 	TransitionFade = "fade"
+
+	GalleryGrid = "grid"
+	GalleryList = "list"
 )
 
 var OptionalFormats = []string{"avif", "jxl", "heic", "raw"}
@@ -82,6 +85,8 @@ type Settings struct {
 	LoopFolder           bool   `json:"loopFolder"`
 	Sort                 string `json:"sort"`
 	SortDesc             bool   `json:"sortDesc"`
+	GalleryView          string `json:"galleryView"`
+	GalleryThumbSize     int    `json:"galleryThumbSize"`
 	PixelGridAbove400    bool   `json:"pixelGridAbove400"`
 
 	Formats   map[string]Format `json:"formats"`
@@ -112,6 +117,7 @@ func Defaults() Settings {
 		InitialZoom: ZoomFit, Wheel: WheelNavigate, CtrlWheelZoom: true, SmoothZoom: false,
 		Preload: 1, ApplyExifOrientation: true, KeepZoomOnNavigate: false, LoopFolder: false,
 		Sort: SortName, SortDesc: false, PixelGridAbove400: true,
+		GalleryView: GalleryGrid, GalleryThumbSize: 128,
 
 		Formats:   formats,
 		Slideshow: Slideshow{Interval: 5, Loop: true, Shuffle: false, Transition: TransitionNone},
@@ -152,8 +158,10 @@ func (s *Settings) Normalize() {
 	oneOf(&s.InitialZoom, d.InitialZoom, ZoomFit, ZoomActual, ZoomWidth)
 	oneOf(&s.Wheel, d.Wheel, WheelZoom, WheelNavigate)
 	oneOf(&s.Sort, d.Sort, SortName, SortDate, SortSize)
+	oneOf(&s.GalleryView, d.GalleryView, GalleryGrid, GalleryList)
 	oneOf(&s.Slideshow.Transition, d.Slideshow.Transition, TransitionNone, TransitionFade)
 	clamp(&s.Preload, 0, 2, d.Preload)
+	clamp(&s.GalleryThumbSize, 96, 384, d.GalleryThumbSize)
 	clamp(&s.Slideshow.Interval, 1, 60, d.Slideshow.Interval)
 	clamp(&s.CacheMB, 256, 8192, d.CacheMB)
 	clamp(&s.MaxPixels, 4, 1000, d.MaxPixels)

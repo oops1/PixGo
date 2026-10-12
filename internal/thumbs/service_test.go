@@ -708,3 +708,18 @@ func TestGuardedAbandonsAndAccounts(t *testing.T) {
 		time.Sleep(time.Millisecond)
 	}
 }
+
+func TestPendingCountsQueuedRequestsUntilTheyFinish(t *testing.T) {
+	reg, _ := fakeRegistry()
+	hn := newHarness(t, reg, Options{})
+	p := hn.writeFake("one")[0]
+	done := false
+	hn.svc.Subscribe(func(string) { done = true })
+
+	hn.svc.Request(p, 128, true)
+	hn.waitUntil(func() bool { return done })
+
+	if n := hn.svc.Pending(); n != 0 {
+		t.Fatalf("pending after delivery = %d", n)
+	}
+}

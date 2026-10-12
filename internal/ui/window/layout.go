@@ -72,6 +72,11 @@ const (
 	PanelWidth      = 326
 	ExitSize        = 40
 	ExitMargin      = 8
+
+	GalleryHeaderHeight = 42
+	GalleryCaptionWidth = 34
+	GalleryCaptionClose = 20
+	GalleryCaptionStep  = 34
 )
 
 var toolbarOffsets = [...]struct {
@@ -98,6 +103,8 @@ type Options struct {
 	Toolbar    bool
 	Arrows     bool
 	Resizable  bool
+	Page       Page
+	Holes      []image.Rectangle
 }
 
 type Layout struct {
@@ -121,7 +128,60 @@ func (o Options) frame() int {
 	return FrameWidth
 }
 
+func computeGallery(w, h int, o Options) Layout {
+	l := Layout{W: w, H: h, Opt: o}
+	fr := o.frame()
+	l.Title = image.Rect(0, 0, w, GalleryHeaderHeight)
+	l.Content = image.Rect(fr, fr, w-fr, h-fr)
+	l.View = l.Content
+	var zones []Zone
+	if o.Resizable && !o.Maximized && !o.Fullscreen {
+		zones = append(zones, resizeZones(w, h)...)
+	}
+	for i, k := range []ZoneKind{ZoneMin, ZoneMax, ZoneClose} {
+		cx := w - GalleryCaptionClose - (2-i)*GalleryCaptionStep
+		zones = append(zones, Zone{k, image.Rect(cx-GalleryCaptionWidth/2, 0, cx-GalleryCaptionWidth/2+GalleryCaptionWidth, GalleryHeaderHeight)})
+	}
+	capLeft := w - GalleryCaptionClose - 2*GalleryCaptionStep - GalleryCaptionWidth/2
+	drag := []image.Rectangle{image.Rect(0, 0, capLeft, GalleryHeaderHeight)}
+	for _, hole := range o.Holes {
+		drag = subtract(drag, hole)
+	}
+	for _, rc := range drag {
+		zones = append(zones, Zone{ZoneDrag, rc})
+	}
+	l.Zones = zones
+	return l
+}
+
+func subtract(rects []image.Rectangle, hole image.Rectangle) []image.Rectangle {
+	var out []image.Rectangle
+	for _, r := range rects {
+		in := r.Intersect(hole)
+		if in.Empty() {
+			out = append(out, r)
+			continue
+		}
+		if in.Min.Y > r.Min.Y {
+			out = append(out, image.Rect(r.Min.X, r.Min.Y, r.Max.X, in.Min.Y))
+		}
+		if in.Max.Y < r.Max.Y {
+			out = append(out, image.Rect(r.Min.X, in.Max.Y, r.Max.X, r.Max.Y))
+		}
+		if in.Min.X > r.Min.X {
+			out = append(out, image.Rect(r.Min.X, in.Min.Y, in.Min.X, in.Max.Y))
+		}
+		if in.Max.X < r.Max.X {
+			out = append(out, image.Rect(in.Max.X, in.Min.Y, r.Max.X, in.Max.Y))
+		}
+	}
+	return out
+}
+
 func Compute(w, h int, o Options) Layout {
+	if o.Page == PageGallery {
+		return computeGallery(w, h, o)
+	}
 	l := Layout{W: w, H: h, Opt: o}
 	fr := o.frame()
 	titleH := TitleHeight

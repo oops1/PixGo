@@ -17,7 +17,16 @@ const (
 	StateFailed
 )
 
+type Page uint8
+
+const (
+	PageViewer Page = iota
+	PageGallery
+)
+
 type Host interface {
+	Page() Page
+	HeaderHoles() []image.Rectangle
 	Registry() *commands.Registry
 	Title() string
 	ZoomText() string

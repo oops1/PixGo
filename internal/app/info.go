@@ -11,10 +11,11 @@ import (
 	"github.com/oops1/PixGo/internal/i18n"
 	"github.com/oops1/PixGo/internal/meta"
 	"github.com/oops1/PixGo/internal/ui/infopanel"
+	uiwindow "github.com/oops1/PixGo/internal/ui/window"
 )
 
 func (a *App) Panel() widget.Widget {
-	if !a.infoOpen || a.info == nil {
+	if a.page == uiwindow.PageGallery || !a.infoOpen || a.info == nil {
 		return nil
 	}
 	return a.info
