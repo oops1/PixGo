@@ -1,0 +1,159 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+    branches: [main]
+    paths:
+      - "packaging/**"
+      - "scripts/**"
+      - "tools/**"
+      - "cmd/pixgo/winres/**"
+      - ".github/workflows/release.yml"
+  pull_request:
+    paths:
+      - "packaging/**"
+      - "scripts/**"
+      - "tools/**"
+      - "cmd/pixgo/winres/**"
+      - ".github/workflows/release.yml"
+
+permissions:
+  contents: read
+
+env:
+  CGO_ENABLED: "0"
+
+jobs:
+  meta:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      numeric: ${{ steps.v.outputs.numeric }}
+      release: ${{ steps.v.outputs.release }}
+    steps:
+      - id: v
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            version="${GITHUB_REF_NAME#v}"
+            release=true
+          else
+            version="0.0.0-ci.${GITHUB_RUN_NUMBER}"
+            release=false
+          fi
+          if [[ ! "$version" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+) ]]; then
+            echo "::error::tag ${GITHUB_REF_NAME} is not a version like v1.2.3"
+            exit 1
+          fi
+          numeric="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}.0"
+          {
+            echo "version=$version"
+            echo "numeric=$numeric"
+            echo "release=$release"
+          } >> "$GITHUB_OUTPUT"
+
+  windows:
+    needs: meta
+    runs-on: windows-latest
+    env:
+      VERSION: ${{ needs.meta.outputs.version }}
+      NUMERIC: ${{ needs.meta.outputs.numeric }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Resources
+        shell: bash
+        run: go run github.com/tc-hib/go-winres@v0.3.3 make --in cmd/pixgo/winres/winres.json --out cmd/pixgo/rsrc --arch amd64 --product-version "$NUMERIC" --file-version "$NUMERIC"
+      - name: Build
+        shell: bash
+        run: |
+          mkdir -p dist/windows
+          go build -trimpath -ldflags "-H windowsgui -s -w -X github.com/oops1/PixGo/internal/buildinfo.Version=${VERSION}" -o dist/windows/pixgo.exe ./cmd/pixgo
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --no-progress -y
+      - name: Installer
+        shell: pwsh
+        run: |
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=$env:VERSION" "/DNumericVersion=$env:NUMERIC" packaging\windows\pixgo.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify installer
+        shell: pwsh
+        run: ./scripts/verify-installer.ps1 -Installer "dist\pixgo-$env:VERSION-windows-x64-setup.exe" -NumericVersion $env:NUMERIC
+      - name: Portable archive
+        shell: pwsh
+        run: Compress-Archive -Path dist\windows\pixgo.exe, LICENSE, NOTICE, third_party -DestinationPath "dist\pixgo-$env:VERSION-windows-x64-portable.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            dist/pixgo-*-setup.exe
+            dist/pixgo-*-portable.zip
+
+  linux:
+    needs: meta
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+    env:
+      VERSION: ${{ needs.meta.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Package
+        run: bash scripts/package-linux.sh "$VERSION" ${{ matrix.arch }}
+      - name: Install validators
+        if: matrix.arch == 'amd64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y desktop-file-utils appstream xdg-utils
+      - name: Verify
+        if: matrix.arch == 'amd64'
+        env:
+          INSTALL_DEB: "1"
+        run: bash scripts/verify-linux-package.sh "$VERSION" amd64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-${{ matrix.arch }}
+          path: |
+            dist/*.tar.gz
+            dist/*.deb
+            dist/*.rpm
+
+  release:
+    if: needs.meta.outputs.release == 'true'
+    needs: [meta, windows, linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.meta.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        run: |
+          cd dist
+          sha256sum pixgo* > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+      - name: Notes
+        run: |
+          awk -v v="$VERSION" '/^## \[/{ p = index($0, "[" v "]") > 0; next } p' CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then echo "PixGo $VERSION" > notes.md; fi
+          cat notes.md
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          flags=()
+          case "$VERSION" in *-*) flags+=(--prerelease) ;; esac
+          gh release create "$GITHUB_REF_NAME" dist/* --title "PixGo $VERSION" --notes-file notes.md ${flags[@]+"${flags[@]}"}

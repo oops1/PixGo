@@ -8,8 +8,14 @@ type winAssociations struct{}
 
 func NewAssociations() Associations { return winAssociations{} }
 
-func (winAssociations) OpenDefaultsSettings() error {
+func openSettings(uri string) error {
 	return onSTA(func() error {
-		return windows.ShellExecute(0, utf16("open"), utf16("ms-settings:defaultapps"), nil, nil, windows.SW_SHOWNORMAL)
+		return windows.ShellExecute(0, utf16("open"), utf16(uri), nil, nil, windows.SW_SHOWNORMAL)
 	})
+}
+
+func (winAssociations) OpenDefaultsSettings() error { return openSettings("ms-settings:defaultapps") }
+
+func (winAssociations) SetAsDefault() error {
+	return openSettings("ms-settings:defaultapps?registeredAppUser=PixGo")
 }

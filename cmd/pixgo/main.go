@@ -16,6 +16,7 @@ import (
 	"github.com/oops1/headless-gui/v3/window"
 
 	"github.com/oops1/PixGo/internal/app"
+	"github.com/oops1/PixGo/internal/buildinfo"
 	"github.com/oops1/PixGo/internal/codec"
 	codecall "github.com/oops1/PixGo/internal/codec/all"
 	"github.com/oops1/PixGo/internal/fonts"
@@ -42,7 +43,20 @@ func main() {
 	lang := flag.String("lang", "", "interface language: ru or en")
 	newWindow := flag.Bool("new-window", false, "do not hand the files to a running window")
 	mockup := flag.Bool("mockup", false, "draw every control enabled")
+	showVersion := flag.Bool("version", false, "print the version and exit")
+	setDefault := flag.Bool("set-default", false, "make PixGo the default image viewer and exit")
 	flag.Parse()
+	if *showVersion {
+		fmt.Println("PixGo", buildinfo.String())
+		return
+	}
+	if *setDefault {
+		if err := platform.NewAssociations().SetAsDefault(); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
 	if *lang != "" {
 		i18n.SetLang(*lang)
 	}

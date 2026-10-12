@@ -11,8 +11,33 @@ PixGo follows the simplicity of the classic Windows Photo Viewer: the image fill
 - Rotation and flips, EXIF orientation applied automatically.
 - JPEG, PNG, GIF (animated), BMP, TIFF, WebP, SVG, ICO and CUR; AVIF, JPEG XL, HEIC and RAW previews are planned.
 - Formats are detected by signature, not by extension.
+- Information panel with EXIF, color profile and GPS.
 - Dark and light themes, English and Russian interface.
 - Decoding never blocks the interface; a corrupt file never crashes the program.
+
+## Install
+
+Download the files from the [releases page](https://github.com/oops1/PixGo/releases).
+
+### Windows
+
+Run `pixgo-<version>-windows-x64-setup.exe`. The installer works without administrator rights and has an optional step, **Associate PixGo with image files**. Windows keeps the choice of the default program for the user, so the last page offers to open *Default apps* where PixGo is preselected. A portable `.zip` is available too.
+
+### Linux
+
+| Package | Install |
+|---|---|
+| Debian, Ubuntu | `sudo dpkg -i pixgo_<version>_amd64.deb` |
+| Fedora, openSUSE | `sudo rpm -i pixgo-<version>-1.x86_64.rpm` |
+| Any distribution | unpack `pixgo-<version>-linux-<arch>.tar.gz` and run `./install.sh` (to `~/.local`, or `--prefix DIR`) |
+
+The packages register PixGo for image types, so it appears in *Open with*. To make it the default viewer run:
+
+```bash
+pixgo -set-default
+```
+
+It writes `~/.config/mimeapps.list`; no extra tools are needed. `install.sh --set-default` does the same during installation.
 
 ## Build
 
@@ -22,7 +47,7 @@ Go 1.27 or newer.
 CGO_ENABLED=0 go build -o pixgo ./cmd/pixgo
 ```
 
-On Windows add `-ldflags="-H windowsgui"` to build without a console window.
+On Windows add `-ldflags="-H windowsgui"` to build without a console window. Packages are built by `scripts/package-linux.sh` and `packaging/windows/pixgo.iss` (Inno Setup).
 
 ## Test
 
@@ -40,7 +65,8 @@ go test ./...
 | `internal/viewer` | folder, navigation, zoom and pan model, slideshow |
 | `internal/app` | controller and command table |
 | `internal/ui` | window, view widget, panels |
-| `internal/platform` | trash, clipboard, themes, single instance, per-OS code |
+| `internal/platform` | trash, themes, file associations, single instance, per-OS code |
+| `packaging` | Windows installer, Linux desktop file, icons |
 
 ## License
 

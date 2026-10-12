@@ -15,3 +15,5 @@ func (unsupportedClipboard) SetImage(img *image.NRGBA, png []byte) error { retur
 type unsupportedAssociations struct{}
 
 func (unsupportedAssociations) OpenDefaultsSettings() error { return ErrUnsupported }
+
+func (unsupportedAssociations) SetAsDefault() error { return ErrUnsupported }

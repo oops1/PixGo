@@ -1,0 +1,69 @@
+name: pixgo
+arch: ${ARCH}
+platform: linux
+version: ${VERSION}
+section: graphics
+priority: optional
+maintainer: oops1 <oops1.vc@gmail.com>
+vendor: oops1
+homepage: https://github.com/oops1/PixGo
+license: Apache-2.0
+description: |-
+  Fast and simple image viewer
+  PixGo opens JPEG, PNG, GIF, BMP, TIFF, WebP, SVG and ICO files, pages
+  through the folder, zooms, rotates and shows EXIF details. It is a single
+  static binary without runtime dependencies.
+contents:
+  - src: dist/linux/pkgroot/pixgo
+    dst: /usr/bin/pixgo
+    file_info:
+      mode: 0755
+  - src: packaging/linux/pixgo.desktop
+    dst: /usr/share/applications/pixgo.desktop
+    file_info:
+      mode: 0644
+  - src: packaging/linux/io.github.oops1.PixGo.metainfo.xml
+    dst: /usr/share/metainfo/io.github.oops1.PixGo.metainfo.xml
+    file_info:
+      mode: 0644
+  - src: packaging/icons/hicolor/16x16/apps/pixgo.png
+    dst: /usr/share/icons/hicolor/16x16/apps/pixgo.png
+    file_info:
+      mode: 0644
+  - src: packaging/icons/hicolor/32x32/apps/pixgo.png
+    dst: /usr/share/icons/hicolor/32x32/apps/pixgo.png
+    file_info:
+      mode: 0644
+  - src: packaging/icons/hicolor/48x48/apps/pixgo.png
+    dst: /usr/share/icons/hicolor/48x48/apps/pixgo.png
+    file_info:
+      mode: 0644
+  - src: packaging/icons/hicolor/64x64/apps/pixgo.png
+    dst: /usr/share/icons/hicolor/64x64/apps/pixgo.png
+    file_info:
+      mode: 0644
+  - src: packaging/icons/hicolor/128x128/apps/pixgo.png
+    dst: /usr/share/icons/hicolor/128x128/apps/pixgo.png
+    file_info:
+      mode: 0644
+  - src: packaging/icons/hicolor/256x256/apps/pixgo.png
+    dst: /usr/share/icons/hicolor/256x256/apps/pixgo.png
+    file_info:
+      mode: 0644
+  - src: LICENSE
+    dst: /usr/share/doc/pixgo/LICENSE
+    file_info:
+      mode: 0644
+  - src: NOTICE
+    dst: /usr/share/doc/pixgo/NOTICE
+    file_info:
+      mode: 0644
+  - src: third_party/*
+    dst: /usr/share/doc/pixgo/third_party/
+    file_info:
+      mode: 0644
+scripts:
+  postinstall: packaging/linux/postinst.sh
+  postremove: packaging/linux/postrm.sh
+rpm:
+  group: Applications/Multimedia

@@ -1,0 +1,44 @@
+{
+  "RT_GROUP_ICON": {
+    "APP": {
+      "0000": "../../../packaging/icons/pixgo.ico"
+    }
+  },
+  "RT_MANIFEST": {
+    "#1": {
+      "0409": {
+        "identity": {
+          "name": "oops1.PixGo",
+          "version": "0.0.0.0"
+        },
+        "description": "PixGo image viewer",
+        "minimum-os": "win10",
+        "execution-level": "as invoker",
+        "ui-access": false,
+        "long-path-aware": true
+      }
+    }
+  },
+  "RT_VERSION": {
+    "#1": {
+      "0000": {
+        "fixed": {
+          "file_version": "0.0.0.0",
+          "product_version": "0.0.0.0"
+        },
+        "info": {
+          "0409": {
+            "CompanyName": "oops1",
+            "FileDescription": "PixGo image viewer",
+            "FileVersion": "0.0.0",
+            "InternalName": "pixgo",
+            "LegalCopyright": "Copyright 2026 oops1",
+            "OriginalFilename": "pixgo.exe",
+            "ProductName": "PixGo",
+            "ProductVersion": "0.0.0"
+          }
+        }
+      }
+    }
+  }
+}

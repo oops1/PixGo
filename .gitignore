@@ -1,10 +1,12 @@
-bin/
 *.exe
 *.test
-/out/
-/docs/ARCHITECTURE.md
+/.idea/
 /ROADMAP.md
+/cmd/pixgo/*.syso
+/docs/ARCHITECTURE.md
+/docs/ENGINE_TASKS.md
 /go.work
 /go.work.sum
-/.idea/
-/docs/ENGINE_TASKS.md
+/out/
+bin/
+dist/

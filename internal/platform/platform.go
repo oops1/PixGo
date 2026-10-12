@@ -98,6 +98,7 @@ type Instance interface {
 
 type Associations interface {
 	OpenDefaultsSettings() error
+	SetAsDefault() error
 }
 
 type Paths interface {

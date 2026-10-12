@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.oops1.PixGo</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>Apache-2.0</project_license>
+  <name>PixGo</name>
+  <summary>Fast and simple image viewer</summary>
+  <summary xml:lang="ru">Быстрый и простой просмотр изображений</summary>
+  <description>
+    <p>PixGo opens an image and lets you page through the rest of its folder at once. It zooms around the cursor, rotates and flips, applies the EXIF orientation and shows camera details in a side panel.</p>
+    <p xml:lang="ru">PixGo открывает изображение и сразу позволяет листать остальные файлы папки. Масштабирование идёт вокруг курсора, поддерживаются повороты, отражения, EXIF-ориентация и панель со сведениями о снимке.</p>
+  </description>
+  <launchable type="desktop-id">pixgo.desktop</launchable>
+  <url type="homepage">https://github.com/oops1/PixGo</url>
+  <url type="bugtracker">https://github.com/oops1/PixGo/issues</url>
+  <developer id="io.github.oops1">
+    <name>oops1</name>
+  </developer>
+  <provides>
+    <binary>pixgo</binary>
+  </provides>
+  <categories>
+    <category>Graphics</category>
+    <category>Viewer</category>
+  </categories>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.2.0" date="2026-10-12"/>
+  </releases>
+</component>
