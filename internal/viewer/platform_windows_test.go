@@ -3,6 +3,7 @@
 package viewer
 
 import (
+	"os"
 	"path/filepath"
 	"slices"
 	"syscall"
@@ -66,5 +67,29 @@ func TestFolderLookupIsCaseInsensitiveOnWindows(t *testing.T) {
 	}
 	if f.IndexOf(filepath.Join(dir, "PHOTO.jpg")) != 0 {
 		t.Fatal("IndexOf must ignore case on Windows")
+	}
+}
+
+func TestIsHiddenReadsWindowsAttributes(t *testing.T) {
+	dir := t.TempDir()
+	cases := []struct {
+		name  string
+		attrs uint32
+		want  bool
+	}{
+		{"visible.jpg", syscall.FILE_ATTRIBUTE_NORMAL, false},
+		{"hidden.jpg", syscall.FILE_ATTRIBUTE_HIDDEN, true},
+		{"system.jpg", syscall.FILE_ATTRIBUTE_SYSTEM, true},
+	}
+	for _, tc := range cases {
+		path := writeFile(t, dir, tc.name, 1, time.Time{})
+		setAttributes(t, path, tc.attrs)
+		info, err := os.Stat(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := IsHidden(tc.name, info); got != tc.want {
+			t.Errorf("IsHidden(%q) = %v, want %v", tc.name, got, tc.want)
+		}
 	}
 }
