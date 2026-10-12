@@ -14,4 +14,12 @@ var (
 	procSHCreateItemFromParsingName = modshell32.NewProc("SHCreateItemFromParsingName")
 	procSystemParametersInfoW       = moduser32.NewProc("SystemParametersInfoW")
 	procSHFileOperationW            = modshell32.NewProc("SHFileOperationW")
+
+	procGetWindowRect            = moduser32.NewProc("GetWindowRect")
+	procGetWindow                = moduser32.NewProc("GetWindow")
+	procIsIconic                 = moduser32.NewProc("IsIconic")
+	procShowWindow               = moduser32.NewProc("ShowWindow")
+	procBringWindowToTop         = moduser32.NewProc("BringWindowToTop")
+	procSetForegroundWindow      = moduser32.NewProc("SetForegroundWindow")
+	procAllowSetForegroundWindow = moduser32.NewProc("AllowSetForegroundWindow")
 )

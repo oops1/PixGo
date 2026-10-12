@@ -7,7 +7,8 @@ PixGo follows the simplicity of the classic Windows Photo Viewer: the image fill
 ## Features
 
 - Opens a file and lets you page through the rest of its folder with preloading of the neighbours.
-- Zoom around the cursor, fit to window or width, 100 %, pan by dragging, double click toggles fit and 100 %.
+- The mouse wheel pages through the folder; Ctrl + wheel zooms around the cursor. Fit to window or width, 100 %, pan by dragging, double click toggles fit and 100 %.
+- Opening an image from the file manager brings the running window to the front, even when it is minimized (Windows and X11).
 - Rotation and flips, EXIF orientation applied automatically.
 - JPEG, PNG, GIF (animated), BMP, TIFF, WebP, SVG, ICO and CUR; AVIF, JPEG XL, HEIC and RAW previews are planned.
 - Formats are detected by signature, not by extension.

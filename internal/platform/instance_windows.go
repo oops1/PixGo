@@ -171,9 +171,11 @@ func (s *instanceSys) send(name string, args []string) error {
 		procWaitNamedPipeW.Call(uintptr(unsafe.Pointer(utf16(path))), 250)
 	}
 	defer windows.CloseHandle(h)
-	if err := checkServer(h, sid); err != nil {
+	server, err := checkServer(h, sid)
+	if err != nil {
 		return err
 	}
+	allowForeground(server)
 	op, err := newIOOp()
 	if err != nil {
 		return err
@@ -186,29 +188,29 @@ func (s *instanceSys) send(name string, args []string) error {
 	return readAck(c)
 }
 
-func checkServer(h windows.Handle, me *windows.SID) error {
+func checkServer(h windows.Handle, me *windows.SID) (uint32, error) {
 	var pid uint32
 	if r, _, e := procGetNamedPipeServerProcessId.Call(uintptr(h), uintptr(unsafe.Pointer(&pid))); r == 0 {
-		return fmt.Errorf("platform: pipe server: %w", e)
+		return 0, fmt.Errorf("platform: pipe server: %w", e)
 	}
 	ph, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, pid)
 	if err != nil {
-		return fmt.Errorf("platform: pipe server: %w", err)
+		return 0, fmt.Errorf("platform: pipe server: %w", err)
 	}
 	defer windows.CloseHandle(ph)
 	var tok windows.Token
 	if err := windows.OpenProcessToken(ph, windows.TOKEN_QUERY, &tok); err != nil {
-		return fmt.Errorf("platform: pipe server: %w", err)
+		return 0, fmt.Errorf("platform: pipe server: %w", err)
 	}
 	defer tok.Close()
 	tu, err := tok.GetTokenUser()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if !windows.EqualSid(tu.User.Sid, me) {
-		return fmt.Errorf("platform: pipe served by another user")
+		return 0, fmt.Errorf("platform: pipe served by another user")
 	}
-	return nil
+	return pid, nil
 }
 
 type ioOp struct {

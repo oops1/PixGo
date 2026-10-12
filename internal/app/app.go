@@ -233,6 +233,13 @@ func (a *App) OpenFiles(paths []string) {
 	a.Root.Refresh()
 }
 
+func (a *App) Handoff(paths []string) {
+	a.OpenFiles(paths)
+	if a.ops.Raise != nil {
+		a.ops.Raise()
+	}
+}
+
 func (a *App) Close() {
 	if a.Quit != nil {
 		a.Quit()

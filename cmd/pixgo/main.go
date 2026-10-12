@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"image"
@@ -155,7 +156,7 @@ func main() {
 	stopTheme := plat.Theme.Watch(a.SystemThemeChanged)
 	defer stopTheme()
 	if primary {
-		plat.Instance.Listen(func(args []string) { eng.Post(func() { a.OpenFiles(absPaths(args)) }) })
+		plat.Instance.Listen(func(args []string) { eng.Post(func() { a.Handoff(absPaths(args)) }) })
 		defer plat.Instance.Close()
 	}
 	sig := make(chan os.Signal, 1)
@@ -210,6 +211,11 @@ func windowOps(eng *engine.Engine, win *window.Window, a *app.App) uiwin.WindowO
 		BeginMove:     func() bool { return !win.Native().IsMaximized() && win.BeginMove() },
 		BeginResize:   func(edges int) bool { return !win.Native().IsMaximized() && win.BeginResize(edges) },
 		SetFullscreen: win.SetFullscreen,
+		Raise: func() {
+			if err := platform.RaiseWindow(win.Native()); err != nil && !errors.Is(err, platform.ErrUnsupported) {
+				slog.Warn("raise window", "err", err)
+			}
+		},
 		Maximize: func(on bool) {
 			n := win.Native()
 			if on {

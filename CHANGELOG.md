@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.2] - 2026-10-12
+
+### Changed
+- The mouse wheel now pages through the images of the folder. Ctrl + wheel zooms around the cursor. Settings saved by earlier versions move to the new behavior once; `"wheel": "zoom"` in `settings.json` brings the old behavior back.
+
+### Fixed
+- Opening an image from the file manager while PixGo is covered by other windows or minimized now brings the window to the front. On Wayland the compositor decides, so the window may only be highlighted there.
+
 ## [0.2.1] - 2026-10-12
 
 ### Added
