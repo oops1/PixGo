@@ -13,7 +13,7 @@ import (
 	"github.com/oops1/PixGo/internal/fsutil"
 )
 
-const Current = 1
+const Current = 2
 
 const (
 	ThemeSystem = "system"
@@ -109,7 +109,7 @@ func Defaults() Settings {
 		RememberWindow: true, RestoreLastImage: true, ConfirmDelete: true, AutoHidePanels: true,
 		TransparentBackground: BackgroundChecker, SingleWindow: true,
 
-		InitialZoom: ZoomFit, Wheel: WheelZoom, CtrlWheelZoom: true, SmoothZoom: false,
+		InitialZoom: ZoomFit, Wheel: WheelNavigate, CtrlWheelZoom: true, SmoothZoom: false,
 		Preload: 1, ApplyExifOrientation: true, KeepZoomOnNavigate: false, LoopFolder: false,
 		Sort: SortName, SortDesc: false, PixelGridAbove400: true,
 
@@ -211,7 +211,13 @@ func Decode(data []byte) (Settings, error) {
 	return s, nil
 }
 
-var migrations = map[int]func(s *Settings, raw map[string]json.RawMessage){}
+var migrations = map[int]func(s *Settings, raw map[string]json.RawMessage){
+	1: func(s *Settings, raw map[string]json.RawMessage) {
+		if s.Wheel == WheelZoom {
+			s.Wheel = WheelNavigate
+		}
+	},
+}
 
 func migrate(s *Settings, raw map[string]json.RawMessage) {
 	if s.Version > Current {

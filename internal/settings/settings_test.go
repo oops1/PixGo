@@ -17,7 +17,7 @@ func TestDefaultsMatchSpec(t *testing.T) {
 		d.TransparentBackground != "checker" || !d.SingleWindow {
 		t.Fatalf("general defaults: %+v", d)
 	}
-	if d.InitialZoom != "fit" || d.Wheel != "zoom" || !d.CtrlWheelZoom || d.SmoothZoom || d.Preload != 1 ||
+	if d.InitialZoom != "fit" || d.Wheel != "navigate" || !d.CtrlWheelZoom || d.SmoothZoom || d.Preload != 1 ||
 		!d.ApplyExifOrientation || d.KeepZoomOnNavigate || d.LoopFolder || d.Sort != "name" || d.SortDesc ||
 		!d.PixelGridAbove400 {
 		t.Fatalf("view defaults: %+v", d)
@@ -326,6 +326,50 @@ func TestMigrateHook(t *testing.T) {
 	}
 	if _, err := Decode([]byte(`{"version":1}`)); err != nil || calls != 1 {
 		t.Fatalf("current version migrated: calls=%d", calls)
+	}
+}
+
+func TestWheelPagesThroughImagesByDefault(t *testing.T) {
+	s, err := Decode([]byte(`{"theme":"dark"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if s.Wheel != WheelNavigate || !s.CtrlWheelZoom {
+		t.Fatalf("wheel = %q, ctrl zoom = %v", s.Wheel, s.CtrlWheelZoom)
+	}
+}
+
+func TestOldDefaultWheelMovesToPaging(t *testing.T) {
+	s, err := Decode([]byte(`{"version":1,"wheel":"zoom","theme":"dark"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if s.Wheel != WheelNavigate || s.Theme != ThemeDark || s.Version != Current {
+		t.Fatalf("migrated settings: %+v", s)
+	}
+}
+
+func TestWheelChoiceMadeAfterTheMigrationIsKept(t *testing.T) {
+	s, err := Decode([]byte(`{"version":2,"wheel":"zoom"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if s.Wheel != WheelZoom {
+		t.Fatalf("wheel = %q, a current file must keep its choice", s.Wheel)
+	}
+}
+
+func TestPagingWheelStaysAfterTheMigration(t *testing.T) {
+	s, err := Decode([]byte(`{"version":1,"wheel":"navigate"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if s.Wheel != WheelNavigate {
+		t.Fatalf("wheel = %q", s.Wheel)
 	}
 }
 
