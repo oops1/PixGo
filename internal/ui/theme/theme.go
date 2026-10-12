@@ -50,6 +50,14 @@ type Theme struct {
 	Selection       color.RGBA
 	SelectionBorder color.RGBA
 	Focus           color.RGBA
+	GalleryPage     color.RGBA
+	GalleryNav      color.RGBA
+	GalleryHeader   color.RGBA
+	GalleryField    color.RGBA
+	GalleryViews    color.RGBA
+	GalleryRule     color.RGBA
+	GalleryOpen     color.RGBA
+	GalleryMore     color.RGBA
 
 	Text          color.RGBA
 	SecondaryText color.RGBA
@@ -103,7 +111,8 @@ func Dark() *Theme {
 		PanelLabel: rgb(0xc9cfd4), PanelValue: rgb(0xffffff), Link: rgb(0x73d0ee),
 
 		Page: rgb(0x1d232a), Nav: rgb(0x1a2027), NavSelected: rgb(0x28323b), Status: rgb(0x21272f),
-		GalleryTile: rgb(0x313d46), Selection: rgb(0x1b2d41), SelectionBorder: rgb(0x1486e8), Focus: rgb(0xe6e6ea),
+		GalleryTile: rgb(0x313d46), Selection: rgb(0x172a3d), SelectionBorder: rgb(0x1486e8), Focus: rgb(0xe6e6ea),
+		GalleryPage: rgb(0x1a2127), GalleryNav: rgb(0x1d232a), GalleryHeader: rgb(0x161c22), GalleryField: rgb(0x1c2329), GalleryViews: rgb(0x252f37), GalleryRule: rgb(0x181e24), GalleryOpen: rgb(0x1184fc), GalleryMore: rgb(0x016def),
 
 		Text: rgb(0xffffff), SecondaryText: rgb(0xcdd3d8), Disabled: rgb(0x6f757b),
 		Hover: rgb(0x2a3139), Pressed: rgb(0x242b32), Accent: rgb(0x0b78f8), AccentText: rgb(0xffffff),
@@ -137,6 +146,7 @@ func Light() *Theme {
 
 		Page: rgb(0xf3f3f3), Nav: rgb(0xeef0f2), NavSelected: rgb(0xe1e5ea), Status: rgb(0xf7f8f9),
 		GalleryTile: rgb(0xd0d5da), Selection: rgb(0xdcebfb), SelectionBorder: rgb(0x0078d4), Focus: rgb(0x1a1a1a),
+		GalleryPage: rgb(0xf3f3f3), GalleryNav: rgb(0xeef0f2), GalleryHeader: rgb(0xfbfbfc), GalleryField: rgb(0xffffff), GalleryViews: rgb(0xe9ecef), GalleryRule: rgb(0xe1e4e8), GalleryOpen: rgb(0x0078d4), GalleryMore: rgb(0x005fb8),
 
 		Text: rgb(0x1a1a1a), SecondaryText: rgb(0x5c5c5c), Disabled: rgb(0xa0a0a0),
 		Hover: rgb(0xe9ecef), Pressed: rgb(0xdee2e6), Accent: rgb(0x0078d4), AccentText: rgb(0xffffff),
@@ -165,6 +175,9 @@ func HighContrast() *Theme {
 	t.Panel, t.PanelCard, t.PanelCardBorder, t.PanelLabel, t.PanelValue, t.Link = b, b, w, w, w, y
 	t.Page, t.Nav, t.NavSelected, t.Status = b, b, hv, b
 	t.GalleryTile, t.Selection, t.SelectionBorder, t.Focus = w, b, c, y
+	t.GalleryPage, t.GalleryNav = b, b
+	t.GalleryHeader, t.GalleryField, t.GalleryViews, t.GalleryRule = b, b, b, w
+	t.GalleryOpen, t.GalleryMore = c, c
 	t.Text, t.SecondaryText, t.Disabled = w, w, g
 	t.Hover, t.Pressed, t.Accent, t.AccentText = hv, hv, c, b
 	t.Menu, t.MenuBorder, t.MenuHover = b, w, hv
@@ -193,6 +206,8 @@ func (t *Theme) WithAccent(c color.RGBA) *Theme {
 	n.AccentText = readableOn(c)
 	n.SelectionBorder = c
 	n.Selection = mix(t.Page, c, 0.12)
+	n.GalleryOpen = c
+	n.GalleryMore = mix(c, rgb(0), 0.1)
 	return &n
 }
 
