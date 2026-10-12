@@ -27,7 +27,16 @@ jobs:
       - name: build
         run: go build ./...
       - name: test
-        run: go test ./...
+        shell: bash
+        run: |
+          set +e
+          go test ./... 2>&1 | tee test.log
+          code=${PIPESTATUS[0]}
+          if [ "$code" -ne 0 ]; then
+            msg=$(grep -E '^(--- FAIL|FAIL|panic:)|_test\.go:[0-9]+:' test.log | head -60 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+            echo "::error title=go test failed::${msg}"
+          fi
+          exit "$code"
 
   cross:
     runs-on: ubuntu-latest
