@@ -12,6 +12,7 @@ import (
 	codecall "github.com/oops1/PixGo/internal/codec/all"
 
 	"github.com/oops1/PixGo/internal/codec"
+	"github.com/oops1/PixGo/internal/i18n"
 	"github.com/oops1/PixGo/internal/settings"
 	"github.com/oops1/PixGo/internal/testutil"
 )
@@ -36,6 +37,7 @@ func writeBigJPEG(t *testing.T, path string) {
 
 func goldenApp(t *testing.T, w, h int, mutate func(*settings.Settings)) (*App, *harness) {
 	t.Helper()
+	i18n.SetLang("ru")
 	t.Setenv("PIXGO_CONFIG_DIR", t.TempDir())
 	t.Setenv("PIXGO_STATE_DIR", t.TempDir())
 	t.Setenv("PIXGO_CACHE_DIR", t.TempDir())

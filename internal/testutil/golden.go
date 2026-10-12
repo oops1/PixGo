@@ -18,7 +18,26 @@ import (
 
 func RefDir() string {
 	_, file, _, _ := runtime.Caller(0)
-	return filepath.Join(filepath.Dir(file), "..", "..", "docs", "spec")
+	dir := filepath.Join(filepath.Dir(file), "..", "..", "docs", "spec")
+	if _, err := os.Stat(dir); err == nil {
+		return dir
+	}
+	if wd, err := os.Getwd(); err == nil {
+		for d := wd; ; d = filepath.Dir(d) {
+			if cand := filepath.Join(d, "docs", "spec"); dirExists(cand) {
+				return cand
+			}
+			if filepath.Dir(d) == d {
+				break
+			}
+		}
+	}
+	return dir
+}
+
+func dirExists(p string) bool {
+	fi, err := os.Stat(p)
+	return err == nil && fi.IsDir()
 }
 
 func LoadRef(name string) (*image.RGBA, error) { return LoadPNG(filepath.Join(RefDir(), name)) }

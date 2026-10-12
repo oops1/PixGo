@@ -17,6 +17,7 @@ import (
 	"github.com/oops1/PixGo/internal/codec"
 	"github.com/oops1/PixGo/internal/codec/gif"
 	pngcodec "github.com/oops1/PixGo/internal/codec/png"
+	"github.com/oops1/PixGo/internal/i18n"
 	"github.com/oops1/PixGo/internal/settings"
 	"github.com/oops1/PixGo/internal/ui/view"
 )
@@ -40,6 +41,7 @@ type fakeTimer struct {
 
 func newHarness(t *testing.T, mutate func(*settings.Settings)) *harness {
 	t.Helper()
+	i18n.SetLang("ru")
 	st := settings.Defaults()
 	if mutate != nil {
 		mutate(&st)
