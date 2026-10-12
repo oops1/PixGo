@@ -5,6 +5,7 @@
 /cmd/pixgo/*.syso
 /docs/ARCHITECTURE.md
 /docs/ENGINE_TASKS.md
+/docs/spec/
 /go.work
 /go.work.sum
 /out/

@@ -18,13 +18,13 @@ import (
 
 func RefDir() string {
 	_, file, _, _ := runtime.Caller(0)
-	dir := filepath.Join(filepath.Dir(file), "..", "..", "docs", "spec")
+	dir := filepath.Join(filepath.Dir(file), "testdata")
 	if _, err := os.Stat(dir); err == nil {
 		return dir
 	}
 	if wd, err := os.Getwd(); err == nil {
 		for d := wd; ; d = filepath.Dir(d) {
-			if cand := filepath.Join(d, "docs", "spec"); dirExists(cand) {
+			if cand := filepath.Join(d, "internal", "testutil", "testdata"); dirExists(cand) {
 				return cand
 			}
 			if filepath.Dir(d) == d {
