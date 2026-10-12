@@ -25,14 +25,16 @@ check() {
 }
 
 tarball=dist/pixgo-${version}-linux-${arch}.tar.gz
-deb=dist/pixgo_${version}_${arch}.deb
+deb=$(ls dist/pixgo_*_"${arch}".deb 2>/dev/null | head -1)
+deb=${deb:-dist/pixgo_missing_${arch}.deb}
+deb_version=${version/-/\~}
 
 check "desktop file is valid" desktop-file-validate packaging/linux/pixgo.desktop
 check "AppStream metadata is valid" appstreamcli validate --no-net packaging/linux/io.github.oops1.PixGo.metainfo.xml
 check "tarball exists" test -f "$tarball"
 check "deb exists" test -f "$deb"
 check "deb package name" bash -c "[ \"\$(dpkg-deb -f '$deb' Package)\" = pixgo ]"
-check "deb version" bash -c "[ \"\$(dpkg-deb -f '$deb' Version)\" = '$version' ]"
+check "deb version" bash -c "[ \"\$(dpkg-deb -f '$deb' Version)\" = '$deb_version' ]"
 check "deb ships the binary" bash -c "dpkg-deb -c '$deb' | grep -q ' ./usr/bin/pixgo\$'"
 check "deb ships the desktop file" bash -c "dpkg-deb -c '$deb' | grep -q ' ./usr/share/applications/pixgo.desktop\$'"
 check "deb ships the license" bash -c "dpkg-deb -c '$deb' | grep -q ' ./usr/share/doc/pixgo/LICENSE\$'"

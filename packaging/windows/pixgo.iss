@@ -98,6 +98,7 @@ Root: HKA; Subkey: "Software\Classes\.webp\OpenWithProgids"; ValueType: string; 
 Root: HKA; Subkey: "Software\Classes\Applications\{#AppExe}"; ValueType: string; ValueName: "FriendlyAppName"; ValueData: "{#AppName}"; Flags: uninsdeletekey; Tasks: assoc
 Root: HKA; Subkey: "Software\Classes\Applications\{#AppExe}\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#AppExe}"" ""%1"""; Tasks: assoc
 
+Root: HKA; Subkey: "Software\PixGo"; Flags: uninsdeletekeyifempty; Tasks: assoc
 Root: HKA; Subkey: "Software\PixGo\Capabilities"; ValueType: string; ValueName: "ApplicationName"; ValueData: "{#AppName}"; Flags: uninsdeletekey; Tasks: assoc
 Root: HKA; Subkey: "Software\PixGo\Capabilities"; ValueType: string; ValueName: "ApplicationDescription"; ValueData: "{cm:AppDescription}"; Tasks: assoc
 Root: HKA; Subkey: "Software\PixGo\Capabilities"; ValueType: string; ValueName: "ApplicationIcon"; ValueData: "{app}\pixgo.ico,0"; Tasks: assoc
