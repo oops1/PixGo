@@ -15,6 +15,7 @@ import (
 
 	"github.com/oops1/headless-gui/v3/widget"
 
+	"github.com/oops1/PixGo/internal/testutil"
 	"github.com/oops1/PixGo/internal/ui/gfx"
 )
 
@@ -49,17 +50,10 @@ func spec(t *testing.T, file string) *image.RGBA {
 	if m, ok := specs[file]; ok {
 		return m
 	}
-	f, err := os.Open(filepath.Join("..", "..", "..", "docs", "spec", file))
-	if err != nil {
-		t.Skip("mockup missing:", err)
-	}
-	defer f.Close()
-	src, err := png.Decode(f)
+	m, err := testutil.LoadRef(file)
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := image.NewRGBA(src.Bounds())
-	draw.Draw(m, m.Bounds(), src, src.Bounds().Min, draw.Src)
 	specs[file] = m
 	return m
 }

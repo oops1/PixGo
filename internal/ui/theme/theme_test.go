@@ -3,12 +3,10 @@ package theme
 import (
 	"image"
 	"image/color"
-	"image/draw"
-	"image/png"
-	"os"
-	"path/filepath"
 	"reflect"
 	"testing"
+
+	"github.com/oops1/PixGo/internal/testutil"
 )
 
 func eachToken(t *Theme, f func(name string, c color.RGBA)) {
@@ -160,18 +158,11 @@ func TestWithAccent(t *testing.T) {
 
 func loadMockup(t *testing.T, name string) *image.RGBA {
 	t.Helper()
-	f, err := os.Open(filepath.Join("..", "..", "..", "docs", "spec", name))
+	img, err := testutil.LoadRef(name)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer f.Close()
-	src, err := png.Decode(f)
-	if err != nil {
-		t.Fatal(err)
-	}
-	out := image.NewRGBA(src.Bounds())
-	draw.Draw(out, out.Bounds(), src, src.Bounds().Min, draw.Src)
-	return out
+	return img
 }
 
 func average(img *image.RGBA, r image.Rectangle) color.RGBA {
