@@ -96,3 +96,34 @@ func TestCreationTimeIsRecentForNewFile(t *testing.T) {
 		t.Error("creation time reported for a missing file")
 	}
 }
+
+func TestWriteAtomicSurvivesConcurrentReaders(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "state.json")
+	if err := WriteAtomic(p, []byte("0"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	stop := make(chan struct{})
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+				os.ReadFile(p)
+			}
+		}
+	}()
+	defer func() { close(stop); <-done }()
+	for i := 1; i <= 60; i++ {
+		want := []byte(strings.Repeat("x", i))
+		if err := WriteAtomic(p, want, 0o644); err != nil {
+			t.Fatalf("write %d failed: %v", i, err)
+		}
+	}
+	got, err := os.ReadFile(p)
+	if err != nil || len(got) != 60 {
+		t.Fatalf("final content length %d err %v", len(got), err)
+	}
+}

@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 )
 
 const appWindows = "PixGo"
@@ -48,7 +49,7 @@ func WriteAtomic(path string, data []byte, perm os.FileMode) error {
 			return err
 		}
 	}
-	if err = os.Rename(tmp, path); err != nil {
+	if err = renameWithRetry(tmp, path); err != nil {
 		return err
 	}
 	ok = true
@@ -126,4 +127,23 @@ func absEnv(name string) string {
 		return d
 	}
 	return ""
+}
+
+const (
+	renameAttempts = 40
+	renameBackoff  = 10 * time.Millisecond
+)
+
+func renameWithRetry(from, to string) error {
+	err := os.Rename(from, to)
+	if err == nil || runtime.GOOS != "windows" {
+		return err
+	}
+	for i := 1; i < renameAttempts; i++ {
+		time.Sleep(renameBackoff)
+		if err = os.Rename(from, to); err == nil {
+			return nil
+		}
+	}
+	return err
 }

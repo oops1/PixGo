@@ -31,6 +31,8 @@ func (a *App) loadLists() {
 func (a *App) saveLists() {
 	fav, rec := a.Ctl.Favorites, a.Ctl.Recent
 	a.Ctl.Async("lists", func(ctx contextT) (any, error) {
+		a.listsMu.Lock()
+		defer a.listsMu.Unlock()
 		if err := os.MkdirAll(fsutil.StateDir(), 0o755); err != nil {
 			return nil, err
 		}

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"image/color"
 	"io/fs"
+	"sync"
 	"time"
 
 	"github.com/oops1/headless-gui/v3/engine"
@@ -28,6 +29,8 @@ type Options struct {
 }
 
 type App struct {
+	listsMu sync.Mutex
+
 	Eng      *engine.Engine
 	Ctl      *Controller
 	Canvas   *view.Canvas

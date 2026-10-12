@@ -38,6 +38,9 @@ func TestSaveDialogSetup(t *testing.T) {
 			t.Errorf("options %x", opts)
 		}
 		dir, _ := filepath.Abs(os.TempDir())
+		if long, err := filepath.EvalSymlinks(dir); err == nil {
+			dir = long
+		}
 		it, err := shellItem(dir)
 		if err != nil {
 			return err

@@ -179,13 +179,13 @@ func TestFavoritesAndRecentSurviveRestart(t *testing.T) {
 	if !a.Ctl.ToggleFavorite() {
 		t.Fatal("favorite not added")
 	}
-	deadline := time.Now().Add(3 * time.Second)
+	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
 		a.Eng.Flush()
-		if _, err := os.Stat(favoritesPath()); err == nil {
-			if _, err := os.Stat(recentPath()); err == nil {
-				break
-			}
+		fav, _ := os.ReadFile(favoritesPath())
+		rec, _ := os.ReadFile(recentPath())
+		if bytes.Contains(fav, []byte("x.png")) && bytes.Contains(rec, []byte("x.png")) {
+			break
 		}
 		time.Sleep(5 * time.Millisecond)
 	}
