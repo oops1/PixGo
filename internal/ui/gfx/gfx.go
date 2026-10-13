@@ -63,7 +63,7 @@ func UISemi(pt float64) Font { return Font{fonts.UISemiBold, pt} }
 
 func UILight(pt float64) Font { return Font{fonts.UILight, pt} }
 
-func (f Font) Size() float64 { return f.Pt }
+func (f Font) Size() float64 { return f.Pt * fonts.TextScale() }
 
 func (f Font) Ascent() int { return fonts.MetricsOf(f.Name, f.Size(), 96).Ascent }
 

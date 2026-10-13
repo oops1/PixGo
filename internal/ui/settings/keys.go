@@ -356,7 +356,7 @@ func (p *Page) sliderKey(it *item, e widget.KeyEvent) bool {
 }
 
 func (p *Page) scrollKey(e widget.KeyEvent) bool {
-	page := max(p.geo.view.Dy()-pageStepKeep, 40)
+	page := max(p.geo.view.Dy()-dim.pageStepKeep, 40)
 	switch e.Code {
 	case widget.KeyPageDown:
 		p.scrollBy(page)
@@ -367,9 +367,9 @@ func (p *Page) scrollKey(e widget.KeyEvent) bool {
 	case widget.KeyEnd:
 		p.setScroll(p.maxScroll())
 	case widget.KeyDown:
-		p.scrollBy(scrollKeyStep)
+		p.scrollBy(dim.scrollKeyStep)
 	case widget.KeyUp:
-		p.scrollBy(-scrollKeyStep)
+		p.scrollBy(-dim.scrollKeyStep)
 	default:
 		return false
 	}

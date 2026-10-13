@@ -28,7 +28,7 @@ func TestScrollbarThumbIsPaintedWhileShownAndGoneAfterwards(t *testing.T) {
 	r.page.drag = &dragState{bar: true}
 	r.page.bar.shown = true
 	_, wide, _ := r.page.barRects()
-	if wide.Dx() != barWide {
+	if wide.Dx() != dim.barWide {
 		t.Fatalf("a held thumb is wide: %v", wide)
 	}
 	r.page.drag = nil
@@ -128,7 +128,7 @@ func TestSliderOutsideItsRangeIsClamped(t *testing.T) {
 	r.page.SetSection(SectionSlideshow)
 	it := r.item("slideshow.interval")
 	it.value = 500
-	x0, x1, _ := sliderSpan(it.r)
+	x0, x1, _ := sliderSpan(it)
 	if got := sliderThumbX(it, x0, x1); got != float64(x1) {
 		t.Fatalf("thumb at %v, want the right end %d", got, x1)
 	}

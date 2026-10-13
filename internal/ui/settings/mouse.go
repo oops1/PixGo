@@ -27,8 +27,8 @@ func (it *item) interactive() bool {
 
 func (it *item) hitRect() image.Rectangle {
 	if it.kind == kindSlider {
-		_, x1, _ := sliderSpan(it.r)
-		return image.Rect(it.r.Min.X, it.r.Min.Y, x1+sliderThumb, it.r.Max.Y)
+		_, x1, _ := sliderSpan(it)
+		return image.Rect(it.r.Min.X, it.r.Min.Y, x1+int(dim.sliderThumb), it.r.Min.Y+dim.rowHeight)
 	}
 	return it.box
 }
@@ -298,7 +298,7 @@ func (p *Page) itemByID(id string) *item {
 }
 
 func sliderValueAt(it *item, x int) int {
-	x0, x1, _ := sliderSpan(it.r)
+	x0, x1, _ := sliderSpan(it)
 	span := it.hi - it.lo
 	if x1 <= x0 || span <= 0 {
 		return it.lo

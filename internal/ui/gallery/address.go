@@ -138,5 +138,5 @@ func (p *Page) clearBubble() {
 
 func (p *Page) bubbleArea() image.Rectangle {
 	a := p.geo.address
-	return image.Rect(a.Min.X-2, a.Max.Y, a.Max.X+2, a.Max.Y+44)
+	return image.Rect(a.Min.X-2, a.Max.Y, a.Max.X+2, a.Max.Y+14+p.m.bubbleH)
 }

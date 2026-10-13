@@ -8,7 +8,7 @@ import (
 )
 
 func TestSidebarRowsMatchTheMockupBaselines(t *testing.T) {
-	rows := buildNavRows(mockSidebar())
+	rows := buildNavRows(mockSidebar(), navMetricsFor(1))
 	top := headerHeight + 1
 	want := []int{69, 92, 115, 145, 169, 191, 213, 234, 256, 287, 312, 335, 361}
 
@@ -23,7 +23,7 @@ func TestSidebarRowsMatchTheMockupBaselines(t *testing.T) {
 }
 
 func TestSidebarIconsMatchTheCalibratedPositions(t *testing.T) {
-	rows := buildNavRows(mockSidebar())
+	rows := buildNavRows(mockSidebar(), navMetricsFor(1))
 	top := headerHeight + 1
 	want := map[string]image.Point{
 		"images": {20, 57}, "recent": {20, 80}, "heart-small": {20, 102},
@@ -42,7 +42,7 @@ func TestSidebarIconsMatchTheCalibratedPositions(t *testing.T) {
 }
 
 func TestSelectedSidebarPillMatchesTheMockup(t *testing.T) {
-	rows := buildNavRows(mockSidebar())
+	rows := buildNavRows(mockSidebar(), navMetricsFor(1))
 
 	got := rows[11].rect(headerHeight+1, sidebarWidth)
 
@@ -75,7 +75,7 @@ func TestSidebarHitTestFindsTheNearestEnabledRow(t *testing.T) {
 }
 
 func TestSidebarTextColumnsDependOnTheSection(t *testing.T) {
-	rows := buildNavRows(mockSidebar())
+	rows := buildNavRows(mockSidebar(), navMetricsFor(1))
 
 	if rows[0].textX() != navTextTop || rows[4].textX() != navTextSection || rows[3].textX() != navHeaderX {
 		t.Fatalf("columns: %d %d %d", rows[0].textX(), rows[4].textX(), rows[3].textX())
@@ -83,12 +83,12 @@ func TestSidebarTextColumnsDependOnTheSection(t *testing.T) {
 }
 
 func TestUnknownIconsGetTheDefaultNudge(t *testing.T) {
-	rows := buildNavRows([]model.Entry{{Label: "x", Icon: "mystery"}})
+	rows := buildNavRows([]model.Entry{{Label: "x", Icon: "mystery"}}, navMetricsFor(1))
 
 	if got := rows[0].iconPos(0); got.Y != int(navFirstCenter+.5)+defaultNavNudge.Y {
 		t.Fatalf("pos = %v", got)
 	}
-	if buildNavRows(nil) != nil || navContentHeight(nil) != 0 {
+	if buildNavRows(nil, navMetricsFor(1)) != nil || navContentHeight(nil) != 0 {
 		t.Fatal("an empty sidebar has no rows")
 	}
 }

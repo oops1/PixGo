@@ -13,18 +13,24 @@ import (
 
 type picKey struct {
 	pic    picture
+	w, h   int
+	cell   int
+	radius float64
 	c1, c2 color.RGBA
 }
 
 func (p *Page) picture(pic picture, t *theme.Theme) *image.RGBA {
-	k := picKey{pic: pic}
+	k := picKey{pic: pic, w: dim.bgPicW, h: dim.bgPicH, radius: dim.bgPicRadius}
+	if isTheme(pic) {
+		k.w, k.h, k.radius = dim.themePicW, dim.themePicH, dim.themePicRadius
+	}
 	if pic == picBgChecker {
-		k.c1, k.c2 = t.Checker1, t.Checker2
+		k.c1, k.c2, k.cell = t.Checker1, t.Checker2, dim.checkerCell
 	}
 	if img, ok := p.pics[k]; ok {
 		return img
 	}
-	img := renderPicture(pic, k.c1, k.c2)
+	img := renderPicture(k)
 	p.pics[k] = img
 	return img
 }
@@ -40,60 +46,62 @@ func (p *Page) drawCard(c widget.DrawContext, t *theme.Theme, it *item, r image.
 }
 
 func (p *Page) drawThemeCard(c widget.DrawContext, t *theme.Theme, it *item, r image.Rectangle, st state) {
-	x, y := float64(r.Min.X), float64(r.Min.Y)
-	ring := frect{x + .5, y + .5, x + .5 + themeRingW, y + .5 + themeRingH}
-	col, width := gfx.Blend(t.ChoiceRing, t.Text, .08), themeRingIdle
+	left := r.Min.X + (r.Dx()-dim.themeCardW)/2
+	x, y := float64(left), float64(r.Min.Y)
+	ring := frect{x + .5, y + .5, x + .5 + dim.themeRingW, y + .5 + dim.themeRingH}
+	col, width := gfx.Blend(t.ChoiceRing, t.Text, .08), dim.themeRingIdle
 	if it.on {
-		col, width = t.SelectionBorder, themeRingOn
+		col, width = t.SelectionBorder, dim.themeRingOn
 	} else if st.hover {
 		col = gfx.Blend(col, t.Text, .2)
 		if st.pressed {
 			col = gfx.Blend(col, t.Page, .35)
 		}
 	}
-	strokeRound(c, ring.grow(1), themeRingRadius+1, 1, haloRing)
-	strokeRound(c, ring, themeRingRadius, width, col)
-	picR := image.Rect(r.Min.X+themePicDX, r.Min.Y+themePicDY, r.Min.X+themePicDX+themePicW, r.Min.Y+themePicDY+themePicH)
+	strokeRound(c, ring.grow(1), dim.themeRingRadius+1, 1, haloRing)
+	strokeRound(c, ring, dim.themeRingRadius, width, col)
+	picR := image.Rect(left+dim.themePicDX, r.Min.Y+dim.themePicDY, left+dim.themePicDX+dim.themePicW, r.Min.Y+dim.themePicDY+dim.themePicH)
 	c.DrawImage(p.picture(it.pic, t), picR.Min.X, picR.Min.Y)
-	strokeRound(c, fr(picR), themePicRadius, 1, gfx.Alpha(t.Text, .22))
+	strokeRound(c, fr(picR), dim.themePicRadius, 1, gfx.Alpha(t.Text, .22))
 	w := captionFont.Measure(c, it.text)
-	drawText(c, captionFont, it.text, r.Min.X+(themeCardW-w)/2, r.Min.Y+themeLabelBase, t.Text)
+	drawText(c, captionFont, it.text, r.Min.X+(r.Dx()-w)/2, r.Min.Y+dim.themeLabelBase, t.Text)
 	if st.focus {
-		p.ring(c, t, ring, themeRingRadius)
+		p.ring(c, t, ring, dim.themeRingRadius)
 	}
 }
 
 func (p *Page) drawBackgroundCard(c widget.DrawContext, t *theme.Theme, it *item, r image.Rectangle, st state) {
-	x, y := float64(r.Min.X), float64(r.Min.Y)
-	pic := image.Rect(r.Min.X+bgPicDX, r.Min.Y+bgPicDY, r.Min.X+bgPicDX+bgPicW, r.Min.Y+bgPicDY+bgPicH)
-	ring := frect{x + bgRingOffsetX, y + bgRingOffsetY, x + bgRingOffsetX + bgItemRingW, y + bgRingOffsetY + bgItemRingH}
+	left := r.Min.X + (r.Dx()-dim.bgItemW)/2
+	x, y := float64(left), float64(r.Min.Y)
+	pic := image.Rect(left+dim.bgPicDX, r.Min.Y+dim.bgPicDY, left+dim.bgPicDX+dim.bgPicW, r.Min.Y+dim.bgPicDY+dim.bgPicH)
+	ring := frect{x + bgRingOffsetX, y + bgRingOffsetY, x + bgRingOffsetX + dim.bgItemRingW, y + bgRingOffsetY + dim.bgItemRingH}
 	switch {
 	case it.on:
-		strokeRound(c, ring, bgRingRadius, bgRingWidth, t.SelectionBorder)
+		strokeRound(c, ring, dim.bgRingRadius, dim.bgRingWidth, t.SelectionBorder)
 	case st.hover:
 		alpha := .3
 		if st.pressed {
 			alpha = .15
 		}
-		strokeRound(c, fr(pic).grow(3), bgPicRadius+3, 1.5, gfx.Alpha(t.Text, alpha))
+		strokeRound(c, fr(pic).grow(3), dim.bgPicRadius+3, 1.5, gfx.Alpha(t.Text, alpha))
 	}
-	vec := frect{x + bgSolidDX, y + bgSolidDY, x + bgSolidDX + bgSolidW, y + bgSolidDY + bgSolidH}
+	vec := frect{x + dim.bgSolidDX, y + dim.bgSolidDY, x + dim.bgSolidDX + dim.bgSolidW, y + dim.bgSolidDY + dim.bgSolidH}
 	switch it.pic {
 	case picBgWhite:
-		strokeRound(c, vec.grow(1), bgPicRadius+1, 1, shadowRing)
-		fillRound(c, vec, bgPicRadius, rgb8(248, 249, 249))
+		strokeRound(c, vec.grow(1), dim.bgPicRadius+1, 1, shadowRing)
+		fillRound(c, vec, dim.bgPicRadius, rgb8(248, 249, 249))
 	case picBgBlack:
-		strokeRound(c, vec.grow(1), bgPicRadius+1, 1, shadowRing)
-		fillRound(c, vec, bgPicRadius, rgb8(0, 0, 0))
-		strokeRound(c, vec, bgPicRadius, 1, gfx.Alpha(t.Text, .2))
+		strokeRound(c, vec.grow(1), dim.bgPicRadius+1, 1, shadowRing)
+		fillRound(c, vec, dim.bgPicRadius, rgb8(0, 0, 0))
+		strokeRound(c, vec, dim.bgPicRadius, 1, gfx.Alpha(t.Text, .2))
 	default:
-		strokeRound(c, fr(pic).grow(1), bgPicRadius+1, 1, shadowRing)
+		strokeRound(c, fr(pic).grow(1), dim.bgPicRadius+1, 1, shadowRing)
 		c.DrawImage(p.picture(it.pic, t), pic.Min.X, pic.Min.Y)
 	}
 	w := smallCapFont.Measure(c, it.text)
-	drawText(c, smallCapFont, it.text, r.Min.X+(bgItemW-w)/2, r.Min.Y+bgLabelBase, t.Text)
+	drawText(c, smallCapFont, it.text, r.Min.X+(r.Dx()-w)/2, r.Min.Y+dim.bgLabelBase, t.Text)
 	if st.focus {
-		p.ring(c, t, ring, bgRingRadius)
+		p.ring(c, t, ring, dim.bgRingRadius)
 	}
 }
 
@@ -237,25 +245,25 @@ func systemBackground(w, h int) *image.RGBA {
 	return img
 }
 
-func renderPicture(pic picture, c1, c2 color.RGBA) *image.RGBA {
+func renderPicture(k picKey) *image.RGBA {
 	var img *image.RGBA
-	radius := float64(bgPicRadius)
-	switch pic {
+	w, h := k.w, k.h
+	switch k.pic {
 	case picThemeSystem:
-		img, radius = wallpaper(themePicW, themePicH, 37, dayLeft, nightRight), themePicRadius
+		img = wallpaper(w, h, w/2, dayLeft, nightRight)
 	case picThemeLight:
-		img, radius = wallpaper(themePicW, themePicH, 37, lightLeft, lightRight), themePicRadius
+		img = wallpaper(w, h, w/2, lightLeft, lightRight)
 	case picThemeDark:
-		img, radius = wallpaper(themePicW, themePicH, 37, darkLeft, darkRight), themePicRadius
+		img = wallpaper(w, h, w/2, darkLeft, darkRight)
 	case picBgSystem:
-		img = systemBackground(bgPicW, bgPicH)
+		img = systemBackground(w, h)
 	case picBgWhite:
-		img = solid(bgPicW, bgPicH, rgb8(248, 249, 249))
+		img = solid(w, h, rgb8(248, 249, 249))
 	case picBgBlack:
-		img = solid(bgPicW, bgPicH, rgb8(0, 0, 0))
+		img = solid(w, h, rgb8(0, 0, 0))
 	default:
-		img = checker(bgPicW, bgPicH, 5, c1, c2)
+		img = checker(w, h, k.cell, k.c1, k.c2)
 	}
-	roundCorners(img, radius)
+	roundCorners(img, k.radius)
 	return img
 }

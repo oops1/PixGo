@@ -8,6 +8,7 @@ import (
 	"github.com/oops1/headless-gui/v3/engine"
 	"github.com/oops1/headless-gui/v3/widget"
 
+	"github.com/oops1/PixGo/internal/fonts"
 	"github.com/oops1/PixGo/internal/i18n"
 	data "github.com/oops1/PixGo/internal/settings"
 	"github.com/oops1/PixGo/internal/ui/theme"
@@ -37,14 +38,15 @@ type Page struct {
 	deps   Deps
 	Chrome func(x, y int) (widget.Cursor, bool)
 
-	cfg       data.Settings
-	langs     []Language
-	formats   []Format
-	about     About
-	diskBytes int64
-	lastCheck time.Time
-	taken     bool
-	builtLang string
+	cfg        data.Settings
+	langs      []Language
+	formats    []Format
+	about      About
+	diskBytes  int64
+	lastCheck  time.Time
+	taken      bool
+	builtLang  string
+	builtScale float64
 
 	sec      Section
 	geo      geometry
@@ -135,18 +137,20 @@ func (p *Page) ensureLayout() {
 	if !p.taken {
 		p.take()
 	}
-	if p.dirty || p.laidOut != p.Bounds() || p.builtLang != i18n.Lang() {
+	if p.dirty || p.laidOut != p.Bounds() || p.builtLang != i18n.Lang() || p.builtScale != fonts.TextScale() {
 		p.rebuild()
 	}
 }
 
 func (p *Page) rebuild() {
+	syncDims()
 	p.geo = computeGeometry(p.Bounds())
 	p.builtLang = i18n.Lang()
-	b := &builder{p: p, x0: p.geo.x0, x1: p.geo.x1, xt: p.geo.xt, y: titleTop}
+	p.builtScale = dim.k
+	b := &builder{p: p, x0: p.geo.x0, x1: p.geo.x1, xt: p.geo.xt, y: float64(dim.titleTop)}
 	b.section(p.sec)
 	p.items = b.items
-	p.contentH = int(math.Ceil(b.y)) + bottomPad
+	p.contentH = int(math.Ceil(b.y)) + dim.bottomPad
 	p.laidOut = p.Bounds()
 	p.dirty = false
 	p.scroll = min(max(p.scroll, 0), p.maxScroll())

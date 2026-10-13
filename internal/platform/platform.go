@@ -110,6 +110,7 @@ type Paths interface {
 type Platform struct {
 	Trash        Trash
 	Theme        SystemTheme
+	Fonts        SystemFonts
 	Locale       Locale
 	Folders      KnownFolders
 	Volumes      Volumes
@@ -123,6 +124,7 @@ func New() *Platform {
 	return &Platform{
 		Trash:        NewTrash(),
 		Theme:        NewSystemTheme(),
+		Fonts:        NewSystemFonts(),
 		Locale:       NewLocale(),
 		Folders:      NewKnownFolders(),
 		Volumes:      NewVolumes(),

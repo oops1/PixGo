@@ -84,8 +84,8 @@ func TestPicturesAreCachedAndRoundedAtTheCorners(t *testing.T) {
 		pic  picture
 		w, h int
 	}{
-		{picThemeSystem, themePicW, themePicH}, {picThemeLight, themePicW, themePicH}, {picThemeDark, themePicW, themePicH},
-		{picBgSystem, bgPicW, bgPicH}, {picBgWhite, bgPicW, bgPicH}, {picBgBlack, bgPicW, bgPicH}, {picBgChecker, bgPicW, bgPicH},
+		{picThemeSystem, dim.themePicW, dim.themePicH}, {picThemeLight, dim.themePicW, dim.themePicH}, {picThemeDark, dim.themePicW, dim.themePicH},
+		{picBgSystem, dim.bgPicW, dim.bgPicH}, {picBgWhite, dim.bgPicW, dim.bgPicH}, {picBgBlack, dim.bgPicW, dim.bgPicH}, {picBgChecker, dim.bgPicW, dim.bgPicH},
 	} {
 		img := r.page.picture(tc.pic, th)
 		if img.Bounds().Dx() != tc.w || img.Bounds().Dy() != tc.h {

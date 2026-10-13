@@ -8,6 +8,7 @@ import (
 	"github.com/oops1/headless-gui/v3/widget"
 
 	"github.com/oops1/PixGo/internal/commands"
+	"github.com/oops1/PixGo/internal/i18n"
 	"github.com/oops1/PixGo/internal/ui/gfx"
 	"github.com/oops1/PixGo/internal/ui/theme"
 )
@@ -108,7 +109,7 @@ func (r *Root) options() Options {
 		Page:       r.host.Page(),
 	}
 	if o.Fullscreen {
-		o.CounterDigits = r.host.Slideshow().digits()
+		o.CounterExtra = r.counterExtra()
 	}
 	if r.ops.Maximized != nil {
 		o.Maximized = r.ops.Maximized()
@@ -121,7 +122,15 @@ func (r *Root) options() Options {
 		o.Toolbar = true
 		o.Arrows = r.host.State() == StateReady && (r.host.CanPrev() || r.host.CanNext())
 	}
+	if !o.Fullscreen {
+		o.ZoomLabelW = textWidth(zoomFont, r.host.ZoomText())
+	}
 	return o
+}
+
+func (r *Root) counterExtra() int {
+	wide := textWidth(slideCounterFont, r.host.Slideshow().widestCounterText())
+	return max(0, wide-referenceTextWidth(slideCounterFont, i18n.T("slideshow.counter", 24, 24)))
 }
 
 func (r *Root) Layout() Layout {

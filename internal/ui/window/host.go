@@ -40,12 +40,9 @@ func (v SlideshowView) CounterText() string {
 	return i18n.T("slideshow.counter", v.Index, v.Total)
 }
 
-func (v SlideshowView) digits() int {
-	n, d := max(v.Total, v.Index), 1
-	for ; n >= 10; n /= 10 {
-		d++
-	}
-	return d
+func (v SlideshowView) widestCounterText() string {
+	n := max(v.Total, v.Index)
+	return i18n.T("slideshow.counter", n, n)
 }
 
 type Host interface {

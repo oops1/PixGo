@@ -93,6 +93,9 @@ func (p *Page) navHit(x, y int) hit {
 		return noHit
 	}
 	best, dist := -1, float64(navHitHalf)+.5
+	if len(p.rows) > 0 {
+		dist += float64(p.rows[0].extra) / 2
+	}
 	for i, r := range p.rows {
 		if d := math.Abs(float64(y-top) + .5 - r.center); d < dist {
 			best, dist = i, d

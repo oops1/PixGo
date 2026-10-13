@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.1] - 2026-10-13
+
+### Changed
+- The text of the interface follows the size of the system font: 9 pt (Segoe UI) on Windows, including the "Text size" setting of the accessibility options, and the font of the GTK settings on Linux (10 pt when there are none). It used to be about 20 % smaller. The gallery, the settings, the information panel, the title, the slideshow bar, tooltips and notifications adapt their layout to the size, so nothing is cut or overlapped.
+- A different size can be forced with `pixgo -font-size 10.5` or the environment variable `PIXGO_FONT_PT`.
+
 ## [0.4.0] - 2026-10-13
 
 ### Added

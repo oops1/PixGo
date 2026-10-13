@@ -109,7 +109,7 @@ func TestCheckboxesToggleTheirSetting(t *testing.T) {
 func TestClickingTheLabelTogglesTheCheckbox(t *testing.T) {
 	r := newRig(t, mockW, mockH)
 	it := r.item("confirmDelete")
-	r.click(it.r.Min.X+checkLabelX+20, it.r.Min.Y+10)
+	r.click(it.r.Min.X+dim.checkLabelX+20, it.r.Min.Y+10)
 	if r.src.cfg.ConfirmDelete {
 		t.Fatal("a click on the label must toggle the checkbox")
 	}

@@ -12,7 +12,6 @@ import (
 const (
 	toastDuration = 2500 * time.Millisecond
 	toastPadX     = 18
-	toastHeight   = 40
 	toastGap      = 14
 	toastRadius   = 8
 )
@@ -37,8 +36,17 @@ func (r *Root) Toast(text string) {
 
 func (r *Root) toastArea() image.Rectangle {
 	l := r.fullOverlayLayout()
-	b := image.Rect(l.View.Min.X, l.Toolbar.Min.Y-toastGap-toastHeight-4, l.View.Max.X, l.Toolbar.Min.Y-toastGap+4)
+	b := image.Rect(l.View.Min.X, l.Toolbar.Min.Y-toastGap-toastH()-4, l.View.Max.X, l.Toolbar.Min.Y-toastGap+4)
 	return b.Intersect(l.View)
+}
+
+func (r *Root) toastRect(l Layout) image.Rectangle {
+	area := r.toastArea()
+	h := toastH()
+	w := textWidth(toastFont, r.toastText) + 2*toastPadX
+	w = min(w, max(80, l.View.Dx()-32))
+	cx := (l.View.Min.X + l.View.Max.X) / 2
+	return image.Rect(cx-w/2, area.Max.Y-4-h, cx-w/2+w, area.Max.Y-4)
 }
 
 func (r *Root) drawToast(c widget.DrawContext, l Layout) {
@@ -46,13 +54,9 @@ func (r *Root) drawToast(c widget.DrawContext, l Layout) {
 		return
 	}
 	t := r.Theme
-	area := r.toastArea()
-	w := toastFont.Measure(c, r.toastText) + 2*toastPadX
-	w = min(w, max(80, l.View.Dx()-32))
-	cx := (l.View.Min.X + l.View.Max.X) / 2
-	rect := image.Rect(cx-w/2, area.Max.Y-4-toastHeight, cx-w/2+w, area.Max.Y-4)
+	rect := r.toastRect(l)
 	gfx.FillRound(c, rect, toastRadius, t.Menu)
 	gfx.StrokeRound(c, rect, toastRadius, 1, t.MenuBorder)
-	baseline := rect.Min.Y + (toastHeight+toastFont.Ascent()-4)/2
-	toastFont.DrawFit(c, r.toastText, rect.Min.X+toastPadX, baseline, w-2*toastPadX, t.Text)
+	baseline := rect.Min.Y + (rect.Dy()+toastFont.Ascent()-4)/2 - textOpticalRise(toastFont)
+	toastFont.DrawFit(c, r.toastText, rect.Min.X+toastPadX, baseline, rect.Dx()-2*toastPadX, t.Text)
 }

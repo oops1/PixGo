@@ -10,6 +10,7 @@ import (
 
 	"github.com/oops1/PixGo/internal/commands"
 	"github.com/oops1/PixGo/internal/i18n"
+	"github.com/oops1/PixGo/internal/testutil"
 )
 
 type fakeContent struct {
@@ -34,6 +35,9 @@ type fakeHost struct {
 	page       Page
 	holes      []image.Rectangle
 	slide      SlideshowView
+	title      string
+	zoom       string
+	failure    string
 	menu       widget.Widget
 
 	contentOverride widget.Widget
@@ -54,14 +58,24 @@ func newHost() *fakeHost {
 }
 
 func (h *fakeHost) Registry() *commands.Registry { return h.reg }
-func (h *fakeHost) Title() string                { return "mountain.jpg — 6000 × 4000" }
-func (h *fakeHost) ZoomText() string             { return "100%" }
-func (h *fakeHost) State() ContentState          { return h.state }
-func (h *fakeHost) FailureText() string          { return "" }
-func (h *fakeHost) Favorite() bool               { return false }
-func (h *fakeHost) InfoOpen() bool               { return h.info }
-func (h *fakeHost) CanPrev() bool                { return h.canPrev }
-func (h *fakeHost) CanNext() bool                { return h.canNext }
+func (h *fakeHost) Title() string {
+	if h.title != "" {
+		return h.title
+	}
+	return "mountain.jpg — 6000 × 4000"
+}
+func (h *fakeHost) ZoomText() string {
+	if h.zoom != "" {
+		return h.zoom
+	}
+	return "100%"
+}
+func (h *fakeHost) State() ContentState { return h.state }
+func (h *fakeHost) FailureText() string { return h.failure }
+func (h *fakeHost) Favorite() bool      { return false }
+func (h *fakeHost) InfoOpen() bool      { return h.info }
+func (h *fakeHost) CanPrev() bool       { return h.canPrev }
+func (h *fakeHost) CanNext() bool       { return h.canNext }
 func (h *fakeHost) Content() widget.Widget {
 	if h.contentOverride != nil {
 		return h.contentOverride
@@ -150,7 +164,7 @@ func newSizedRig(t *testing.T, w, hgt int, mutate func(*fakeHost)) *rig {
 	if mutate != nil {
 		mutate(h)
 	}
-	eng := engine.New(w, hgt, 30)
+	eng := testutil.NewEngine(w, hgt)
 	rec := &recordingEngine{Engine: eng}
 	r := &rig{t: t, eng: eng, rec: rec, host: h, ts: &timers{}, now: time.Unix(100, 0)}
 	r.root = New(h, rec, WindowOps{

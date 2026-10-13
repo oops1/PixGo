@@ -58,8 +58,8 @@ func TestEveryTextFitsItsBox(t *testing.T) {
 					switch it.kind {
 					case kindCheck, kindRadio:
 						for _, l := range it.lines {
-							if w := measure(bodyFont, l); w > g.xt-g.x0-checkLabelX {
-								t.Errorf("%s: line %q is %d wide, %d available", it.id, l, w, g.xt-g.x0-checkLabelX)
+							if w := measure(bodyFont, l); w > g.xt-g.x0-dim.checkLabelX {
+								t.Errorf("%s: line %q is %d wide, %d available", it.id, l, w, g.xt-g.x0-dim.checkLabelX)
 							}
 						}
 					case kindNote:
@@ -75,20 +75,26 @@ func TestEveryTextFitsItsBox(t *testing.T) {
 							}
 						}
 					case kindTitle:
-						if w := measure(titleFont, it.text); w > g.x1-g.x0 {
-							t.Errorf("title %q is %d wide", it.text, w)
+						for _, l := range it.lines {
+							if w := measure(titleFont, l); w > g.x1-g.x0 {
+								t.Errorf("title line %q is %d wide", l, w)
+							}
 						}
 					case kindHeading:
-						if w := measure(headingFont, it.text); it.name != "big" && w > g.x1-g.x0 {
-							t.Errorf("heading %q is %d wide", it.text, w)
+						for _, l := range it.lines {
+							if w := measure(headingFont, l); it.name != "big" && w > g.x1-g.x0 {
+								t.Errorf("heading line %q is %d wide", l, w)
+							}
 						}
 					case kindDropdown:
-						if w := measure(bodyFont, it.text); w > it.r.Dx()-dropdownTextX-chevronFromR-6 {
+						if w := measure(bodyFont, it.text); w > it.r.Dx()-dim.dropdownTextX-chevronFromR-6 {
 							t.Errorf("dropdown text %q is %d wide", it.text, w)
 						}
 					case kindButton:
-						if w := measure(bodyFont, it.text); w > it.r.Dx()-2*buttonPadding {
-							t.Errorf("button text %q is %d wide in %v", it.text, w, it.r)
+						for _, l := range it.lines {
+							if w := measure(bodyFont, l); w > it.r.Dx()-2*dim.buttonPadding {
+								t.Errorf("button line %q is %d wide in %v", l, w, it.r)
+							}
 						}
 					}
 				}
@@ -120,7 +126,7 @@ func TestNothingIsDrawnOutsideTheColumn(t *testing.T) {
 						t.Fatalf("only %d pixels drawn in the column, the check would be vacuous", drawn)
 					}
 					for y := g.view.Min.Y + 1; y < g.view.Max.Y; y++ {
-						for x := g.xt + 3; x < g.view.Max.X-barWide-barRightInset-2; x++ {
+						for x := g.xt + 3; x < g.view.Max.X-dim.barWide-barRightInset-2; x++ {
 							if c := img.RGBAAt(x, y); c != bg {
 								t.Fatalf("pixel (%d,%d) = %v right of the column, want the page colour %v", x, y, c, bg)
 							}
@@ -163,8 +169,8 @@ func TestNavigationKeepsItsPlaceInTheMinimumWindow(t *testing.T) {
 			t.Errorf("row %d at %v does not fit", s, row)
 		}
 	}
-	if r.page.geo.nav.Max.X != navDividerX {
-		t.Fatalf("the navigation is %d wide, want %d", r.page.geo.nav.Max.X, navDividerX)
+	if r.page.geo.nav.Max.X != dim.navW {
+		t.Fatalf("the navigation is %d wide, want %d", r.page.geo.nav.Max.X, dim.navW)
 	}
 }
 
@@ -185,8 +191,8 @@ func TestAnchorsFollowTheWindowOriginInsideTheRoot(t *testing.T) {
 
 func TestColumnWidthIsCappedInVeryWideWindows(t *testing.T) {
 	r := newRig(t, 1600, 900)
-	if w := r.page.geo.x1 - r.page.geo.x0; w != columnMax {
-		t.Fatalf("column width %d, want %d", w, columnMax)
+	if w := r.page.geo.x1 - r.page.geo.x0; w != dim.columnMax {
+		t.Fatalf("column width %d, want %d", w, dim.columnMax)
 	}
 }
 

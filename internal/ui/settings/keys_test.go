@@ -411,7 +411,7 @@ func TestScrollKeysMoveTheContent(t *testing.T) {
 	}
 	r.page.focus = ""
 	r.key(widget.KeyDown, 0)
-	if r.page.scroll != scrollKeyStep {
+	if r.page.scroll != dim.scrollKeyStep {
 		t.Fatalf("Down: scroll = %d", r.page.scroll)
 	}
 	r.key(widget.KeyUp, 0)

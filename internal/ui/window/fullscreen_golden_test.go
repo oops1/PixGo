@@ -69,7 +69,7 @@ func slideshowMockupView() SlideshowView {
 }
 
 func mockupLayout() Layout {
-	return Compute(mockupW, mockupH, Options{Fullscreen: true, Toolbar: true, Arrows: true, CounterDigits: 2})
+	return Compute(mockupW, mockupH, Options{Fullscreen: true, Toolbar: true, Arrows: true})
 }
 
 func slideContent(l Layout) []image.Rectangle {

@@ -372,7 +372,7 @@ func TestHeaderHolesStayClearOfTheWindowButtons(t *testing.T) {
 }
 
 func TestHeaderGeometryFollowsTheMockup(t *testing.T) {
-	g := computeGeometry(image.Rect(0, 0, 593, 430))
+	g := computeGeometry(image.Rect(0, 0, 593, 430), baseMetrics())
 
 	cases := []struct {
 		name string
@@ -394,8 +394,8 @@ func TestHeaderGeometryFollowsTheMockup(t *testing.T) {
 }
 
 func TestGeometryAnchorsToTheWindowFrame(t *testing.T) {
-	framed := computeGeometry(image.Rect(1, 1, 592, 429))
-	bare := computeGeometry(image.Rect(0, 0, 593, 430))
+	framed := computeGeometry(image.Rect(1, 1, 592, 429), baseMetrics())
+	bare := computeGeometry(image.Rect(0, 0, 593, 430), baseMetrics())
 
 	if framed.address != bare.address || framed.open != bare.open || framed.statusY != bare.statusY {
 		t.Fatalf("framed %v vs bare %v", framed, bare)

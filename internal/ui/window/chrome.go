@@ -101,7 +101,7 @@ func (r *Root) drawTitle(c widget.DrawContext, l Layout) {
 	if limit <= TitleTextX {
 		limit = l.Rect(ZoneDrag).Max.X - titleGap
 	}
-	titleFont.DrawFit(c, r.host.Title(), TitleTextX-1, titleBaseline, limit-TitleTextX, t.TitleText)
+	titleFont.DrawFit(c, r.host.Title(), TitleTextX-1, titleBaseline+textLift(titleFont), limit-TitleTextX, t.TitleText)
 }
 
 func (r *Root) drawGalleryCaptions(c widget.DrawContext, l Layout) {
@@ -224,7 +224,7 @@ func (r *Root) drawState(c widget.DrawContext, l Layout) {
 	if lines == 2 {
 		total += stateLineSpace + stateTextFont.Ascent() + 6
 	}
-	y := cy - total/2 + stateTitleFont.Ascent()
+	y := cy - total/2 + stateTitleFont.Ascent() - textOpticalRise(stateTitleFont)
 	w := l.View.Dx() - 48
 	tw := stateTitleFont.Measure(c, head)
 	stateTitleFont.DrawFit(c, head, cx-min(tw, w)/2, y, w, t.Text)
@@ -319,8 +319,8 @@ func (r *Root) drawToolButton(c widget.DrawContext, l Layout, z Zone) {
 	cx, cy := (z.Rect.Min.X+z.Rect.Max.X)/2, (z.Rect.Min.Y+z.Rect.Max.Y)/2
 	if z.Kind == ZoneToolZoomLabel {
 		text := r.host.ZoomText()
-		w := zoomFont.Measure(c, text)
-		zoomFont.Draw(c, text, cx-w/2, cy+zoomBaseline, col)
+		w := min(textWidth(zoomFont, text), z.Rect.Dx())
+		zoomFont.DrawFit(c, text, cx-w/2, cy+zoomBaseline+textLift(zoomFont), z.Rect.Dx(), col)
 		return
 	}
 	name := map[ZoneKind]string{

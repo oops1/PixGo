@@ -25,8 +25,8 @@ func TestShortSectionHasNothingToScroll(t *testing.T) {
 func TestWheelNotchScrollsAFixedStep(t *testing.T) {
 	r := newRig(t, mockW, mockH)
 	handled := r.page.OnMouseWheelPixelsMod(300, 200, 0, wheelNotchPixels, 0)
-	if !handled || r.page.scroll != int(wheelStep) {
-		t.Fatalf("handled = %v, scroll = %d, want %d", handled, r.page.scroll, int(wheelStep))
+	if !handled || r.page.scroll != int(dim.wheelStep) {
+		t.Fatalf("handled = %v, scroll = %d, want %d", handled, r.page.scroll, int(dim.wheelStep))
 	}
 	r.page.OnMouseWheelPixelsMod(300, 200, 0, -wheelNotchPixels, 0)
 	if r.page.scroll != 0 {
@@ -50,7 +50,7 @@ func TestWheelTicksFromButtonsScrollToo(t *testing.T) {
 	r := newRig(t, mockW, mockH)
 	r.page.OnMouseButton(widget.MouseEvent{X: 300, Y: 200, Button: widget.MouseWheelDown, Pressed: true})
 	r.page.OnMouseButton(widget.MouseEvent{X: 300, Y: 200, Button: widget.MouseWheelDown, Pressed: false})
-	if r.page.scroll != int(wheelStep) {
+	if r.page.scroll != int(dim.wheelStep) {
 		t.Fatalf("scroll = %d after one tick", r.page.scroll)
 	}
 	if handled := r.page.OnMouseButton(widget.MouseEvent{X: 300, Y: 200, Button: widget.MouseWheelUp, Pressed: true}); !handled || r.page.scroll != 0 {
@@ -123,7 +123,7 @@ func TestScrollbarGeometryFollowsTheScrollPosition(t *testing.T) {
 	if thumb.Max.Y != track.Max.Y {
 		t.Fatalf("thumb %v must end at the bottom of the track %v", thumb, track)
 	}
-	if track.Max.X != r.page.geo.view.Max.X-barRightInset || thumb.Dx() != barThin {
+	if track.Max.X != r.page.geo.view.Max.X-barRightInset || thumb.Dx() != dim.barThin {
 		t.Fatalf("track %v thumb %v", track, thumb)
 	}
 	if h := thumb.Dy(); h < 24 || h >= track.Dy() {

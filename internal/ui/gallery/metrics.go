@@ -40,19 +40,20 @@ const (
 	forwardIconX = 44
 	upIconX      = 69
 
-	openLeftFromR   = 142
-	openRightFromR  = 51
-	moreLeftFromR   = 49
-	moreRightFromR  = 18
-	buttonTopFromB  = 46
-	buttonBotFromB  = 14
-	buttonRadius    = 6
-	moreIconX       = 9
-	moreIconTop     = 9
-	statusBaseFromB = 17
-	statusTextX     = 22
-	statusGap       = 16
-	buttonBaseFromB = 26
+	openRightFromR    = 51
+	moreLeftFromR     = 49
+	moreRightFromR    = 18
+	buttonTopFromB    = 46
+	buttonBotFromB    = 14
+	buttonRadius      = 6
+	moreIconX         = 9
+	moreIconTop       = 9
+	statusBaseFromB   = 17
+	statusLimitGap    = 12
+	statusNoticeMin   = 40
+	statusTextX       = 22
+	statusGap         = 16
+	buttonBaseFromMid = 4
 
 	gridPadLeft   = 8
 	gridPadRight  = 8
@@ -69,10 +70,11 @@ const (
 	cellFooter    = 26
 	cellExtraW    = 9
 
-	listRowHeight = 40
-	listThumb     = 32
-	listPad       = 8
-	listSideTile  = 96
+	listRowHeight    = 40
+	listThumb        = 32
+	listPad          = 8
+	listSideTile     = 96
+	bubbleBaseHeight = 30
 
 	barInset      = 16
 	barThin       = 3
@@ -128,13 +130,13 @@ type geometry struct {
 	more     image.Rectangle
 }
 
-func computeGeometry(b image.Rectangle) geometry {
+func computeGeometry(b image.Rectangle, m textMetrics) geometry {
 	w, h := b.Max.X+b.Min.X, b.Max.Y+b.Min.Y
 	g := geometry{win: image.Rect(0, 0, w, h)}
-	g.statusY = max(h-statusFromBot, headerHeight+1)
+	g.statusY = max(h-statusFromBot-m.statusSx, headerHeight+1)
 	g.header = image.Rect(b.Min.X, b.Min.Y, b.Max.X, headerHeight)
-	g.sidebar = image.Rect(b.Min.X, headerHeight+1, min(sidebarWidth, b.Max.X), g.statusY)
-	g.grid = image.Rect(sidebarWidth+1, headerHeight+1, max(b.Max.X, sidebarWidth+1), g.statusY)
+	g.sidebar = image.Rect(b.Min.X, headerHeight+1, min(m.sideW, b.Max.X), g.statusY)
+	g.grid = image.Rect(m.sideW+1, headerHeight+1, max(b.Max.X, m.sideW+1), g.statusY)
 	g.status = image.Rect(b.Min.X, g.statusY, b.Max.X, b.Max.Y)
 
 	g.back = image.Rect(12, controlTop, 38, 36)
@@ -152,8 +154,9 @@ func computeGeometry(b image.Rectangle) geometry {
 	g.viewGrid = image.Rect(vl+viewHalf, controlTop, vl+viewsWidth, controlBottom)
 	g.thumbs = image.Rect(w-thumbsHitFromR, controlTop, w-thumbsHitFromR+thumbsHitWidth, controlBottom)
 
-	g.open = image.Rect(w-openLeftFromR, h-buttonTopFromB, w-openRightFromR, h-buttonBotFromB)
-	g.more = image.Rect(w-moreLeftFromR, h-buttonTopFromB, w-moreRightFromR, h-buttonBotFromB)
+	top := h - buttonTopFromB - m.btnExtra
+	g.open = image.Rect(w-openRightFromR-m.openW, top, w-openRightFromR, h-buttonBotFromB)
+	g.more = image.Rect(w-moreLeftFromR, top, w-moreRightFromR, h-buttonBotFromB)
 	return g
 }
 
@@ -162,8 +165,8 @@ type tileGeometry struct {
 	cellW, cellH   int
 }
 
-func tileGeometryFor(side int) tileGeometry {
+func tileGeometryFor(side int, m textMetrics) tileGeometry {
 	pw := max(side-1, 16)
 	ph := (pw*3 + 2) / 4
-	return tileGeometry{photoW: pw, photoH: ph, cellW: pw + cellExtraW, cellH: ph + cellFooter}
+	return tileGeometry{photoW: pw, photoH: ph, cellW: pw + cellExtraW, cellH: ph + cellFooter + m.labelExtra}
 }

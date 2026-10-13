@@ -116,7 +116,7 @@ func (p *Page) drawAddress(c widget.DrawContext, t *theme.Theme) {
 	if !p.editing {
 		textX := a.Min.X + addressTextX
 		limit := g.filter.Min.X - 4
-		addressFont.DrawFit(c, p.snap.loc.Display(), textX, a.Min.Y+18, limit-textX, t.Text)
+		addressFont.DrawFit(c, p.snap.loc.Display(), textX, a.Min.Y+18+p.m.addrMid, limit-textX, t.Text)
 	}
 	if p.hover.kind == hitFilter || p.hover.kind == hitRefresh {
 		r := g.filter
@@ -172,7 +172,7 @@ func (p *Page) drawViews(c widget.DrawContext, t *theme.Theme) {
 func (p *Page) drawNav(c widget.DrawContext, t *theme.Theme) {
 	g := p.geo
 	p.fill(c, g.sidebar, t.GalleryNav)
-	c.DrawVLine(sidebarWidth, g.sidebar.Min.Y, g.sidebar.Dy(), t.Status)
+	c.DrawVLine(g.sidebar.Max.X, g.sidebar.Min.Y, g.sidebar.Dy(), t.Status)
 	restore := gfx.Clip(c, g.sidebar)
 	defer restore()
 	top := g.sidebar.Min.Y - p.sideY
@@ -284,7 +284,7 @@ func (p *Page) drawTile(c widget.DrawContext, t *theme.Theme, i, sel int) {
 	}
 	text, w := p.fitted(c, labelFont, item.Name, cell.Dx()-8)
 	x := photo.Min.X + (photo.Dx()-w)/2
-	labelFont.Draw(c, text, x, photo.Max.Y+labelBelow-photoInsetY, t.Text)
+	labelFont.Draw(c, text, x, photo.Max.Y+labelBelow-photoInsetY+p.m.labelAsc, t.Text)
 }
 
 func (p *Page) drawPhoto(c widget.DrawContext, t *theme.Theme, item model.Item, r image.Rectangle, w, h, radius, side int) {
@@ -362,8 +362,8 @@ func (p *Page) drawRow(c widget.DrawContext, t *theme.Theme, i, sel int) {
 	nameX := th.Max.X + 12
 	base := row.Min.Y + (row.Dy()+listFont.Ascent())/2 - 2
 	sizeRight := row.Max.X - 14
-	nameRight := sizeRight - 240
-	wide := row.Dx() >= 420
+	nameRight := sizeRight - p.m.listColumns()
+	wide := row.Dx() >= p.m.listWide()
 	if !wide {
 		nameRight = row.Max.X - 12
 	}
@@ -372,7 +372,7 @@ func (p *Page) drawRow(c widget.DrawContext, t *theme.Theme, i, sel int) {
 		return
 	}
 	if !item.ModTime.IsZero() {
-		listSubFont.DrawFit(c, i18n.FormatDateTime(item.ModTime), nameRight+12, base, 138, t.SecondaryText)
+		listSubFont.DrawFit(c, i18n.FormatDateTime(item.ModTime), nameRight+listColumnGap, base, p.m.listDateW-listColumnPadding/2, t.SecondaryText)
 	}
 	if !item.Dir {
 		s := i18n.FormatBytes(item.Size)
@@ -386,15 +386,20 @@ func (p *Page) drawStatus(c widget.DrawContext, t *theme.Theme) {
 	c.DrawHLine(b.Min.X, g.statusY, b.Dx(), t.GalleryRule)
 	p.fill(c, image.Rect(b.Min.X, g.statusY+1, b.Max.X, b.Max.Y), t.Status)
 	restore := gfx.Clip(c, image.Rect(b.Min.X, g.statusY, g.open.Min.X-6, b.Max.Y))
-	base := g.win.Max.Y - statusBaseFromB
+	base := g.win.Max.Y - statusBaseFromB - (p.m.statusSx+1)/2 + p.m.statusMid
 	x := statusTextX
+	limit := g.open.Min.X - statusLimitGap
 	status := gfx.Blend(t.SecondaryText, t.Text, .27)
 	for _, part := range p.snap.status {
+		w := statusFont.Measure(c, part)
+		if x+w > limit {
+			break
+		}
 		statusFont.Draw(c, part, x, base, status)
-		x += statusFont.Measure(c, part) + statusGap
+		x += w + p.m.statusGap
 	}
-	if s := p.snap.truncated; s != "" {
-		statusFont.DrawFit(c, s, x, base, g.open.Min.X-12-x, status)
+	if s := p.snap.truncated; s != "" && limit-x > statusNoticeMin {
+		statusFont.DrawFit(c, s, x, base, limit-x, status)
 	}
 	restore()
 	p.drawButtons(c, t)
@@ -432,8 +437,8 @@ func (p *Page) drawButtons(c widget.DrawContext, t *theme.Theme) {
 	gfx.FillRound(c, g.more, buttonRadius, right)
 	label := i18n.T("cmd.open")
 	w := buttonFont.Measure(c, label)
-	buttonFont.Draw(c, label, g.open.Min.X+(g.open.Dx()-w)/2, g.win.Max.Y-buttonBaseFromB, txt)
-	icons.Draw(c, "chevron-down", g.more.Min.X+moreIconX, g.more.Min.Y+moreIconTop, chev)
+	buttonFont.Draw(c, label, g.open.Min.X+(g.open.Dx()-w)/2, g.open.Min.Y+g.open.Dy()/2+buttonBaseFromMid+p.m.btnMid, txt)
+	icons.Draw(c, "chevron-down", g.more.Min.X+moreIconX, g.more.Min.Y+moreIconTop+p.m.btnExtra/2, chev)
 }
 
 func (p *Page) drawBars(c widget.DrawContext, t *theme.Theme) {
@@ -464,10 +469,10 @@ func (p *Page) drawBubble(c widget.DrawContext, t *theme.Theme) {
 	}
 	g := p.geo
 	w := min(bubbleFont.Measure(c, p.bubble)+40, g.address.Dx())
-	r := image.Rect(g.address.Min.X, g.address.Max.Y+6, g.address.Min.X+w, g.address.Max.Y+36)
+	r := image.Rect(g.address.Min.X, g.address.Max.Y+6, g.address.Min.X+w, g.address.Max.Y+6+p.m.bubbleH)
 	gfx.FillRound(c, r.Inset(-1), 7, shadowRing)
 	gfx.FillRound(c, r, 6, t.Menu)
 	gfx.StrokeRound(c, r, 6, 1, t.MenuBorder)
-	gfx.FillCircle(c, float64(r.Min.X+14), float64(r.Min.Y+15), 4, errorRed)
-	bubbleFont.DrawFit(c, p.bubble, r.Min.X+26, r.Min.Y+19, w-36, t.Text)
+	gfx.FillCircle(c, float64(r.Min.X+14), float64(r.Min.Y+p.m.bubbleH/2), 4, errorRed)
+	bubbleFont.DrawFit(c, p.bubble, r.Min.X+26, r.Min.Y+p.m.bubbleH/2+4+p.m.addrMid, w-36, t.Text)
 }

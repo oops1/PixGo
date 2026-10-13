@@ -12,10 +12,9 @@ import (
 )
 
 const (
-	tipDelay  = 600 * time.Millisecond
-	tipGap    = 8
-	tipHeight = 28
-	tipPadX   = 10
+	tipDelay = 600 * time.Millisecond
+	tipGap   = 8
+	tipPadX  = 10
 )
 
 var tipFont = gfx.UI(9)
@@ -119,7 +118,8 @@ func (r *Root) tipRect(c widget.DrawContext) image.Rectangle {
 	if anchor.Empty() || r.tip.text == "" && c == nil {
 		return image.Rect(0, 0, 0, 0)
 	}
-	w := tipFont.Measure(c, r.tip.text) + 2*tipPadX
+	h := tipH()
+	w := min(textWidth(tipFont, r.tip.text)+2*tipPadX, max(0, l.W-8))
 	cx := (anchor.Min.X + anchor.Max.X) / 2
 	x0 := max(4, min(cx-w/2, l.W-w-4))
 	var y0 int
@@ -130,9 +130,10 @@ func (r *Root) tipRect(c widget.DrawContext) image.Rectangle {
 		if r.tip.zone >= ZoneToolGallery && r.tip.zone <= ZoneToolFullscreen || r.tip.zone >= ZoneSlidePlay && r.tip.zone <= ZoneSlideBar {
 			top = l.Toolbar.Min.Y
 		}
-		y0 = top - tipGap - tipHeight
+		y0 = top - tipGap - h
 	}
-	return image.Rect(x0, y0, x0+w, y0+tipHeight)
+	y0 = max(0, min(y0, l.H-h-4))
+	return image.Rect(x0, y0, x0+w, y0+h)
 }
 
 func (r *Root) drawTip(c widget.DrawContext) {
@@ -143,6 +144,6 @@ func (r *Root) drawTip(c widget.DrawContext) {
 	rect := r.tipRect(c)
 	gfx.FillRound(c, rect, 6, t.Menu)
 	gfx.StrokeRound(c, rect, 6, 1, t.MenuBorder)
-	baseline := rect.Min.Y + (tipHeight+tipFont.Ascent()-3)/2
-	tipFont.Draw(c, r.tip.text, rect.Min.X+tipPadX, baseline, t.Text)
+	baseline := rect.Min.Y + (rect.Dy()+tipFont.Ascent()-3)/2 - textOpticalRise(tipFont)
+	tipFont.DrawFit(c, r.tip.text, rect.Min.X+tipPadX, baseline, rect.Dx()-2*tipPadX, t.Text)
 }

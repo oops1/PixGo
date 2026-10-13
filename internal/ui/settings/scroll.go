@@ -15,12 +15,12 @@ func barGeometry(vp image.Rectangle, content, scroll, maxScroll int, wide bool) 
 		return track, thumb, false
 	}
 	right := vp.Max.X - barRightInset
-	track = image.Rect(right-barWide, vp.Min.Y+barInset, right, vp.Max.Y-barInset)
+	track = image.Rect(right-dim.barWide, vp.Min.Y+barInset, right, vp.Max.Y-barInset)
 	h := min(max(24, track.Dy()*vp.Dy()/content), track.Dy())
 	top := track.Min.Y + (track.Dy()-h)*scroll/maxScroll
-	width := barThin
+	width := dim.barThin
 	if wide {
-		width = barWide
+		width = dim.barWide
 	}
 	return track, image.Rect(right-width, top, right, top+h), true
 }
@@ -44,7 +44,7 @@ func (p *Page) barRects() (track, thumb image.Rectangle, ok bool) {
 
 func (p *Page) barArea() image.Rectangle {
 	v := p.geo.view
-	return image.Rect(v.Max.X-barRightInset-barWide-2, v.Min.Y, v.Max.X, v.Max.Y)
+	return image.Rect(v.Max.X-barRightInset-dim.barWide-2, v.Min.Y, v.Max.X, v.Max.Y)
 }
 
 func (p *Page) setScroll(v int) bool {
@@ -92,7 +92,7 @@ func (p *Page) reveal(r image.Rectangle) {
 }
 
 func (p *Page) wheel(notches float64) bool {
-	p.wheelFrac += notches * wheelStep
+	p.wheelFrac += notches * dim.wheelStep
 	d := int(p.wheelFrac)
 	p.wheelFrac -= float64(d)
 	if d != 0 {

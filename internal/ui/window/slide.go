@@ -35,8 +35,8 @@ func (s Slide) KnobX(progress float64) float64 {
 	return s.TrackX0 + (s.TrackX1-s.TrackX0)*min(max(progress, 0), 1)
 }
 
-func slideGeometry(w, h, digits int) Slide {
-	extra := SlideDigitWidth * max(0, digits-2)
+func slideGeometry(w, h, extra int) Slide {
+	extra = max(0, extra)
 	pw := min(SlideBarWidth+extra, max(0, w-2*SlideBarMargin))
 	left := (w - pw + 1) / 2
 	top := h - SlideBarBottom - SlideBarHeight
@@ -85,9 +85,9 @@ func (r *Root) drawSlide(c widget.DrawContext, l Layout) {
 			r.drawSlideButton(c, z, v)
 		}
 	}
-	limit := int(math.Floor(sl.TrackX0)) - 8 - sl.CounterX
+	limit := int(math.Floor(sl.TrackX0)) - slideCounterGap - sl.CounterX
 	if limit > 0 {
-		slideCounterFont.DrawFit(c, v.CounterText(), sl.CounterX, sl.CounterBase, limit, t.OverlayText)
+		slideCounterFont.DrawFit(c, v.CounterText(), sl.CounterX, sl.CounterBase+textLift(slideCounterFont), limit, t.OverlayText)
 	}
 	r.drawSlideTrack(c, sl, v)
 }

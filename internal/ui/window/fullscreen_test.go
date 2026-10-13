@@ -81,7 +81,7 @@ func TestFullscreenLayoutFollowsTheMockup(t *testing.T) {
 }
 
 func TestFullscreenLayoutAtFullHD(t *testing.T) {
-	l := Compute(1920, 1080, Options{Fullscreen: true, Toolbar: true, Arrows: true, CounterDigits: 2})
+	l := Compute(1920, 1080, Options{Fullscreen: true, Toolbar: true, Arrows: true})
 	if l.Slide.Panel != image.Rect(814, 1024, 1106, 1070) {
 		t.Errorf("panel = %v, want a 292 x 46 pill centred 10 px above the bottom", l.Slide.Panel)
 	}
@@ -101,7 +101,7 @@ func TestFullscreenLayoutAtFullHD(t *testing.T) {
 
 func TestFullscreenPanelFitsNarrowWindows(t *testing.T) {
 	for _, w := range []int{240, 280, 300, 327, 360, 420, 640} {
-		l := Compute(w, 300, Options{Fullscreen: true, Toolbar: true, Arrows: true, CounterDigits: 2})
+		l := Compute(w, 300, Options{Fullscreen: true, Toolbar: true, Arrows: true})
 		panel := l.Slide.Panel
 		if panel.Min.X < SlideBarMargin || panel.Max.X > w-SlideBarMargin {
 			t.Errorf("w=%d: panel %v leaves less than %d px at the sides", w, panel, SlideBarMargin)
@@ -130,21 +130,18 @@ func TestFullscreenPanelFitsNarrowWindows(t *testing.T) {
 }
 
 func TestFullscreenCounterReservesRoomForBigFolders(t *testing.T) {
-	cases := []struct {
-		digits int
-		extra  int
-	}{{1, 0}, {2, 0}, {3, SlideDigitWidth}, {4, 2 * SlideDigitWidth}, {5, 3 * SlideDigitWidth}}
-	base := Compute(1920, 1080, Options{Fullscreen: true, Toolbar: true, CounterDigits: 2}).Slide
-	for _, c := range cases {
-		s := Compute(1920, 1080, Options{Fullscreen: true, Toolbar: true, CounterDigits: c.digits}).Slide
-		if s.Panel.Dx() != SlideBarWidth+c.extra {
-			t.Errorf("%d digits: panel width %d, want %d", c.digits, s.Panel.Dx(), SlideBarWidth+c.extra)
+	base := Compute(1920, 1080, Options{Fullscreen: true, Toolbar: true}).Slide
+	for _, extra := range []int{-5, 0, 14, 28, 42} {
+		s := Compute(1920, 1080, Options{Fullscreen: true, Toolbar: true, CounterExtra: extra}).Slide
+		grow := max(0, extra)
+		if s.Panel.Dx() != SlideBarWidth+grow {
+			t.Errorf("extra %d: panel width %d, want %d", extra, s.Panel.Dx(), SlideBarWidth+grow)
 		}
 		if got, want := s.TrackX1-s.TrackX0, base.TrackX1-base.TrackX0; math.Abs(got-want) > .01 {
-			t.Errorf("%d digits: track length %.1f, want it unchanged at %.1f", c.digits, got, want)
+			t.Errorf("extra %d: track length %.1f, want it unchanged at %.1f", extra, got, want)
 		}
-		if s.Settings.Min.X-s.Panel.Min.X != base.Settings.Min.X-base.Panel.Min.X+c.extra {
-			t.Errorf("%d digits: the right-hand buttons must keep their distance from the right edge", c.digits)
+		if s.Settings.Min.X-s.Panel.Min.X != base.Settings.Min.X-base.Panel.Min.X+grow {
+			t.Errorf("extra %d: the right-hand buttons must keep their distance from the right edge", extra)
 		}
 	}
 }
@@ -504,24 +501,24 @@ func TestFullscreenKeyboardReachesTheSlideshowCommands(t *testing.T) {
 	}
 }
 
-func TestSlideshowViewCounterAndDigits(t *testing.T) {
+func TestSlideshowViewCounterTexts(t *testing.T) {
 	cases := []struct {
-		v      SlideshowView
-		text   string
-		digits int
+		v    SlideshowView
+		text string
+		wide string
 	}{
-		{SlideshowView{Index: 5, Total: 24}, "5 / 24", 2},
-		{SlideshowView{Index: 1, Total: 1}, "1 / 1", 1},
-		{SlideshowView{Index: 120, Total: 1200}, "120 / 1200", 4},
-		{SlideshowView{}, "0 / 0", 1},
-		{SlideshowView{Index: 12345, Total: 9}, "12345 / 9", 5},
+		{SlideshowView{Index: 5, Total: 24}, "5 / 24", "24 / 24"},
+		{SlideshowView{Index: 1, Total: 1}, "1 / 1", "1 / 1"},
+		{SlideshowView{Index: 120, Total: 1200}, "120 / 1200", "1200 / 1200"},
+		{SlideshowView{}, "0 / 0", "0 / 0"},
+		{SlideshowView{Index: 12345, Total: 9}, "12345 / 9", "12345 / 12345"},
 	}
 	for _, c := range cases {
 		if got := c.v.CounterText(); got != c.text {
 			t.Errorf("%+v: counter %q, want %q", c.v, got, c.text)
 		}
-		if got := c.v.digits(); got != c.digits {
-			t.Errorf("%+v: digits %d, want %d", c.v, got, c.digits)
+		if got := c.v.widestCounterText(); got != c.wide {
+			t.Errorf("%+v: widest counter %q, want %q", c.v, got, c.wide)
 		}
 	}
 }

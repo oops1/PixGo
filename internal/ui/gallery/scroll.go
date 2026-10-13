@@ -135,7 +135,7 @@ func (p *Page) seekNav() {
 
 func (p *Page) wheelStep() float64 {
 	if p.snap.mode == ViewList {
-		return float64(listRowHeight) / 2
+		return float64(p.m.listRow) / 2
 	}
 	return float64(p.grid.CellH+p.grid.GapY) / 3
 }

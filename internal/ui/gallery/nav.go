@@ -32,6 +32,8 @@ type navRow struct {
 	index   int
 	center  float64
 	section bool
+	extra   int
+	off     int
 }
 
 func navGap(prev, cur model.Entry) float64 {
@@ -54,26 +56,30 @@ func navGap(prev, cur model.Entry) float64 {
 	return 23
 }
 
-func buildNavRows(entries []model.Entry) []navRow {
+func buildNavRows(entries []model.Entry, nm navMetrics) []navRow {
 	if len(entries) == 0 {
 		return nil
 	}
 	rows := make([]navRow, len(entries))
-	center := navFirstCenter
+	center := navFirstCenter + float64(nm.extra)/2
 	section := false
 	for i, e := range entries {
 		if i > 0 {
-			center += navGap(entries[i-1], e)
+			center += navGap(entries[i-1], e) + float64(nm.extra)
 		}
 		if e.Header {
 			section = true
 		}
-		rows[i] = navRow{entry: e, index: i, center: center, section: section}
+		off := nm.text
+		if e.Header {
+			off = nm.section
+		}
+		rows[i] = navRow{entry: e, index: i, center: center, section: section, extra: nm.extra, off: off}
 	}
 	return rows
 }
 
-func (r navRow) baseline(top int) int { return top + int(math.Floor(r.center+5)) }
+func (r navRow) baseline(top int) int { return top + int(math.Floor(r.center+float64(r.off))) }
 
 func (r navRow) iconPos(top int) image.Point {
 	n, ok := navIconNudge[r.entry.Icon]
@@ -98,13 +104,14 @@ func (r navRow) textX() int {
 }
 
 func (r navRow) rect(top, right int) image.Rectangle {
-	y := top + int(math.Floor(r.center-navPillHalf+.5))
-	return image.Rect(navLeft, y, right-navRightInset, y+2*navPillHalf)
+	y := top + int(math.Floor(r.center-navPillHalf-float64(r.extra)/2+.5))
+	return image.Rect(navLeft, y, right-navRightInset, y+2*navPillHalf+r.extra)
 }
 
 func navContentHeight(rows []navRow) int {
 	if len(rows) == 0 {
 		return 0
 	}
-	return int(math.Ceil(rows[len(rows)-1].center)) + 16
+	last := rows[len(rows)-1]
+	return int(math.Ceil(last.center)) + 16 + last.extra/2
 }

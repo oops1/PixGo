@@ -7,6 +7,7 @@ import (
 	"github.com/oops1/headless-gui/v3/engine"
 	"github.com/oops1/headless-gui/v3/widget"
 
+	"github.com/oops1/PixGo/internal/fonts"
 	model "github.com/oops1/PixGo/internal/gallery"
 	"github.com/oops1/PixGo/internal/ui/theme"
 )
@@ -41,6 +42,7 @@ type Page struct {
 	Chrome func(x, y int) (widget.Cursor, bool)
 
 	snap snapshot
+	m    textMetrics
 	geo  geometry
 	tile tileGeometry
 	grid model.Grid
@@ -58,6 +60,7 @@ type Page struct {
 
 	tiles  *tileCache
 	labels map[labelKey]labelVal
+	widths map[widthKey]int
 
 	lastFirst, lastLast int
 	prefetched          [2]int
@@ -106,7 +109,7 @@ type labelVal struct {
 }
 
 func New(eng *engine.Engine, d Deps) *Page {
-	p := &Page{eng: eng, deps: d, tiles: newTileCache(), labels: map[labelKey]labelVal{}, hover: noHit, pressed: noHit, dirty: true}
+	p := &Page{eng: eng, deps: d, tiles: newTileCache(), labels: map[labelKey]labelVal{}, widths: map[widthKey]int{}, m: baseMetrics(), hover: noHit, pressed: noHit, dirty: true}
 	p.lastFirst, p.lastLast = -1, -1
 	p.reveal = -1
 	p.input = newAddressField(p)
@@ -223,24 +226,28 @@ func (p *Page) selectedItem() (int, model.Item, bool) {
 
 func (p *Page) relayout() {
 	b := p.Bounds()
-	p.geo = computeGeometry(b)
-	if tg := tileGeometryFor(p.snap.side); tg != p.tile {
+	k := fonts.TextScale()
+	if k != p.m.k {
+		clear(p.labels)
+	}
+	m := newTextMetrics(k)
+	p.rows = buildNavRows(p.snap.sidebar, m.nav)
+	p.m = p.fitMetrics(m, b.Max.X+b.Min.X)
+	p.geo = computeGeometry(b, p.m)
+	if tg := tileGeometryFor(p.snap.side, p.m); tg != p.tile {
 		p.tile = tg
 		p.tiles.reset()
 	}
 	p.grid = p.makeGrid()
 	p.laidOut = b
 	p.dirty = false
-	if len(p.rows) == 0 && len(p.snap.sidebar) > 0 {
-		p.rows = buildNavRows(p.snap.sidebar)
-	}
 }
 
 func (p *Page) ensureLayout() {
 	if !p.taken {
 		p.take()
 	}
-	if p.dirty || p.laidOut != p.Bounds() {
+	if p.dirty || p.laidOut != p.Bounds() || fonts.TextScale() != p.m.k {
 		p.relayout()
 	}
 }
@@ -250,7 +257,7 @@ func (p *Page) makeGrid() model.Grid {
 	g := model.Grid{Count: len(p.snap.items), Width: vp.Dx(), Height: vp.Dy()}
 	if p.snap.mode == ViewList {
 		g.Metrics = model.Metrics{
-			CellW: max(vp.Dx()-gridPadLeft-gridPadRight, 1), CellH: listRowHeight,
+			CellW: max(vp.Dx()-gridPadLeft-gridPadRight, 1), CellH: p.m.listRow,
 			PadLeft: gridPadLeft, PadRight: gridPadRight, PadTop: 6, PadBottom: 6,
 		}
 		return g
@@ -270,7 +277,7 @@ func (p *Page) Children() []widget.Widget {
 }
 
 func (p *Page) HeaderHoles() []image.Rectangle {
-	g := computeGeometry(p.Bounds())
+	g := computeGeometry(p.Bounds(), p.m)
 	nav := image.Rect(g.back.Min.X, g.back.Min.Y, g.up.Max.X, g.back.Max.Y)
 	return []image.Rectangle{nav, g.address, g.views, g.thumbs}
 }

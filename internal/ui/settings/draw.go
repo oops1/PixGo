@@ -3,6 +3,7 @@ package settings
 import (
 	"image"
 	"image/color"
+	"math"
 
 	"github.com/oops1/headless-gui/v3/widget"
 
@@ -47,7 +48,7 @@ func (p *Page) drawBackground(c widget.DrawContext, t *theme.Theme) {
 	c.DrawHLine(b.Min.X, headerHeight, b.Dx(), t.Separator)
 	p.fill(c, g.nav, t.Nav)
 	if g.nav.Dy() > 0 {
-		c.DrawVLine(navDividerX, contentTop, g.nav.Dy(), t.GalleryRule)
+		c.DrawVLine(dim.navW, contentTop, g.nav.Dy(), t.GalleryRule)
 	}
 	p.fill(c, g.view, t.Page)
 }
@@ -76,17 +77,17 @@ func (p *Page) drawHeader(c widget.DrawContext, t *theme.Theme) {
 		gfx.FillRound(c, back, backPillRound, t.CaptionHover)
 	}
 	icons.Draw(c, "arrow-left", backIconX, backIconY, t.TitleIcon)
-	drawText(c, headerFont, i18n.T("settings.title"), headerTextX, headerBase, t.TitleText)
+	drawText(c, headerFont, i18n.T("settings.title"), headerTextX, dim.headerBase, t.TitleText)
 	if p.keyNav && p.focus == focusBack {
 		p.ring(c, t, fr(back), backPillRound)
 	}
 }
 
-func navCenter(s Section) float64 { return float64(navCapTops[s]) + navCenterBelow }
+func navCenter(s Section) float64 { return dim.navCenters[s] }
 
 func navRowRect(s Section) image.Rectangle {
 	cy := navCenter(s)
-	return image.Rect(navHitLeft, int(cy-navHitUp+.5), navHitRight, int(cy+navHitDown+.5))
+	return image.Rect(navHitLeft, int(cy-dim.navHitUp+.5), dim.navHitRight, int(cy+dim.navHitDown+.5))
 }
 
 func (p *Page) drawNav(c widget.DrawContext, t *theme.Theme) {
@@ -94,29 +95,29 @@ func (p *Page) drawNav(c widget.DrawContext, t *theme.Theme) {
 	defer restore()
 	for s := Section(0); s < sectionCount; s++ {
 		cy := navCenter(s)
-		pill := frect{navPillLeft, cy - navPillUp, navPillRight, cy + navPillDown}
+		pill := frect{navPillLeft, cy - dim.navPillUp, dim.navPillRight, cy + dim.navPillDown}
 		selected := s == p.sec
 		col := t.Text
 		hovered := p.hover.kind == hitNav && p.hover.index == int(s)
 		switch {
 		case selected:
-			fillRound(c, pill, navPillRadius, t.NavSelected)
+			fillRound(c, pill, dim.navPillRound, t.NavSelected)
 			indicator := t.NavIndicator
 			if theme.Contrast(indicator, t.NavSelected) < 1.5 {
 				indicator = t.AccentText
 			}
-			fillRound(c, frect{navBarLeft, cy - navBarUp, navBarRight, cy + navBarDown}, navBarRadius, indicator)
+			fillRound(c, frect{navBarLeft, cy - dim.navBarUp, navBarRight, cy + dim.navBarDown}, navBarRadius, indicator)
 			if theme.Contrast(t.Text, t.NavSelected) < 3 {
 				col = t.AccentText
 			}
 		case hovered:
-			fillRound(c, pill, navPillRadius, gfx.Alpha(t.Text, .05))
+			fillRound(c, pill, dim.navPillRound, gfx.Alpha(t.Text, .05))
 		}
-		icons.Draw(c, sectionIcons[s], navIconX, navIconTops[s], col)
-		base := navCapTops[s] + navTextBase
-		drawFit(c, navFont, i18n.T(sectionKeys[s]), navTextX, base, navTextWidth, col)
+		icons.Draw(c, sectionIcons[s], navIconX, dim.navIconTops[s], col)
+		base := dim.navCapTops[s] + dim.navTextBase
+		drawFit(c, navFont, i18n.T(sectionKeys[s]), navTextX, base, dim.navTextWidth, col)
 		if selected && p.keyNav && p.focus == focusNav {
-			p.ring(c, t, pill, navPillRadius)
+			p.ring(c, t, pill, dim.navPillRound)
 		}
 	}
 }
@@ -139,16 +140,18 @@ func (p *Page) drawItems(c widget.DrawContext, t *theme.Theme) {
 		}
 		switch it.kind {
 		case kindTitle:
-			titleFont.Draw(c, it.text, r.Min.X+1, r.Min.Y+titleBase, t.Text)
+			for k, l := range it.lines {
+				titleFont.Draw(c, l, r.Min.X+1, r.Min.Y+dim.titleBase+k*dim.titleStep, t.Text)
+			}
 		case kindHeading:
 			p.drawHeading(c, t, it, r)
 		case kindNote:
 			for k, l := range it.lines {
-				drawText(c, noteFont, l, r.Min.X+it.indent, r.Min.Y+noteBase+k*lineHeight, p.secondary(t))
+				drawText(c, noteFont, l, r.Min.X+it.indent, r.Min.Y+dim.noteBase+k*dim.lineHeight, p.secondary(t))
 			}
 		case kindValue:
 			for k, l := range it.lines {
-				drawText(c, bodyFont, l, r.Min.X, r.Min.Y+valueBase+k*lineHeight, t.Text)
+				drawText(c, bodyFont, l, r.Min.X, r.Min.Y+dim.valueBase+k*dim.lineHeight, t.Text)
 			}
 		case kindCheck:
 			p.drawCheck(c, t, it, r, st)
@@ -176,10 +179,12 @@ type state struct {
 
 func (p *Page) drawHeading(c widget.DrawContext, t *theme.Theme, it *item, r image.Rectangle) {
 	if it.name == "big" {
-		aboutFont.Draw(c, it.text, r.Min.X, r.Min.Y+headingBase+6, t.Text)
+		aboutFont.Draw(c, it.lines[0], r.Min.X, r.Min.Y+dim.headingBase+int(math.Round(6*dim.k)), t.Text)
 		return
 	}
-	headingFont.Draw(c, it.text, r.Min.X+1, r.Min.Y+headingBase, t.Text)
+	for k, l := range it.lines {
+		headingFont.Draw(c, l, r.Min.X+1, r.Min.Y+dim.headingBase+k*dim.lineHeight, t.Text)
+	}
 }
 
 func (p *Page) labelColor(t *theme.Theme, it *item) color.RGBA {
@@ -192,13 +197,13 @@ func (p *Page) labelColor(t *theme.Theme, it *item) color.RGBA {
 func (p *Page) drawLabel(c widget.DrawContext, t *theme.Theme, it *item, r image.Rectangle) {
 	col := p.labelColor(t, it)
 	for k, l := range it.lines {
-		drawText(c, bodyFont, l, r.Min.X+checkLabelX, r.Min.Y+checkBase+k*lineHeight, col)
+		drawText(c, bodyFont, l, r.Min.X+dim.checkLabelX, r.Min.Y+dim.checkBase+k*dim.lineHeight, col)
 	}
 }
 
 func (p *Page) drawBox(c widget.DrawContext, t *theme.Theme, on bool, left int, top float64, st state, disabled bool) frect {
-	bx, by := float64(left)+checkBoxLeft, top+checkBoxTop
-	box := frect{bx, by, bx + checkBoxSize, by + checkBoxSize}
+	bx, by := float64(left)+checkBoxLeft, top+dim.checkBoxTop
+	box := frect{bx, by, bx + dim.checkBoxSize, by + dim.checkBoxSize}
 	if on {
 		fill := t.Accent
 		switch {
@@ -209,9 +214,10 @@ func (p *Page) drawBox(c widget.DrawContext, t *theme.Theme, on bool, left int, 
 		case st.hover:
 			fill = gfx.Blend(t.Accent, t.AccentText, .1)
 		}
-		strokeRound(c, box.grow(1), checkBoxRadius+1, 1, shadowRing)
-		fillRound(c, box, checkBoxRadius, fill)
-		icons.Draw(c, "checkmark", int(bx+.5)+checkMarkX, int(by+.5)+checkMarkY, t.AccentText)
+		strokeRound(c, box.grow(1), dim.checkBoxRadius+1, 1, shadowRing)
+		fillRound(c, box, dim.checkBoxRadius, fill)
+		off := (dim.checkBoxSize - 12) / 2
+		icons.Draw(c, "checkmark", int(bx+off+.5), int(by+off+.5), t.AccentText)
 		return box
 	}
 	ring := t.ToggleOff
@@ -225,8 +231,8 @@ func (p *Page) drawBox(c widget.DrawContext, t *theme.Theme, on bool, left int, 
 			inner = gfx.Alpha(t.Text, .1)
 		}
 	}
-	fillRound(c, box, checkBoxRadius, inner)
-	strokeRound(c, box, checkBoxRadius, 1.3, ring)
+	fillRound(c, box, dim.checkBoxRadius, inner)
+	strokeRound(c, box, dim.checkBoxRadius, dim.checkRingW, ring)
 	return box
 }
 
@@ -234,14 +240,14 @@ func (p *Page) drawCheck(c widget.DrawContext, t *theme.Theme, it *item, r image
 	box := p.drawBox(c, t, it.on, r.Min.X, rowTop(it, r), st, it.disabled)
 	p.drawLabel(c, t, it, r)
 	if st.focus {
-		p.ring(c, t, box, checkBoxRadius)
+		p.ring(c, t, box, dim.checkBoxRadius)
 	}
 }
 
 func (p *Page) drawRadio(c widget.DrawContext, t *theme.Theme, it *item, r image.Rectangle, st state) {
-	cx := float64(r.Min.X) + checkBoxLeft + checkBoxSize/2
-	cy := rowTop(it, r) + checkBoxTop + checkBoxSize/2
-	rad := checkBoxSize / 2
+	cx := float64(r.Min.X) + checkBoxLeft + dim.checkBoxSize/2
+	cy := rowTop(it, r) + dim.checkBoxTop + dim.checkBoxSize/2
+	rad := dim.checkBoxSize / 2
 	if it.on {
 		fill := t.Accent
 		switch {
@@ -252,7 +258,7 @@ func (p *Page) drawRadio(c widget.DrawContext, t *theme.Theme, it *item, r image
 		}
 		strokeDisc(c, cx, cy, rad+1, 1, shadowRing)
 		fillDisc(c, cx, cy, rad, fill)
-		fillDisc(c, cx, cy, 2.7, t.AccentText)
+		fillDisc(c, cx, cy, dim.radioDot, t.AccentText)
 	} else {
 		ring := t.ToggleOff
 		inner := gfx.Alpha(t.Text, .02)
@@ -264,7 +270,7 @@ func (p *Page) drawRadio(c widget.DrawContext, t *theme.Theme, it *item, r image
 			}
 		}
 		fillDisc(c, cx, cy, rad, inner)
-		strokeDisc(c, cx, cy, rad, 1.3, ring)
+		strokeDisc(c, cx, cy, rad, dim.checkRingW, ring)
 	}
 	p.drawLabel(c, t, it, r)
 	if st.focus {
@@ -281,21 +287,27 @@ func (p *Page) drawDropdown(c widget.DrawContext, t *theme.Theme, it *item, r im
 	case st.hover:
 		fill = gfx.Blend(t.Field, t.Text, .05)
 	}
-	fillRound(c, f, dropdownRadius, fill)
-	p.outline(c, t, f, dropdownRadius)
+	fillRound(c, f, dim.dropdownRadius, fill)
+	p.outline(c, t, f, dim.dropdownRadius)
 	c.DrawHLine(r.Min.X+5, r.Min.Y, r.Dx()-10, gfx.Blend(fill, t.Text, .035))
-	drawText(c, bodyFont, it.text, r.Min.X+dropdownTextX, r.Min.Y+dropdownBase, t.Text)
-	icons.Draw(c, "chevron-down-sm", r.Max.X-chevronFromR, r.Min.Y+chevronTop, t.SecondaryText)
+	drawText(c, bodyFont, it.text, r.Min.X+dim.dropdownTextX, r.Min.Y+dim.dropdownBase, t.Text)
+	icons.Draw(c, "chevron-down-sm", r.Max.X-chevronFromR, r.Min.Y+dim.chevronTop, t.SecondaryText)
 	if st.focus {
-		p.ring(c, t, f, dropdownRadius)
+		p.ring(c, t, f, dim.dropdownRadius)
 	}
 }
 
-func sliderSpan(r image.Rectangle) (x0, x1, cy int) {
-	x0 = r.Min.X + sliderInset
-	x1 = min(r.Max.X-sliderValueW-sliderInset, x0+sliderMaxLen)
-	x1 = max(x1, x0+sliderMinLen)
-	return x0, x1, r.Min.Y + rowHeight/2
+func sliderSpan(it *item) (x0, x1, cy int) { return sliderSpanIn(it.r, it.labelW, it.stacked) }
+
+func sliderSpanIn(r image.Rectangle, labelW int, stacked bool) (x0, x1, cy int) {
+	x0 = r.Min.X + dim.sliderInset
+	if stacked {
+		x1 = min(r.Max.X-dim.sliderInset, x0+dim.sliderMaxLen)
+	} else {
+		x1 = min(r.Max.X-labelW-dim.sliderInset-dim.sliderLabelGap, x0+dim.sliderMaxLen)
+	}
+	x1 = max(x1, x0+dim.sliderMinLen)
+	return x0, x1, r.Min.Y + dim.rowHeight/2
 }
 
 func sliderThumbX(it *item, x0, x1 int) float64 {
@@ -308,28 +320,32 @@ func sliderThumbX(it *item, x0, x1 int) float64 {
 }
 
 func (p *Page) drawSlider(c widget.DrawContext, t *theme.Theme, it *item, r image.Rectangle, st state) {
-	x0, x1, cy := sliderSpan(r)
+	x0, x1, cy := sliderSpanIn(r, it.labelW, it.stacked)
 	tx := sliderThumbX(it, x0, x1)
 	fy := float64(cy)
-	half := float64(sliderTrack) / 2
+	half := float64(dim.sliderTrack) / 2
 	fillRound(c, frect{float64(x0), fy - half, float64(x1), fy + half}, half, gfx.Blend(t.Page, t.Text, .3))
 	if tx > float64(x0) {
 		fillRound(c, frect{float64(x0), fy - half, tx, fy + half}, half, t.Accent)
 	}
 	outer := gfx.Blend(t.Field, t.Text, .2)
-	inner := 4.5
+	inner := dim.sliderCore
 	switch {
 	case p.drag != nil && p.drag.id == it.id:
-		inner = 3.5
+		inner = dim.sliderCoreHeld
 	case st.hover:
-		inner = 5.5
+		inner = dim.sliderCoreHover
 	}
-	strokeDisc(c, tx, fy, sliderThumb/2+1, 1, shadowRing)
-	fillDisc(c, tx, fy, sliderThumb/2, outer)
+	strokeDisc(c, tx, fy, dim.sliderThumb/2+1, 1, shadowRing)
+	fillDisc(c, tx, fy, dim.sliderThumb/2, outer)
 	fillDisc(c, tx, fy, inner, t.Accent)
-	drawText(c, bodyFont, it.valueText, x1+sliderInset+8, r.Min.Y+checkBase, p.secondary(t))
+	if it.stacked {
+		drawText(c, bodyFont, it.valueText, x0-dim.sliderInset, r.Min.Y+dim.rowHeight+dim.noteBase, p.secondary(t))
+	} else {
+		drawText(c, bodyFont, it.valueText, x1+dim.sliderInset+dim.sliderLabelGap, r.Min.Y+dim.checkBase, p.secondary(t))
+	}
 	if st.focus {
-		strokeDisc(c, tx, fy, sliderThumb/2+3.5, 2, t.Focus)
+		strokeDisc(c, tx, fy, dim.sliderThumb/2+3.5, 2, t.Focus)
 	}
 }
 
@@ -342,13 +358,15 @@ func (p *Page) drawButton(c widget.DrawContext, t *theme.Theme, it *item, r imag
 	case st.hover:
 		fill = gfx.Blend(t.Field, t.Text, .05)
 	}
-	fillRound(c, f, buttonRadius, fill)
-	p.outline(c, t, f, buttonRadius)
+	fillRound(c, f, dim.buttonRadius, fill)
+	p.outline(c, t, f, dim.buttonRadius)
 	c.DrawHLine(r.Min.X+5, r.Min.Y, r.Dx()-10, gfx.Blend(fill, t.Text, .035))
-	w := bodyFont.Measure(c, it.text)
-	drawText(c, bodyFont, it.text, r.Min.X+(r.Dx()-w)/2, r.Min.Y+dropdownBase, t.Text)
+	for k, l := range it.lines {
+		w := bodyFont.Measure(c, l)
+		drawText(c, bodyFont, l, r.Min.X+(r.Dx()-w)/2, r.Min.Y+dim.dropdownBase+k*dim.lineHeight, t.Text)
+	}
 	if st.focus {
-		p.ring(c, t, f, buttonRadius)
+		p.ring(c, t, f, dim.buttonRadius)
 	}
 }
 
@@ -357,7 +375,7 @@ func (p *Page) drawLink(c widget.DrawContext, t *theme.Theme, it *item, r image.
 	if st.pressed && st.hover {
 		col = gfx.Blend(t.Link, t.Page, .35)
 	}
-	base := r.Min.Y + linkBase
+	base := r.Min.Y + dim.linkBase
 	drawText(c, bodyFont, it.text, r.Min.X, base, col)
 	w := bodyFont.Measure(c, it.text)
 	if st.hover || st.focus {
@@ -377,16 +395,16 @@ func (p *Page) drawFormat(c widget.DrawContext, t *theme.Theme, it *item, r imag
 	if it.disabled {
 		col, sub = t.Disabled, t.Disabled
 	}
-	drawText(c, bodyFont, it.name, r.Min.X, r.Min.Y+checkBase, col)
+	drawText(c, bodyFont, it.name, r.Min.X, r.Min.Y+dim.checkBase, col)
 	if it.change != nil {
 		box := it.box.Add(image.Pt(0, r.Min.Y-it.r.Min.Y))
 		bx := p.drawBox(c, t, it.on, box.Min.X, float64(box.Min.Y), st, false)
-		drawText(c, bodyFont, it.text, box.Min.X+checkLabelX, box.Min.Y+checkBase, t.Text)
+		drawText(c, bodyFont, it.text, box.Min.X+dim.checkLabelX, box.Min.Y+dim.checkBase, t.Text)
 		if st.focus {
-			p.ring(c, t, bx, checkBoxRadius)
+			p.ring(c, t, bx, dim.checkBoxRadius)
 		}
 	}
-	drawFit(c, noteFont, it.detail, r.Min.X, r.Min.Y+formatSubBase, r.Dx(), sub)
+	drawFit(c, noteFont, it.detail, r.Min.X, r.Min.Y+dim.formatSubBase, r.Dx(), sub)
 }
 
 func rowTop(it *item, r image.Rectangle) float64 {

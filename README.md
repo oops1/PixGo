@@ -16,7 +16,7 @@ PixGo follows the simplicity of the classic Windows Photo Viewer: the image fill
 - JPEG, PNG, GIF (animated), BMP, TIFF, WebP, SVG, ICO and CUR; AVIF, JPEG XL, HEIC and RAW previews are planned.
 - Formats are detected by signature, not by extension.
 - Information panel with EXIF, color profile and GPS.
-- Dark and light themes, English and Russian interface.
+- Dark and light themes, English and Russian interface; the text follows the size of the system font (`-font-size` overrides it).
 - Decoding never blocks the interface; a corrupt file never crashes the program.
 - Tells you when a newer release is available, see [Updates](#updates).
 

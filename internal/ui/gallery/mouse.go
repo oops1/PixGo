@@ -393,7 +393,6 @@ func (p *Page) openIndex(i int) {
 
 func (p *Page) resync() {
 	p.take()
-	p.rows = buildNavRows(p.snap.sidebar)
 	p.relayout()
 	p.clampSide()
 	p.seekNav()

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/oops1/headless-gui/v3/engine"
+	"github.com/oops1/headless-gui/v3/widget"
 	"github.com/oops1/headless-gui/v3/window"
 
 	"github.com/oops1/PixGo/internal/app"
@@ -51,6 +52,7 @@ func main() {
 	setDefault := flag.Bool("set-default", false, "make PixGo the default image viewer and exit")
 	galleryDir := flag.String("gallery", "", "open the gallery on this folder")
 	openSettings := flag.Bool("settings", false, "open the settings page")
+	fontSize := flag.Float64("font-size", 0, "body text size in points; 0 follows the system")
 	flag.Parse()
 	if *showVersion {
 		fmt.Println("PixGo", buildinfo.String())
@@ -107,6 +109,12 @@ func main() {
 	if *height > 0 {
 		h = *height
 	}
+	bodyPt := plat.Fonts.BodyPt()
+	if *fontSize > 0 {
+		bodyPt = *fontSize
+	}
+	fonts.SetTextScale(fonts.ScaleForBody(bodyPt))
+	widget.SetDefaultFontSize(bodyPt)
 	eng := engine.New(max(minWidth, w), max(minHeight, h), 60)
 	if err := fonts.Register(eng); err != nil {
 		fmt.Fprintln(os.Stderr, err)

@@ -21,7 +21,7 @@ func release(r *rig, x, y int) {
 func trackOf(r *rig, id string) (x0, x1, cy int) {
 	r.page.reveal(r.item(id).r)
 	it := r.item(id)
-	x0, x1, cy = sliderSpan(it.r)
+	x0, x1, cy = sliderSpan(it)
 	return x0, x1, cy - r.page.scroll
 }
 

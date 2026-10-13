@@ -2,10 +2,12 @@ package infopanel
 
 import (
 	"image"
+	"image/color"
 
 	"github.com/oops1/headless-gui/v3/widget"
 
 	"github.com/oops1/PixGo/internal/codec"
+	"github.com/oops1/PixGo/internal/fonts"
 	"github.com/oops1/PixGo/internal/i18n"
 	"github.com/oops1/PixGo/internal/render"
 	"github.com/oops1/PixGo/internal/ui/gfx"
@@ -91,25 +93,6 @@ type hit struct {
 	url  string
 }
 
-type rowPos struct {
-	row      Row
-	baseline int
-	valueX   int
-	copyRect image.Rectangle
-}
-
-type cardPos struct {
-	card  Card
-	rect  image.Rectangle
-	title int
-	rows  []rowPos
-}
-
-type placed struct {
-	height int
-	cards  []cardPos
-}
-
 type Panel struct {
 	widget.Base
 	eng   Engine
@@ -132,6 +115,7 @@ type Panel struct {
 	hover  hit
 	cache  placed
 	cacheW int
+	cacheK float64
 }
 
 func New(eng Engine, t *theme.Theme) *Panel {
@@ -162,43 +146,15 @@ func (p *Panel) invalidate() {
 
 func (p *Panel) place() placed {
 	w := p.Bounds().Dx()
-	if p.cacheW == w {
+	k := fonts.TextScale()
+	if p.cacheW == w && p.cacheK == k {
 		return p.cache
 	}
-	y := cardTop
-	var out placed
-	for _, c := range p.model.Cards {
-		km := metricsByKind[c.Kind]
-		valueX := km.valueX
-		for _, r := range c.Rows {
-			if c.Kind != CardNote {
-				if lw := labelFont.Measure(nil, r.Label) + cardPad + valuePad; lw > valueX {
-					valueX = lw
-				}
-			}
-		}
-		cp := cardPos{card: c, title: km.title}
-		last := km.firstRow
-		if c.Kind == CardNote {
-			last = km.firstRow
-		}
-		for i, r := range c.Rows {
-			base := km.firstRow + int(float64(i)*km.pitch+.5)
-			last = base
-			cp.rows = append(cp.rows, rowPos{row: r, baseline: base, valueX: valueX})
-		}
-		height := last + km.bottom
-		if len(c.Rows) == 0 {
-			height = titleBase + km.bottom + 8
-		}
-		cp.rect = image.Rect(cardX, y, cardX+min(cardW, w-2*cardX), y+height)
-		y += height + cardGap
-		out.cards = append(out.cards, cp)
-	}
-	out.height = y - cardGap + bottomMargin
-	p.cache, p.cacheW = out, w
-	return out
+	p.cache, p.cacheW, p.cacheK = layoutModel(p.model, w, k), w, k
+	return p.cache
 }
+
+func (p *Panel) step() int { return max(scaled(scrollStep, fonts.TextScale()), 1) }
 
 func (p *Panel) maxScroll() int {
 	return max(0, p.place().height-p.Bounds().Dy())
@@ -215,21 +171,16 @@ func (p *Panel) origin() image.Point {
 
 func (p *Panel) hits() []hit {
 	o := p.origin()
-	var hs []hit
 	cl := image.Rect(o.X+closeBoxX-8, p.Bounds().Min.Y+closeBoxY-8, o.X+closeBoxX-8+closeHit, p.Bounds().Min.Y+closeBoxY-8+closeHit)
-	hs = append(hs, hit{kind: hitClose, rect: cl})
-	pl := p.place()
-	for _, cp := range pl.cards {
+	hs := []hit{{kind: hitClose, rect: cl}}
+	for _, cp := range p.place().cards {
+		at := o.Add(cp.rect.Min)
 		for _, rp := range cp.rows {
-			rowTop := o.Y + cp.rect.Min.Y + rp.baseline - 14
-			rect := image.Rect(o.X+cp.rect.Min.X+rp.valueX, rowTop, o.X+cp.rect.Max.X-cardPad, rowTop+20)
 			if rp.row.Copy != "" {
-				cr := image.Rect(o.X+cp.rect.Max.X-27-4, o.Y+cp.rect.Min.Y+rp.baseline-15, o.X+cp.rect.Max.X-27+18, o.Y+cp.rect.Min.Y+rp.baseline+7)
-				hs = append(hs, hit{kind: hitCopy, rect: cr, text: rp.row.Copy})
-				rect.Max.X = cr.Min.X
+				hs = append(hs, hit{kind: hitCopy, rect: rp.copyRect.Add(at), text: rp.row.Copy})
 			}
 			if rp.row.Link {
-				hs = append(hs, hit{kind: hitLink, rect: rect, url: rp.row.URL})
+				hs = append(hs, hit{kind: hitLink, rect: rp.linkRect.Add(at), url: rp.row.URL})
 			}
 		}
 	}
@@ -261,17 +212,17 @@ func (p *Panel) Draw(c widget.DrawContext) {
 	defer restore()
 	o := p.origin()
 
-	headerFont.Draw(c, i18n.T("info.title"), o.X+headerX, o.Y+headerBase, t.PanelValue)
+	pl := p.place()
+	headerFont.DrawFit(c, i18n.T("info.title"), o.X+headerX, o.Y+pl.headerBase, closeBoxX-8-headerX, t.PanelValue)
 	p.drawClose(c, o)
 	p.drawThumb(c, o)
 
 	tx := o.X + textX
-	tw := b.Max.X - tx - cardPad
-	nameFont.DrawFit(c, p.model.Name, tx, o.Y+nameBase, tw, t.PanelValue)
-	subFont.DrawFit(c, p.model.Format, tx, o.Y+formatBase, tw, t.PanelLabel)
-	subFont.DrawFit(c, p.model.FileSize, tx, o.Y+sizeBase, tw, t.PanelLabel)
+	drawLines(c, nameFont, pl.nameLines, tx, o.Y+pl.nameBase, pl.nameStep, pl.textW, t.PanelValue)
+	subFont.DrawFit(c, p.model.Format, tx, o.Y+pl.formatBase, pl.textW, t.PanelLabel)
+	subFont.DrawFit(c, p.model.FileSize, tx, o.Y+pl.sizeBase, pl.textW, t.PanelLabel)
 
-	for _, cp := range p.place().cards {
+	for _, cp := range pl.cards {
 		p.drawCard(c, o, cp)
 	}
 	p.drawBar(c)
@@ -326,6 +277,12 @@ func coverMapping(src render.Source, o codec.Orientation, w, h int) render.Mappi
 	}
 }
 
+func drawLines(c widget.DrawContext, f gfx.Font, lines []string, x, base, step, w int, col color.RGBA) {
+	for i, s := range lines {
+		f.DrawFit(c, s, x, base+i*step, w+textSlack, col)
+	}
+}
+
 func (p *Panel) drawCard(c widget.DrawContext, o image.Point, cp cardPos) {
 	t := p.Theme
 	r := cp.rect.Add(o)
@@ -340,7 +297,7 @@ func (p *Panel) drawCard(c widget.DrawContext, o image.Point, cp cardPos) {
 		if cp.card.Kind == CardSizes || cp.card.Kind == CardFile {
 			tf = compactTitleFont
 		}
-		tf.Draw(c, cp.card.Title, x0, r.Min.Y+cp.title, t.PanelValue)
+		tf.DrawFit(c, cp.card.Title, x0, r.Min.Y+cp.title, cp.innerW, t.PanelValue)
 	}
 	for _, rp := range cp.rows {
 		p.drawRow(c, r, cp, rp, x0)
@@ -351,31 +308,23 @@ func (p *Panel) drawRow(c widget.DrawContext, card image.Rectangle, cp cardPos, 
 	t := p.Theme
 	base := card.Min.Y + rp.baseline
 	if cp.card.Kind == CardNote {
-		labelFont.Draw(c, rp.row.Label, x0, base, t.PanelLabel)
+		drawLines(c, labelFont, rp.labelLines, x0, base, rp.labelStep, cp.innerW, t.PanelLabel)
 		return
 	}
-	labelFont.Draw(c, rp.row.Label, x0, base, t.PanelLabel)
+	drawLines(c, labelFont, rp.labelLines, x0, base, rp.labelStep, rp.valueX-cardPad-valuePad, t.PanelLabel)
 	vx := card.Min.X + rp.valueX - 2
-	maxW := card.Max.X - cardPad - vx
 	col := t.PanelValue
-	font := valueFont
 	if rp.row.Link {
 		col = t.Link
-		font = pathFont
-		if rp.row.URL == "" {
-			font = pathFont
-		}
 	}
 	if rp.row.Copy != "" {
-		cx := card.Max.X - 27
-		maxW = cx - vx - 8
-		ic := image.Rect(cx-4, base-15, cx+18, base+7)
+		ic := rp.copyRect.Add(card.Min)
 		if p.hover.kind == hitCopy && p.hover.text == rp.row.Copy {
 			gfx.FillRound(c, ic, 4, t.CaptionHover)
 		}
-		icons.Draw(c, "copy", cx+2, base-11, t.PanelValue)
+		icons.Draw(c, "copy", ic.Min.X+copyBoxLeft+copyIconDX, base-copyIconDY-rp.iconLift, t.PanelValue)
 	}
-	font.DrawFit(c, rp.row.Value, vx, base, maxW, col)
+	drawLines(c, rp.valueFont, rp.valueLines, vx, base, rp.valueStep, rp.valueW, col)
 }
 
 func (p *Panel) drawBar(c widget.DrawContext) {
@@ -420,10 +369,10 @@ func (p *Panel) WantsCapture(e widget.MouseEvent) bool { return false }
 func (p *Panel) OnMouseButton(e widget.MouseEvent) bool {
 	switch e.Button {
 	case widget.MouseWheelUp:
-		p.scrollBy(-scrollStep)
+		p.scrollBy(-p.step())
 		return true
 	case widget.MouseWheelDown:
-		p.scrollBy(scrollStep)
+		p.scrollBy(p.step())
 		return true
 	case widget.MouseLeft:
 	default:

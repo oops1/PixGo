@@ -92,9 +92,9 @@ const (
 	SlideExitCenter     = 25
 	SlideCounterX       = 53
 	SlideCounterBase    = 28
-	SlideDigitWidth     = 14
 	SlideTrackThickness = 4
 	SlideKnobRadius     = 5
+	slideCounterGap     = 4
 
 	GalleryHeaderHeight  = 42
 	GalleryCaptionWidth  = 34
@@ -130,7 +130,8 @@ type Options struct {
 	Page       Page
 	Holes      []image.Rectangle
 
-	CounterDigits int
+	CounterExtra int
+	ZoomLabelW   int
 }
 
 type Layout struct {
@@ -260,6 +261,9 @@ func Compute(w, h int, o Options) Layout {
 		for _, t := range toolbarOffsets {
 			cx := tbLeft + int(float64(t.center)*scale+.5)
 			bw := t.width
+			if t.kind == ZoneToolZoomLabel {
+				bw = zoomLabelWidth(o.ZoomLabelW, tbLeft, scale)
+			}
 			zones = append(zones, Zone{t.kind, image.Rect(cx-bw/2, toolbarCY-ToolButtonSize/2, cx-bw/2+bw, toolbarCY-ToolButtonSize/2+ToolButtonSize)})
 		}
 	}
@@ -295,7 +299,7 @@ func Compute(w, h int, o Options) Layout {
 
 func computeFullscreen(l Layout, w, h int, zones []Zone) Layout {
 	o := l.Opt
-	l.Slide = slideGeometry(w, h, o.CounterDigits)
+	l.Slide = slideGeometry(w, h, o.CounterExtra)
 	l.Toolbar = l.Slide.Panel
 	arrowCY := (ExitCenter + l.Slide.Panel.Min.Y + SlideBarHeight/2) / 2
 	r := FullArrowDiameter / 2
@@ -317,6 +321,22 @@ func computeFullscreen(l Layout, w, h int, zones []Zone) Layout {
 	}
 	l.Zones = zones
 	return l
+}
+
+func zoomLabelWidth(textW, tbLeft int, scale float64) int {
+	if textW+2*zoomLabelPadX <= zoomLabelMinW {
+		return zoomLabelMinW
+	}
+	var out, in int
+	for _, t := range toolbarOffsets {
+		switch t.kind {
+		case ZoneToolZoomOut:
+			out = tbLeft + int(float64(t.center)*scale+.5) + t.width/2
+		case ZoneToolZoomIn:
+			in = tbLeft + int(float64(t.center)*scale+.5) - t.width/2
+		}
+	}
+	return min(textW+2*zoomLabelPadX, max(zoomLabelMinW, in-out))
 }
 
 func titleButtonRect(cx int) image.Rectangle {

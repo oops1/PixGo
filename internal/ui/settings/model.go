@@ -27,10 +27,6 @@ var sectionKeys = [sectionCount]string{
 	"settings.section.about",
 }
 
-var navIconTops = [sectionCount]int{48, 77, 106, 136, 165, 195, 225}
-
-var navCapTops = [sectionCount]int{52, 82, 111, 141, 171, 201, 231}
-
 type kind uint8
 
 const (
@@ -84,6 +80,8 @@ type item struct {
 	lo, hi    int
 	step      int
 	valueText string
+	labelW    int
+	stacked   bool
 	choices   []choice
 	change    func(*data.Settings)
 	slide     func(v int) func(*data.Settings)
