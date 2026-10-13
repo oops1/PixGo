@@ -42,18 +42,21 @@ type App struct {
 
 	Quit func()
 
-	infoOpen     bool
-	fullscreen   bool
-	fsWanted     bool
-	emulated     bool
-	wasMaximized bool
-	ops          window.WindowOps
-	info         *infopanel.Panel
-	menu         *widget.PopupMenu
-	infoKey      string
-	upd          updateHooks
-	page         window.Page
-	gal          *galleryState
+	infoOpen   bool
+	fullscreen bool
+	fsWanted   bool
+
+	slideEnteredFullscreen bool
+	emulated               bool
+	wasMaximized           bool
+	ops                    window.WindowOps
+	info                   *infopanel.Panel
+	menu                   *widget.PopupMenu
+	infoKey                string
+	upd                    updateHooks
+	page                   window.Page
+	gal                    *galleryState
+	set                    *settingsState
 }
 
 func New(eng *engine.Engine, opt Options) *App {
@@ -75,6 +78,7 @@ func New(eng *engine.Engine, opt Options) *App {
 		return t.Stop
 	}
 	a.Canvas.Chrome = a.Root.Owns
+	a.Canvas.After = a.Root.After
 	a.Canvas.OnChange = func() {
 		a.Root.RefreshOverlay()
 		a.Root.RefreshTitle()
@@ -91,8 +95,12 @@ func New(eng *engine.Engine, opt Options) *App {
 	a.registerCommands()
 	a.menu = widget.NewPopupMenu()
 	a.Root.OnMore = a.showMoreMenu
+	a.initSlideshow()
 	a.Canvas.OnContextMenu = a.showMenuAt
 	a.ApplySettings()
+	a.Settings.Subscribe(func(old, current settings.Settings) {
+		eng.Post(func() { a.settingsChanged(old, current) })
+	})
 	return a
 }
 
@@ -139,17 +147,20 @@ func (a *App) InfoOpen() bool { return a.infoOpen }
 
 func (a *App) CanPrev() bool {
 	n := a.Ctl.Navigator()
-	return n != nil && (n.Index() > 0 || (n.Loop() && n.Count() > 1))
+	return n != nil && (n.Position() > 0 || (n.Loop() && n.Count() > 1))
 }
 
 func (a *App) CanNext() bool {
 	n := a.Ctl.Navigator()
-	return n != nil && (n.Index() < n.Count()-1 || (n.Loop() && n.Count() > 1))
+	return n != nil && (n.Position() < n.Count()-1 || (n.Loop() && n.Count() > 1))
 }
 
 func (a *App) Content() widget.Widget {
-	if a.page == window.PageGallery && a.gal != nil {
+	switch {
+	case a.page == window.PageGallery && a.gal != nil:
 		return a.gal.page
+	case a.page == window.PageSettings && a.set != nil:
+		return a.set.page
 	}
 	return a.Canvas
 }
@@ -168,11 +179,16 @@ func (a *App) ApplySettings() {
 		a.Canvas.Wheel = view.WheelNavigate
 	}
 	a.Canvas.CtrlWheelZoom = st.CtrlWheelZoom
-	a.Ctl.Navigator()
 	if n := a.Ctl.Navigator(); n != nil {
 		n.SetLoop(st.LoopFolder)
 	}
+	a.Canvas.Smooth = st.SmoothZoom && !a.reduceMotion()
+	a.Ctl.ApplyCache()
 	a.applyTheme()
+}
+
+func (a *App) reduceMotion() bool {
+	return a.Platform != nil && a.Platform.Theme != nil && a.Platform.Theme.ReduceMotion()
 }
 
 func (a *App) CurrentTheme() *theme.Theme {
@@ -231,7 +247,7 @@ func (a *App) background(t *theme.Theme) render.Background {
 	return bg
 }
 
-func (a *App) SystemThemeChanged() { a.Eng.Post(a.applyTheme) }
+func (a *App) SystemThemeChanged() { a.Eng.Post(a.ApplySettings) }
 
 func (a *App) OpenFiles(paths []string) {
 	if len(paths) == 0 {
@@ -258,8 +274,11 @@ func (a *App) Close() {
 func (a *App) Page() window.Page { return a.page }
 
 func (a *App) HeaderHoles() []image.Rectangle {
-	if a.page == window.PageGallery && a.gal != nil {
+	switch {
+	case a.page == window.PageGallery && a.gal != nil:
 		return a.gal.page.HeaderHoles()
+	case a.page == window.PageSettings && a.set != nil:
+		return a.set.page.HeaderHoles()
 	}
 	return nil
 }

@@ -25,8 +25,9 @@ func (a *App) menuLayout() []menuEntry {
 		{id: CmdOpen}, {id: CmdSaveAs}, {sep: true},
 		{id: CmdCopy}, {id: CmdCopyImage}, {id: CmdCopyPath}, {id: CmdReveal}, {sep: true},
 		{id: CmdRotateRight}, {id: CmdRotateLeft}, {id: CmdFlipH}, {id: CmdFlipV}, {sep: true},
-		{id: CmdFavorite}, {id: CmdInfo}, {id: CmdFullscreen}, {sep: true},
+		{id: CmdFavorite}, {id: CmdInfo}, {id: CmdFullscreen}, {id: CmdSlideshow}, {sep: true},
 		{id: CmdDelete}, {sep: true},
+		{id: CmdSettings},
 		{id: CmdCheckUpdates},
 	}
 }
@@ -49,6 +50,9 @@ func (a *App) menuItems() []widget.MenuItem {
 		}
 		if id == CmdFullscreen && a.fullscreen {
 			label = i18n.T("cmd.fullscreenExit")
+		}
+		if id == CmdSlideshow {
+			label = i18n.T(a.slideshowLabelKey())
 		}
 		items = append(items, widget.MenuItem{
 			Text:     label,

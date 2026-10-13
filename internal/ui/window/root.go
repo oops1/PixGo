@@ -49,7 +49,9 @@ type Root struct {
 	toastText string
 	stopToast func()
 
-	OnMore func(anchor image.Rectangle)
+	OnMore          func(anchor image.Rectangle)
+	OnSlideSettings func(anchor image.Rectangle)
+	OnOverlayChange func(visible bool)
 
 	lastChord    commands.Chord
 	chordFromKey bool
@@ -96,6 +98,8 @@ func (r *Root) autoHide() bool {
 
 func (r *Root) overlayVisible() bool { return !r.autoHide() || r.shown }
 
+func (r *Root) OverlayVisible() bool { return r.host.Page() == PageViewer && r.overlayVisible() }
+
 func (r *Root) options() Options {
 	o := Options{
 		Fullscreen: r.host.Fullscreen(),
@@ -103,10 +107,13 @@ func (r *Root) options() Options {
 		Resizable:  r.ops.BeginResize != nil || r.ops.MoveBy != nil,
 		Page:       r.host.Page(),
 	}
+	if o.Fullscreen {
+		o.CounterDigits = r.host.Slideshow().digits()
+	}
 	if r.ops.Maximized != nil {
 		o.Maximized = r.ops.Maximized()
 	}
-	if o.Page == PageGallery {
+	if o.Page != PageViewer {
 		o.Holes = r.host.HeaderHoles()
 		return o
 	}
@@ -158,6 +165,25 @@ func (r *Root) RefreshOverlay() {
 	r.eng.InvalidateRect(l.Toolbar.Inset(-3))
 	r.eng.InvalidateRect(l.Prev.Inset(-3))
 	r.eng.InvalidateRect(l.Next.Inset(-3))
+	if r.host.Fullscreen() {
+		r.eng.InvalidateRect(l.Rect(ZoneExit).Inset(-3))
+	}
+}
+
+func (r *Root) RefreshSlide() {
+	if !r.host.Fullscreen() || !r.OverlayVisible() {
+		return
+	}
+	r.invalidateRect(r.fullOverlayLayout().Slide.Panel)
+}
+
+func (r *Root) RefreshSlideProgress() {
+	if !r.host.Fullscreen() || !r.OverlayVisible() {
+		return
+	}
+	if sl := r.fullOverlayLayout().Slide; sl.HasTrack() {
+		r.eng.InvalidateRect(sl.Damage)
+	}
 }
 
 func (r *Root) invalidateRect(rect image.Rectangle) {
@@ -180,8 +206,20 @@ func (r *Root) Wake() {
 	r.shown = true
 	if changed {
 		r.Refresh()
+		r.overlayChanged(true)
 	}
 	r.armHide()
+}
+
+func (r *Root) overlayChanged(visible bool) {
+	if r.OnOverlayChange != nil {
+		r.OnOverlayChange(visible)
+	}
+}
+
+func (r *Root) menuOpen() bool {
+	m, ok := r.host.Menu().(interface{ IsOpen() bool })
+	return ok && m.IsOpen()
 }
 
 func (r *Root) armHide() {
@@ -200,7 +238,7 @@ func (r *Root) cancelHide() {
 }
 
 func overlayZone(k ZoneKind) bool {
-	return k >= ZonePrev && k <= ZoneExit
+	return k >= ZonePrev && k <= ZoneSlideBar
 }
 
 func (r *Root) hideNow() {
@@ -208,13 +246,14 @@ func (r *Root) hideNow() {
 	if !r.autoHide() || !r.shown {
 		return
 	}
-	if overlayZone(r.hover) || r.pressing {
+	if overlayZone(r.hover) || r.pressing || r.menuOpen() {
 		r.armHide()
 		return
 	}
 	r.shown = false
 	r.hideCursor()
 	r.Refresh()
+	r.overlayChanged(false)
 }
 
 func (r *Root) hideCursor() {
@@ -260,7 +299,7 @@ func (r *Root) Draw(c widget.DrawContext) {
 	r.placeContent(l)
 	r.cacheZones(l)
 	r.drawBackdrop(c, l)
-	if l.Opt.Page == PageGallery {
+	if l.Opt.Page != PageViewer {
 		gfx.DrawChildren(c, r)
 		r.drawGalleryCaptions(c, l)
 		r.drawToast(c, l)

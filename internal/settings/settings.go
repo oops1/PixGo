@@ -87,7 +87,6 @@ type Settings struct {
 	SortDesc             bool   `json:"sortDesc"`
 	GalleryView          string `json:"galleryView"`
 	GalleryThumbSize     int    `json:"galleryThumbSize"`
-	PixelGridAbove400    bool   `json:"pixelGridAbove400"`
 
 	Formats   map[string]Format `json:"formats"`
 	Slideshow Slideshow         `json:"slideshow"`
@@ -116,7 +115,7 @@ func Defaults() Settings {
 
 		InitialZoom: ZoomFit, Wheel: WheelNavigate, CtrlWheelZoom: true, SmoothZoom: false,
 		Preload: 1, ApplyExifOrientation: true, KeepZoomOnNavigate: false, LoopFolder: false,
-		Sort: SortName, SortDesc: false, PixelGridAbove400: true,
+		Sort: SortName, SortDesc: false,
 		GalleryView: GalleryGrid, GalleryThumbSize: 128,
 
 		Formats:   formats,

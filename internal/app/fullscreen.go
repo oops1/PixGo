@@ -32,10 +32,18 @@ func (a *App) OnFullscreenChanged(on bool) {
 	}
 	a.fullscreen = on
 	a.fsWanted = on
-	if on {
+	a.fullscreenSettled()
+}
+
+func (a *App) fullscreenSettled() {
+	if a.fullscreen {
 		a.Root.Wake()
+	} else {
+		a.Ctl.Slides().Stop()
+		a.slideEnteredFullscreen = false
 	}
 	a.Root.Refresh()
+	a.Ctl.Slides().Replan()
 }
 
 func (a *App) emulateFullscreen(on bool) {
@@ -50,13 +58,15 @@ func (a *App) emulateFullscreen(on bool) {
 	a.emulated = on
 	a.fullscreen = on
 	a.fsWanted = on
-	if on {
-		a.Root.Wake()
-	}
-	a.Root.Refresh()
+	a.fullscreenSettled()
 }
 
 func (a *App) escape() {
+	active := a.slideshowActive()
+	a.slideEnteredFullscreen = false
+	if active {
+		a.Ctl.Slides().Stop()
+	}
 	if a.fullscreen {
 		a.SetFullscreen(false)
 	}

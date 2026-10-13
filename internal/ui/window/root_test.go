@@ -33,6 +33,8 @@ type fakeHost struct {
 	ran        []commands.ID
 	page       Page
 	holes      []image.Rectangle
+	slide      SlideshowView
+	menu       widget.Widget
 
 	contentOverride widget.Widget
 }
@@ -43,7 +45,7 @@ func (h *fakeHost) HeaderHoles() []image.Rectangle { return h.holes }
 func newHost() *fakeHost {
 	h := &fakeHost{reg: commands.NewRegistry(), content: &fakeContent{has: true}, state: StateReady, canPrev: true, canNext: true}
 	for _, id := range []commands.ID{"app.back", "view.info", "file.favorite", "app.more", "nav.prev", "nav.next", "view.gallery", "file.delete",
-		"view.rotateLeft", "view.zoomOut", "view.zoomToggle", "view.zoomIn", "view.rotateRight", "view.fullscreen"} {
+		"view.rotateLeft", "view.zoomOut", "view.zoomToggle", "view.zoomIn", "view.rotateRight", "view.fullscreen", "slideshow.start", "slideshow.toggle"} {
 		id := id
 		h.reg.Add(commands.Command{ID: id, Run: func() { h.ran = append(h.ran, id) }})
 	}
@@ -66,10 +68,11 @@ func (h *fakeHost) Content() widget.Widget {
 	}
 	return h.content
 }
-func (h *fakeHost) Panel() widget.Widget { return nil }
-func (h *fakeHost) Menu() widget.Widget  { return nil }
-func (h *fakeHost) AutoHide() bool       { return h.autoHide }
-func (h *fakeHost) Fullscreen() bool     { return h.fullscreen }
+func (h *fakeHost) Panel() widget.Widget     { return nil }
+func (h *fakeHost) Menu() widget.Widget      { return h.menu }
+func (h *fakeHost) AutoHide() bool           { return h.autoHide }
+func (h *fakeHost) Fullscreen() bool         { return h.fullscreen }
+func (h *fakeHost) Slideshow() SlideshowView { return h.slide }
 
 type timers struct {
 	pending []*timer
@@ -105,9 +108,28 @@ func (ts *timers) live() int {
 	return n
 }
 
+type recordingEngine struct {
+	*engine.Engine
+	rects []image.Rectangle
+	full  int
+}
+
+func (r *recordingEngine) InvalidateRect(rc image.Rectangle) {
+	r.rects = append(r.rects, rc)
+	r.Engine.InvalidateRect(rc)
+}
+
+func (r *recordingEngine) Invalidate() {
+	r.full++
+	r.Engine.Invalidate()
+}
+
+func (r *recordingEngine) reset() { r.rects, r.full = nil, 0 }
+
 type rig struct {
 	t     *testing.T
 	eng   *engine.Engine
+	rec   *recordingEngine
 	root  *Root
 	host  *fakeHost
 	ts    *timers
@@ -118,14 +140,20 @@ type rig struct {
 
 func newRig(t *testing.T, mutate func(*fakeHost)) *rig {
 	t.Helper()
+	return newSizedRig(t, 770, 504, mutate)
+}
+
+func newSizedRig(t *testing.T, w, hgt int, mutate func(*fakeHost)) *rig {
+	t.Helper()
 	i18n.SetLang("ru")
 	h := newHost()
 	if mutate != nil {
 		mutate(h)
 	}
-	eng := engine.New(770, 504, 30)
-	r := &rig{t: t, eng: eng, host: h, ts: &timers{}, now: time.Unix(100, 0)}
-	r.root = New(h, eng, WindowOps{
+	eng := engine.New(w, hgt, 30)
+	rec := &recordingEngine{Engine: eng}
+	r := &rig{t: t, eng: eng, rec: rec, host: h, ts: &timers{}, now: time.Unix(100, 0)}
+	r.root = New(h, rec, WindowOps{
 		Minimize:       func() { r.ops = append(r.ops, "min") },
 		ToggleMaximize: func() { r.ops = append(r.ops, "max") },
 		Close:          func() { r.ops = append(r.ops, "close") },

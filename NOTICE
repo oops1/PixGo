@@ -26,3 +26,14 @@ headless-gui (github.com/oops1/headless-gui)
 golang.org/x/image
     Copyright 2009 The Go Authors
     BSD 3-Clause License
+
+golang.org/x/sys, golang.org/x/text
+    Copyright 2009 The Go Authors
+    BSD 3-Clause License (same text as golang-x-image.LICENSE)
+
+github.com/go-text/typesetting
+    Unlicense or BSD 3-Clause License (go-text-typesetting.LICENSE)
+
+Open Sans (font, embedded)
+    Copyright 2020 The Open Sans Project Authors
+    SIL Open Font License 1.1 (OpenSans-OFL.txt)

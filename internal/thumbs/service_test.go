@@ -723,3 +723,23 @@ func TestPendingCountsQueuedRequestsUntilTheyFinish(t *testing.T) {
 		t.Fatalf("pending after delivery = %d", n)
 	}
 }
+
+func TestDirectoryHelpersMeasureAndClearTheCacheOfAnotherRun(t *testing.T) {
+	reg, _ := fakeRegistry()
+	dir := t.TempDir()
+	hn := newHarness(t, reg, Options{DiskDir: dir})
+	p := hn.writeFake("one")[0]
+	hn.get(p, 128)
+	hn.waitUntil(func() bool { return DirectoryUsage(dir) > 0 })
+
+	if err := ClearDirectory(dir); err != nil {
+		t.Fatal(err)
+	}
+
+	if n := DirectoryUsage(dir); n != 0 {
+		t.Fatalf("usage after clearing = %d", n)
+	}
+	if DirectoryUsage("") != 0 || ClearDirectory("") != nil {
+		t.Fatal("an empty directory name must be harmless")
+	}
+}

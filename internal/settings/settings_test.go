@@ -18,8 +18,7 @@ func TestDefaultsMatchSpec(t *testing.T) {
 		t.Fatalf("general defaults: %+v", d)
 	}
 	if d.InitialZoom != "fit" || d.Wheel != "navigate" || !d.CtrlWheelZoom || d.SmoothZoom || d.Preload != 1 ||
-		!d.ApplyExifOrientation || d.KeepZoomOnNavigate || d.LoopFolder || d.Sort != "name" || d.SortDesc ||
-		!d.PixelGridAbove400 {
+		!d.ApplyExifOrientation || d.KeepZoomOnNavigate || d.LoopFolder || d.Sort != "name" || d.SortDesc {
 		t.Fatalf("view defaults: %+v", d)
 	}
 	if d.Slideshow != (Slideshow{Interval: 5, Loop: true, Shuffle: false, Transition: "none"}) {

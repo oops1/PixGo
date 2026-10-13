@@ -262,3 +262,17 @@ func (d *diskCache) clear() error {
 	}
 	return first
 }
+
+func DirectoryUsage(dir string) int64 {
+	if dir == "" {
+		return 0
+	}
+	return (&diskCache{dir: dir}).usage()
+}
+
+func ClearDirectory(dir string) error {
+	if dir == "" {
+		return nil
+	}
+	return (&diskCache{dir: dir}).clear()
+}

@@ -26,3 +26,16 @@ func String() string {
 	}
 	return Version
 }
+
+func Engine() string {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return ""
+	}
+	for _, dep := range info.Deps {
+		if dep.Path == "github.com/oops1/headless-gui/v3" {
+			return dep.Version
+		}
+	}
+	return ""
+}

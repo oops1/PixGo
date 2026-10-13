@@ -40,6 +40,8 @@ type Canvas struct {
 	Wheel         WheelMode
 	CtrlWheelZoom bool
 	Now           func() time.Time
+	Smooth        bool
+	After         func(d time.Duration, fn func()) (stop func())
 
 	OnChange      func()
 	OnStep        func(delta int)
@@ -67,6 +69,7 @@ type Canvas struct {
 	wheelAccum float64
 	dirty      bool
 	gestures   widget.GestureRecognizer
+	sm         smoothZoom
 }
 
 func New(eng Engine) *Canvas {
@@ -84,6 +87,7 @@ func (c *Canvas) Frame() viewer.Frame {
 func (c *Canvas) HasImage() bool { return len(c.src.Levels) > 0 && c.src.Width > 0 && c.src.Height > 0 }
 
 func (c *Canvas) SetImage(src render.Source, exif codec.Orientation, mode viewer.ZoomMode) {
+	c.cancelSmooth()
 	c.src = src
 	if !exif.Valid() {
 		exif = codec.OrientNormal
@@ -103,6 +107,7 @@ func (c *Canvas) ReplaceFrame(src render.Source) {
 }
 
 func (c *Canvas) Clear() {
+	c.cancelSmooth()
 	c.src = render.Source{}
 	c.invalidate()
 	c.changed()
@@ -148,6 +153,7 @@ func (c *Canvas) changed() {
 }
 
 func (c *Canvas) apply(f func(fr viewer.Frame)) {
+	c.settle()
 	if !c.HasImage() || c.areaW <= 0 || c.areaH <= 0 {
 		return
 	}
@@ -167,12 +173,14 @@ func (c *Canvas) ZoomIn()  { c.stepZoom(1, false, 0, 0) }
 func (c *Canvas) ZoomOut() { c.stepZoom(-1, false, 0, 0) }
 
 func (c *Canvas) stepZoom(steps int, atPoint bool, px, py float64) {
-	c.apply(func(f viewer.Frame) {
-		if !atPoint {
-			px, py = c.areaCenter()
-		}
-		c.view.StepZoom(f, steps, px, py)
-	})
+	if !atPoint {
+		px, py = c.areaCenter()
+	}
+	if c.smoothAllowed() {
+		c.smoothStep(steps, px, py)
+		return
+	}
+	c.apply(func(f viewer.Frame) { c.view.StepZoom(f, steps, px, py) })
 }
 
 func (c *Canvas) SetMode(mode viewer.ZoomMode) {
@@ -397,6 +405,7 @@ func (c *Canvas) OnMouseWheelPixelsMod(x, y int, dx, dy float64, mod widget.KeyM
 }
 
 func (c *Canvas) SetImageKeepView(src render.Source, exif codec.Orientation) {
+	c.cancelSmooth()
 	c.src = src
 	if !exif.Valid() {
 		exif = codec.OrientNormal

@@ -26,6 +26,10 @@ const (
 	ZoneToolMore
 	ZoneToolFullscreen
 	ZoneExit
+	ZoneSlidePlay
+	ZoneSlideSettings
+	ZoneSlideExit
+	ZoneSlideBar
 	ZoneResizeTop
 	ZoneResizeBottom
 	ZoneResizeLeft
@@ -71,12 +75,32 @@ const (
 	ResizeCorner    = 10
 	PanelWidth      = 326
 	ExitSize        = 40
-	ExitMargin      = 8
+	ExitCenter      = 20
 
-	GalleryHeaderHeight = 42
-	GalleryCaptionWidth = 34
-	GalleryCaptionClose = 20
-	GalleryCaptionStep  = 34
+	FullArrowDiameter   = 38
+	FullArrowLeftCX     = 27
+	FullArrowRightFromR = 25
+
+	SlideBarWidth       = 292
+	SlideBarHeight      = 46
+	SlideBarBottom      = 10
+	SlideBarRadius      = 12
+	SlideBarMargin      = 12
+	SlideButtonSize     = 40
+	SlidePlayCenter     = 25
+	SlideSettingsCenter = 65
+	SlideExitCenter     = 25
+	SlideCounterX       = 53
+	SlideCounterBase    = 28
+	SlideDigitWidth     = 14
+	SlideTrackThickness = 4
+	SlideKnobRadius     = 5
+
+	GalleryHeaderHeight  = 42
+	GalleryCaptionWidth  = 34
+	GalleryCaptionClose  = 20
+	GalleryCaptionStep   = 34
+	SettingsHeaderHeight = 33
 )
 
 var toolbarOffsets = [...]struct {
@@ -105,6 +129,8 @@ type Options struct {
 	Resizable  bool
 	Page       Page
 	Holes      []image.Rectangle
+
+	CounterDigits int
 }
 
 type Layout struct {
@@ -117,6 +143,7 @@ type Layout struct {
 	Toolbar   image.Rectangle
 	Prev      image.Rectangle
 	Next      image.Rectangle
+	Slide     Slide
 	Zones     []Zone
 	TitleText image.Point
 }
@@ -128,10 +155,18 @@ func (o Options) frame() int {
 	return FrameWidth
 }
 
-func computeGallery(w, h int, o Options) Layout {
+func headerHeight(p Page) int {
+	if p == PageSettings {
+		return SettingsHeaderHeight
+	}
+	return GalleryHeaderHeight
+}
+
+func computePage(w, h int, o Options) Layout {
 	l := Layout{W: w, H: h, Opt: o}
 	fr := o.frame()
-	l.Title = image.Rect(0, 0, w, GalleryHeaderHeight)
+	header := headerHeight(o.Page)
+	l.Title = image.Rect(0, 0, w, header)
 	l.Content = image.Rect(fr, fr, w-fr, h-fr)
 	l.View = l.Content
 	var zones []Zone
@@ -140,10 +175,10 @@ func computeGallery(w, h int, o Options) Layout {
 	}
 	for i, k := range []ZoneKind{ZoneMin, ZoneMax, ZoneClose} {
 		cx := w - GalleryCaptionClose - (2-i)*GalleryCaptionStep
-		zones = append(zones, Zone{k, image.Rect(cx-GalleryCaptionWidth/2, 0, cx-GalleryCaptionWidth/2+GalleryCaptionWidth, GalleryHeaderHeight)})
+		zones = append(zones, Zone{k, image.Rect(cx-GalleryCaptionWidth/2, 0, cx-GalleryCaptionWidth/2+GalleryCaptionWidth, header)})
 	}
 	capLeft := w - GalleryCaptionClose - 2*GalleryCaptionStep - GalleryCaptionWidth/2
-	drag := []image.Rectangle{image.Rect(0, 0, capLeft, GalleryHeaderHeight)}
+	drag := []image.Rectangle{image.Rect(0, 0, capLeft, header)}
 	for _, hole := range o.Holes {
 		drag = subtract(drag, hole)
 	}
@@ -179,8 +214,8 @@ func subtract(rects []image.Rectangle, hole image.Rectangle) []image.Rectangle {
 }
 
 func Compute(w, h int, o Options) Layout {
-	if o.Page == PageGallery {
-		return computeGallery(w, h, o)
+	if o.Page != PageViewer {
+		return computePage(w, h, o)
 	}
 	l := Layout{W: w, H: h, Opt: o}
 	fr := o.frame()
@@ -210,6 +245,10 @@ func Compute(w, h int, o Options) Layout {
 		zones = append(zones, resizeZones(w, h)...)
 	}
 
+	if o.Fullscreen {
+		return computeFullscreen(l, w, h, zones)
+	}
+
 	tbW := min(ToolbarWidth, max(0, l.View.Dx()-16))
 	tbLeft := l.View.Min.X + (l.View.Dx()-tbW)/2
 	tbTop := l.View.Max.Y - (ToolbarHeight + ToolbarBottom - fr)
@@ -226,9 +265,6 @@ func Compute(w, h int, o Options) Layout {
 	}
 
 	arrowCY := (l.View.Min.Y + toolbarCY) / 2
-	if o.Fullscreen {
-		arrowCY = (l.View.Min.Y + l.View.Max.Y) / 2
-	}
 	r := ArrowDiameter / 2
 	pcx := l.View.Min.X + ArrowLeftCX - fr
 	ncx := l.View.Max.X - ArrowRightFromR + fr
@@ -238,27 +274,46 @@ func Compute(w, h int, o Options) Layout {
 		zones = append(zones, Zone{ZonePrev, l.Prev}, Zone{ZoneNext, l.Next})
 	}
 
-	if o.Fullscreen && o.Toolbar {
-		ex := image.Rect(w-ExitMargin-ExitSize, ExitMargin, w-ExitMargin, ExitMargin+ExitSize)
-		zones = append(zones, Zone{ZoneExit, ex})
+	for i, k := range []ZoneKind{ZoneMin, ZoneMax, ZoneClose} {
+		cx := w - CaptionClose - (2-i)*CaptionStep
+		zones = append(zones, Zone{k, image.Rect(cx-CaptionWidth/2, 0, cx-CaptionWidth/2+CaptionWidth, TitleHeight)})
 	}
+	for _, b := range []struct {
+		k    ZoneKind
+		from int
+	}{{ZoneInfo, InfoFromRight}, {ZoneFavorite, FavFromRight}, {ZoneMore, MoreFromRight}} {
+		cx := w - b.from
+		zones = append(zones, Zone{b.k, titleButtonRect(cx)})
+	}
+	zones = append(zones, Zone{ZoneBack, titleButtonRect(BackCenterX)})
+	capLeft := w - CaptionClose - 2*CaptionStep - CaptionWidth/2
+	zones = append(zones, Zone{ZoneDrag, image.Rect(0, 0, capLeft, TitleHeight)})
+	l.TitleText = image.Pt(TitleTextX, TitleHeight/2)
+	l.Zones = zones
+	return l
+}
 
-	if !o.Fullscreen {
-		for i, k := range []ZoneKind{ZoneMin, ZoneMax, ZoneClose} {
-			cx := w - CaptionClose - (2-i)*CaptionStep
-			zones = append(zones, Zone{k, image.Rect(cx-CaptionWidth/2, 0, cx-CaptionWidth/2+CaptionWidth, TitleHeight)})
-		}
-		for _, b := range []struct {
-			k    ZoneKind
-			from int
-		}{{ZoneInfo, InfoFromRight}, {ZoneFavorite, FavFromRight}, {ZoneMore, MoreFromRight}} {
-			cx := w - b.from
-			zones = append(zones, Zone{b.k, titleButtonRect(cx)})
-		}
-		zones = append(zones, Zone{ZoneBack, titleButtonRect(BackCenterX)})
-		capLeft := w - CaptionClose - 2*CaptionStep - CaptionWidth/2
-		zones = append(zones, Zone{ZoneDrag, image.Rect(0, 0, capLeft, TitleHeight)})
-		l.TitleText = image.Pt(TitleTextX, TitleHeight/2)
+func computeFullscreen(l Layout, w, h int, zones []Zone) Layout {
+	o := l.Opt
+	l.Slide = slideGeometry(w, h, o.CounterDigits)
+	l.Toolbar = l.Slide.Panel
+	arrowCY := (ExitCenter + l.Slide.Panel.Min.Y + SlideBarHeight/2) / 2
+	r := FullArrowDiameter / 2
+	pcx, ncx := FullArrowLeftCX, w-FullArrowRightFromR
+	l.Prev = image.Rect(pcx-r, arrowCY-r, pcx-r+FullArrowDiameter, arrowCY-r+FullArrowDiameter)
+	l.Next = image.Rect(ncx-r, arrowCY-r, ncx-r+FullArrowDiameter, arrowCY-r+FullArrowDiameter)
+	if o.Arrows {
+		zones = append(zones, Zone{ZonePrev, l.Prev}, Zone{ZoneNext, l.Next})
+	}
+	if o.Toolbar {
+		ex := image.Rect(w-ExitCenter-ExitSize/2, ExitCenter-ExitSize/2, w-ExitCenter-ExitSize/2+ExitSize, ExitCenter-ExitSize/2+ExitSize)
+		zones = append(zones,
+			Zone{ZoneExit, ex},
+			Zone{ZoneSlidePlay, l.Slide.Play},
+			Zone{ZoneSlideSettings, l.Slide.Settings},
+			Zone{ZoneSlideExit, l.Slide.Exit},
+			Zone{ZoneSlideBar, l.Slide.Panel},
+		)
 	}
 	l.Zones = zones
 	return l

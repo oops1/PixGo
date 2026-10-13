@@ -58,6 +58,7 @@ func TestSpecsCoverArchitectureShortcuts(t *testing.T) {
 		{commands.C(0, commands.KeyF11), CmdFullscreen},
 		{commands.C(commands.Alt, commands.KeyEnter), CmdFullscreen},
 		{commands.C(0, commands.KeyF5), CmdSlideshow},
+		{commands.C(0, commands.KeySpace), CmdSlideshowToggle},
 		{commands.C(0, commands.KeyEscape), CmdEscape},
 		{commands.C(commands.Ctrl, commands.KeyComma), CmdSettings},
 	}

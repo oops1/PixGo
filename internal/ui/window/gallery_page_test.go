@@ -218,3 +218,31 @@ func TestGalleryPageDrawsWithoutTheViewerTitle(t *testing.T) {
 		t.Fatal("no frame")
 	}
 }
+
+func TestSettingsHeaderHeightFollowsItsMockup(t *testing.T) {
+	l := Compute(457, 430, Options{Page: PageSettings})
+
+	if l.Title != image.Rect(0, 0, 457, SettingsHeaderHeight) {
+		t.Fatalf("title = %v", l.Title)
+	}
+	for _, k := range []ZoneKind{ZoneMin, ZoneMax, ZoneClose} {
+		if r := l.Rect(k); r.Dy() != SettingsHeaderHeight {
+			t.Errorf("%v zone height = %d, want %d", k, r.Dy(), SettingsHeaderHeight)
+		}
+	}
+}
+
+func TestSettingsPageUsesTheGalleryStyleChromeAndKeys(t *testing.T) {
+	page := &keyContent{take: true}
+	r := newRig(t, func(h *fakeHost) {
+		h.page = PageSettings
+		h.contentOverride = page
+	})
+
+	if !r.root.HandleKey(widget.KeyEvent{Code: widget.KeyDown, Pressed: true}) || len(page.taken) != 1 {
+		t.Fatal("keys must go to the settings page first")
+	}
+	if r.root.OnMouseButton(widget.MouseEvent{Button: widget.MouseButtonX1, Pressed: true}) {
+		t.Fatal("side buttons are left to the page")
+	}
+}

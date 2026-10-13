@@ -6,6 +6,7 @@ import (
 
 	"github.com/oops1/headless-gui/v3/widget"
 
+	"github.com/oops1/PixGo/internal/commands"
 	"github.com/oops1/PixGo/internal/i18n"
 	"github.com/oops1/PixGo/internal/ui/gfx"
 )
@@ -38,7 +39,11 @@ func (r *Root) tipText(k ZoneKind) string {
 		return i18n.T("window.close")
 	case ZoneToolZoomLabel:
 		return i18n.T("zoom.label")
-	case ZoneDrag, ZoneNone:
+	case ZoneSlidePlay:
+		return r.slidePlayTip()
+	case ZoneSlideSettings:
+		return i18n.T("slideshow.settings")
+	case ZoneDrag, ZoneNone, ZoneSlideBar:
 		return ""
 	}
 	cmd := r.command(k)
@@ -46,7 +51,7 @@ func (r *Root) tipText(k ZoneKind) string {
 		return ""
 	}
 	label := cmd.Label()
-	if k == ZoneToolFullscreen && r.host.Fullscreen() {
+	if (k == ZoneToolFullscreen || k == ZoneExit || k == ZoneSlideExit) && r.host.Fullscreen() {
 		label = i18n.T("cmd.fullscreenExit")
 	}
 	if k == ZoneFavorite && r.host.Favorite() {
@@ -56,6 +61,26 @@ func (r *Root) tipText(k ZoneKind) string {
 		return label + " (" + sc + ")"
 	}
 	return label
+}
+
+func (r *Root) slidePlayTip() string {
+	v := r.host.Slideshow()
+	id, key := "slideshow.start", "cmd.slideshow"
+	switch {
+	case v.Active && v.Playing:
+		id, key = "slideshow.toggle", "cmd.slideshowPause"
+	case v.Active:
+		id, key = "slideshow.toggle", "cmd.slideshowResume"
+	}
+	text := i18n.T(key)
+	if reg := r.host.Registry(); reg != nil {
+		if cmd := reg.Get(commands.ID(id)); cmd != nil {
+			if sc := cmd.Shortcut(); sc != "" {
+				return text + " (" + sc + ")"
+			}
+		}
+	}
+	return text
 }
 
 func (r *Root) scheduleTip(k ZoneKind) {
@@ -102,7 +127,7 @@ func (r *Root) tipRect(c widget.DrawContext) image.Rectangle {
 		y0 = anchor.Max.Y + tipGap
 	} else {
 		top := anchor.Min.Y
-		if r.tip.zone >= ZoneToolGallery && r.tip.zone <= ZoneToolFullscreen {
+		if r.tip.zone >= ZoneToolGallery && r.tip.zone <= ZoneToolFullscreen || r.tip.zone >= ZoneSlidePlay && r.tip.zone <= ZoneSlideBar {
 			top = l.Toolbar.Min.Y
 		}
 		y0 = top - tipGap - tipHeight

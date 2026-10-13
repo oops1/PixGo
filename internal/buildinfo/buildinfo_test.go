@@ -16,3 +16,11 @@ func TestReleaseVersionIsReportedAsIs(t *testing.T) {
 		t.Fatalf("got %q", got)
 	}
 }
+
+func TestEngineVersionLooksLikeAModuleVersionWhenKnown(t *testing.T) {
+	v := Engine()
+
+	if v != "" && v[0] != 'v' {
+		t.Fatalf("engine version = %q", v)
+	}
+}

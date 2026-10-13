@@ -74,7 +74,7 @@ func (r *Root) setHover(k ZoneKind) {
 }
 
 func (r *Root) invalidateZone(k ZoneKind) {
-	if k == ZoneNone || k == ZoneDrag || isResize(k) {
+	if k == ZoneNone || k == ZoneDrag || k == ZoneSlideBar || isResize(k) {
 		return
 	}
 	l := r.fullOverlayLayout()
@@ -110,7 +110,7 @@ func (r *Root) WantsCapture(e widget.MouseEvent) bool {
 
 func (r *Root) OnMouseButton(e widget.MouseEvent) bool {
 	if e.Button == widget.MouseButtonX1 || e.Button == widget.MouseButtonX2 {
-		if r.host.Page() == PageGallery {
+		if r.host.Page() != PageViewer {
 			return false
 		}
 		if e.Pressed {
@@ -206,11 +206,15 @@ func (r *Root) activate(k ZoneKind) {
 			r.ops.Close()
 		}
 		return
-	case ZoneDrag:
+	case ZoneDrag, ZoneSlideBar:
 		return
 	}
 	if (k == ZoneMore || k == ZoneToolMore) && r.OnMore != nil {
 		r.OnMore(r.fullOverlayLayout().Rect(k))
+		return
+	}
+	if k == ZoneSlideSettings && r.OnSlideSettings != nil {
+		r.OnSlideSettings(r.fullOverlayLayout().Rect(k))
 		return
 	}
 	if cmd := r.command(k); cmd != nil && cmd.IsEnabled() {
@@ -248,7 +252,7 @@ func (r *Root) HandleKey(e widget.KeyEvent) bool {
 	if !e.Pressed {
 		return false
 	}
-	if r.host.Page() == PageGallery {
+	if r.host.Page() != PageViewer {
 		return r.handleGalleryKey(e)
 	}
 	ch, ok := ChordOf(e)

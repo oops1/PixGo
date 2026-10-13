@@ -50,6 +50,7 @@ func main() {
 	showVersion := flag.Bool("version", false, "print the version and exit")
 	setDefault := flag.Bool("set-default", false, "make PixGo the default image viewer and exit")
 	galleryDir := flag.String("gallery", "", "open the gallery on this folder")
+	openSettings := flag.Bool("settings", false, "open the settings page")
 	flag.Parse()
 	if *showVersion {
 		fmt.Println("PixGo", buildinfo.String())
@@ -133,6 +134,9 @@ func main() {
 		}
 		waitForImage(eng, a)
 		waitForGallery(eng, a)
+		if *openSettings {
+			a.OpenSettings()
+		}
 		a.Root.Refresh()
 		eng.Flush()
 		if err := savePNG(*screenshot, eng.RenderOnce()); err != nil {
@@ -193,10 +197,14 @@ func main() {
 		case !opened:
 			a.OpenGallery()
 		}
+		if *openSettings {
+			a.OpenSettings()
+		}
 		a.Root.Refresh()
 		a.Root.Wake()
 	})
 	eng.After(updateCheckDelay, a.ScheduleUpdateCheck)
+	eng.After(100*time.Millisecond, func() { hookActivation(eng, win, a, 50) })
 	eng.Start()
 	if err := win.Run(); err != nil {
 		slog.Error("window", "err", err)
@@ -317,4 +325,18 @@ func waitForGallery(eng *engine.Engine, a *app.App) {
 		time.Sleep(10 * time.Millisecond)
 	}
 	eng.Flush()
+}
+
+type activationHook interface {
+	SetOnActivate(fn func(active bool))
+}
+
+func hookActivation(eng *engine.Engine, win *window.Window, a *app.App, attempts int) {
+	if n, ok := win.Native().(activationHook); ok {
+		n.SetOnActivate(func(active bool) { eng.Post(func() { a.SetActive(active) }) })
+		return
+	}
+	if attempts > 0 {
+		eng.After(100*time.Millisecond, func() { hookActivation(eng, win, a, attempts-1) })
+	}
 }

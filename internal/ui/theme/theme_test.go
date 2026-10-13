@@ -34,6 +34,7 @@ func TestEveryTokenSetAndPremultiplied(t *testing.T) {
 func TestTranslucentTokens(t *testing.T) {
 	translucent := map[string]bool{
 		"Overlay": true, "OverlayHover": true, "SlideBar": true, "ArrowFill": true, "Shadow": true,
+		"SlideBarEdge": true, "SlideTrack": true, "SlideArrowEdge": true,
 	}
 	for _, th := range []*Theme{Dark(), Light()} {
 		eachToken(th, func(name string, c color.RGBA) {
@@ -43,7 +44,7 @@ func TestTranslucentTokens(t *testing.T) {
 		})
 	}
 	hc := HighContrast()
-	if hc.Overlay.A != 255 || hc.ArrowFill.A != 255 || hc.SlideBar.A != 255 {
+	if hc.Overlay.A != 255 || hc.ArrowFill.A != 255 || hc.SlideBar.A != 255 || hc.SlideBarEdge.A != 255 || hc.SlideTrack.A != 255 || hc.SlideArrowEdge.A != 255 {
 		t.Error("high contrast overlays must be opaque")
 	}
 }
@@ -224,6 +225,25 @@ func TestDarkTokensMatchMockups(t *testing.T) {
 		inside := average(m1, image.Rect(x, 443, x+6, 449))
 		if got := Over(dark.Overlay, above); !near(got, inside, 16) {
 			t.Errorf("Overlay over x=%d: composite %v, mockup %v", x, got, inside)
+		}
+	}
+}
+
+func TestSlideBarOverThePhotoMatchesMockup05(t *testing.T) {
+	m5 := loadMockup(t, "05_fullscreen_slideshow.png")
+	dark := Dark()
+	for _, x := range []int{30, 40, 50, 100, 120, 160} {
+		above := average(m5, image.Rect(x, 278, x+6, 284))
+		inside := average(m5, image.Rect(x, 291, x+6, 296))
+		if got := Over(dark.SlideBar, above); !near(got, inside, 10) {
+			t.Errorf("SlideBar over x=%d: composite %v, mockup %v", x, got, inside)
+		}
+	}
+	for _, y := range []int{296, 304, 312, 324} {
+		outside := average(m5, image.Rect(8, y, 14, y+4))
+		inside := average(m5, image.Rect(21, y, 27, y+4))
+		if got := Over(dark.SlideBar, outside); !near(got, inside, 12) {
+			t.Errorf("SlideBar over y=%d: composite %v, mockup %v", y, got, inside)
 		}
 	}
 }

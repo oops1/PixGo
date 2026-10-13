@@ -20,6 +20,10 @@ const (
 	hoverRadius    = 4
 	stateTitleGap  = 10
 	stateLineSpace = 8
+
+	fullArrowRadius   = 19.4
+	fullArrowShiftY   = 0.3
+	exitBackingRadius = 16
 )
 
 var (
@@ -47,6 +51,8 @@ func DefaultActions() map[ZoneKind]commands.ID {
 		ZoneToolMore:        "app.more",
 		ZoneToolFullscreen:  "view.fullscreen",
 		ZoneExit:            "view.fullscreen",
+		ZoneSlidePlay:       "slideshow.toggle",
+		ZoneSlideExit:       "view.fullscreen",
 	}
 }
 
@@ -235,13 +241,17 @@ func (r *Root) drawOverlay(c widget.DrawContext, l Layout) {
 	}
 	for _, z := range l.Zones {
 		if z.Kind == ZonePrev || z.Kind == ZoneNext {
-			r.drawArrow(c, z)
+			r.drawArrow(c, l, z)
 		}
 	}
 	for _, z := range l.Zones {
 		if z.Kind == ZoneExit {
 			r.drawExit(c, z)
 		}
+	}
+	if l.Opt.Fullscreen {
+		r.drawSlide(c, l)
+		return
 	}
 	if !hasToolbar(l) {
 		return
@@ -265,22 +275,29 @@ func hasToolbar(l Layout) bool {
 	return false
 }
 
-func (r *Root) drawArrow(c widget.DrawContext, z Zone) {
+func (r *Root) drawArrow(c widget.DrawContext, l Layout, z Zone) {
 	t := r.Theme
 	prev := z.Kind == ZonePrev
 	if prev && !r.host.CanPrev() || !prev && !r.host.CanNext() {
 		return
 	}
+	radius, fill, edge, suffix := arrowRadius, t.ArrowFill, t.ArrowBorder, ""
+	if l.Opt.Fullscreen {
+		radius, fill, edge, suffix = fullArrowRadius, t.SlideBar, t.SlideArrowEdge, "-sm"
+	}
 	cx := float64(z.Rect.Min.X) + float64(z.Rect.Dx())/2
 	cy := float64(z.Rect.Min.Y) + float64(z.Rect.Dy())/2
-	gfx.FillCircle(c, cx, cy, arrowRadius, t.ArrowFill)
-	if r.hover == z.Kind || r.pressing && r.pressed == z.Kind {
-		gfx.FillCircle(c, cx, cy, arrowRadius, t.OverlayHover)
+	if l.Opt.Fullscreen {
+		cy += fullArrowShiftY
 	}
-	gfx.StrokeCircle(c, cx, cy, arrowRadius, 1, t.ArrowBorder)
-	name := "chevron-right"
+	gfx.FillCircle(c, cx, cy, radius, fill)
+	if r.hover == z.Kind || r.pressing && r.pressed == z.Kind {
+		gfx.FillCircle(c, cx, cy, radius, t.OverlayHover)
+	}
+	gfx.StrokeCircle(c, cx, cy, radius, 1, edge)
+	name := "chevron-right" + suffix
 	if prev {
-		name = "chevron-left"
+		name = "chevron-left" + suffix
 	}
 	drawIcon(c, name, z.Rect.Min.X+z.Rect.Dx()/2, z.Rect.Min.Y+z.Rect.Dy()/2, t.ArrowGlyph)
 }
@@ -328,8 +345,20 @@ var _ = image.Pt
 
 func (r *Root) drawExit(c widget.DrawContext, z Zone) {
 	t := r.Theme
-	if r.hover == z.Kind || r.pressing && r.pressed == z.Kind {
-		gfx.FillRound(c, z.Rect, float64(z.Rect.Dx())/2, t.ArrowFill)
+	cx, cy := (z.Rect.Min.X+z.Rect.Max.X)/2, (z.Rect.Min.Y+z.Rect.Max.Y)/2
+	fx, fy := float64(z.Rect.Min.X+z.Rect.Max.X)/2, float64(z.Rect.Min.Y+z.Rect.Max.Y)/2
+	hovered := r.hover == z.Kind || r.pressing && r.pressed == z.Kind
+	glyph := t.OverlayText
+	switch {
+	case t.Name != "dark":
+		gfx.FillCircle(c, fx, fy, exitBackingRadius, t.SlideBar)
+		gfx.StrokeCircle(c, fx, fy, exitBackingRadius, 1, t.SlideArrowEdge)
+		if hovered {
+			gfx.FillCircle(c, fx, fy, exitBackingRadius, t.OverlayHover)
+		}
+		glyph = t.ArrowGlyph
+	case hovered:
+		gfx.FillCircle(c, fx, fy, exitBackingRadius, t.SlideBar)
 	}
-	drawIcon(c, "close", (z.Rect.Min.X+z.Rect.Max.X)/2, (z.Rect.Min.Y+z.Rect.Max.Y)/2, t.OverlayText)
+	drawIcon(c, "close", cx, cy, glyph)
 }

@@ -2,6 +2,7 @@ package app
 
 import (
 	"errors"
+	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"strings"
@@ -57,6 +58,10 @@ type Controller struct {
 	anim     animation
 	keepView bool
 
+	slides  *Slides
+	shuffle bool
+	rnd     *rand.Rand
+
 	unsub    func()
 	OnChange func()
 	OnLists  func()
@@ -79,10 +84,16 @@ func NewController(env Env, canvas *view.Canvas) *Controller {
 	c.loader = imaging.NewLoader(env.Registry, c.cache, env.Post, st.DecodeThreads, c.limits)
 	c.unsub = c.loader.Subscribe(c.onLoaderEvent)
 	c.anim.owner = c
+	seed := uint64(env.Now().UnixNano())
+	c.rnd = rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15))
+	c.slides = newSlides(c)
 	return c
 }
 
+func (c *Controller) Slides() *Slides { return c.slides }
+
 func (c *Controller) Close() {
+	c.slides.Close()
 	c.anim.stop()
 	if c.unsub != nil {
 		c.unsub()
@@ -193,6 +204,7 @@ func (c *Controller) Open(path string) error {
 	c.folder = folder
 	c.nav = viewer.NewNavigator(folder, idx)
 	c.nav.SetLoop(st.LoopFolder)
+	c.applyOrder()
 	if e, ok := c.nav.Current(); ok {
 		c.Recent.Add(e.Path)
 		c.listsChanged()
@@ -242,6 +254,32 @@ func (c *Controller) Step(delta int) bool {
 	return moved
 }
 
+func (c *Controller) Advance(wrap bool) bool {
+	if c.nav == nil || !c.nav.Forward(wrap) {
+		return false
+	}
+	c.show(false)
+	return true
+}
+
+func (c *Controller) SetShuffle(on bool) {
+	c.shuffle = on
+	c.applyOrder()
+	if c.nav != nil && c.current != "" {
+		c.want()
+	}
+}
+
+func (c *Controller) applyOrder() {
+	switch {
+	case c.nav == nil:
+	case c.shuffle && !c.nav.Shuffled():
+		c.nav.Shuffle(c.rnd)
+	case !c.shuffle:
+		c.nav.Unshuffle()
+	}
+}
+
 func (c *Controller) First() bool { return c.jump(func() bool { return c.nav.First() }) }
 func (c *Controller) Last() bool  { return c.jump(func() bool { return c.nav.Last() }) }
 
@@ -261,7 +299,8 @@ func (c *Controller) show(keepView bool) {
 		c.clear()
 		return
 	}
-	if e.Path != c.current {
+	changed := e.Path != c.current
+	if changed {
 		c.current = e.Path
 		c.anim.stop()
 		c.status = StatusLoading
@@ -273,6 +312,9 @@ func (c *Controller) show(keepView bool) {
 	}
 	c.want()
 	c.sync()
+	if changed {
+		c.slides.fileChanged()
+	}
 }
 
 func (c *Controller) want() {
@@ -426,3 +468,17 @@ func (c *Controller) Removed(path string) {
 func samePathFold(a, b string) bool { return strings.EqualFold(filepath.Clean(a), filepath.Clean(b)) }
 
 func (c *Controller) ExifOrientation() codec.Orientation { return c.exif }
+
+func (c *Controller) ApplySort() {
+	if c.folder == nil || c.nav == nil {
+		return
+	}
+	st := c.env.Settings.Get()
+	c.folder.SetSort(c.sortMode(), st.SortDesc)
+	c.nav.Follow(c.current)
+	c.changed()
+}
+
+func (c *Controller) ApplyCache() {
+	c.cache.SetBudget(int64(c.env.Settings.Get().CacheMB) << 20)
+}

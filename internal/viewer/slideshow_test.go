@@ -169,3 +169,21 @@ func TestSlideshowPauseNeverExceedsInterval(t *testing.T) {
 		t.Fatalf("progress %v remaining %v", s.Progress(t0), s.Remaining(t0))
 	}
 }
+
+func TestSlideshowStopClearsProgressAndPause(t *testing.T) {
+	s := NewSlideshow(10 * time.Second)
+	s.Start(t0)
+	s.Pause(t0.Add(4 * time.Second))
+	s.Stop()
+	if s.Running() || s.Progress(t0.Add(time.Hour)) != 0 || s.Remaining(t0) != 10*time.Second {
+		t.Fatalf("stopped slideshow: running %v progress %v", s.Running(), s.Progress(t0.Add(time.Hour)))
+	}
+	s.Start(t0.Add(time.Minute))
+	if s.Progress(t0.Add(time.Minute)) != 0 || !s.Running() {
+		t.Fatal("a slideshow started after Stop begins from zero")
+	}
+	s.Stop()
+	if s.Running() || s.Due(t0.Add(time.Hour)) {
+		t.Fatal("Stop while running must stop the timer")
+	}
+}

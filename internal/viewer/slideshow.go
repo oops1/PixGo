@@ -35,6 +35,11 @@ func (s *Slideshow) Pause(now time.Time) {
 	s.running = false
 }
 
+func (s *Slideshow) Stop() {
+	s.running = false
+	s.elapsed = 0
+}
+
 func (s *Slideshow) Toggle(now time.Time) {
 	if s.running {
 		s.Pause(now)

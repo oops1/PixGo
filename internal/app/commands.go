@@ -25,6 +25,7 @@ func (a *App) registerCommands() {
 		CmdOpen:            a.OpenGallery,
 		CmdGallery:         a.OpenGallery,
 		CmdBack:            a.OpenGallery,
+		CmdSettings:        a.OpenSettings,
 		CmdDelete:          func() { a.deleteCurrent(false) },
 		CmdDeletePermanent: func() { a.deleteCurrent(true) },
 		CmdCopy:            a.copyFile,
@@ -33,6 +34,8 @@ func (a *App) registerCommands() {
 		CmdReveal:          a.reveal,
 		CmdSaveAs:          a.saveAs,
 		CmdFullscreen:      a.toggleFullscreen,
+		CmdSlideshow:       a.toggleSlideshow,
+		CmdSlideshowToggle: a.toggleSlideshowPause,
 		CmdInfo:            a.toggleInfo,
 		CmdEscape:          a.escape,
 		CmdCheckUpdates:    a.CheckForUpdates,
@@ -62,7 +65,9 @@ func (a *App) registerCommands() {
 		CmdSaveAs:          img,
 		CmdFullscreen:      img,
 		CmdInfo:            a.hasFile,
-		CmdEscape:          func() bool { return a.fullscreen },
+		CmdSlideshow:       a.canSlideshow,
+		CmdSlideshowToggle: a.canSlideshow,
+		CmdEscape:          func() bool { return a.fullscreen || a.slideshowActive() },
 	}
 	for _, s := range Specs {
 		a.Commands.Add(commands.Command{

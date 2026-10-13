@@ -2,10 +2,12 @@ package window
 
 import (
 	"image"
+	"time"
 
 	"github.com/oops1/headless-gui/v3/widget"
 
 	"github.com/oops1/PixGo/internal/commands"
+	"github.com/oops1/PixGo/internal/i18n"
 )
 
 type ContentState uint8
@@ -22,7 +24,29 @@ type Page uint8
 const (
 	PageViewer Page = iota
 	PageGallery
+	PageSettings
 )
+
+type SlideshowView struct {
+	Active   bool
+	Playing  bool
+	Index    int
+	Total    int
+	Progress float64
+	Interval time.Duration
+}
+
+func (v SlideshowView) CounterText() string {
+	return i18n.T("slideshow.counter", v.Index, v.Total)
+}
+
+func (v SlideshowView) digits() int {
+	n, d := max(v.Total, v.Index), 1
+	for ; n >= 10; n /= 10 {
+		d++
+	}
+	return d
+}
 
 type Host interface {
 	Page() Page
@@ -41,6 +65,7 @@ type Host interface {
 	Menu() widget.Widget
 	AutoHide() bool
 	Fullscreen() bool
+	Slideshow() SlideshowView
 }
 
 type Engine interface {
