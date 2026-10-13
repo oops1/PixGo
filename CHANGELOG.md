@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0] - 2026-10-13
+
+### Added
+- Full screen (F11, Alt+Enter, Esc to leave). The picture fills the screen; a compact bar with play, the position, the progress to the next picture, the slideshow menu and the exit button appears when the mouse moves and hides after 2.5 seconds together with the cursor.
+- Slideshow: F5 starts it (entering full screen if needed), Space pauses and resumes, the arrows and the wheel switch pictures by hand and restart the countdown. The gear on the bar sets the interval (1, 3, 5, 10 or 30 seconds), looping and shuffling; shuffling shows every picture once per round. It ends on the last picture when looping is off.
+- Settings page (Ctrl+, or the context menu) with the sections General, View, Formats, Slideshow, Performance, Language and About. Changes apply at once, no restart: theme, language, background of transparent images, mouse wheel, order of files, cache size and the rest. The Formats section lists the supported formats and sets PixGo as the default viewer (Windows opens Default apps), Performance clears the thumbnail cache, About shows the version, the engine, the licenses and checks for updates.
+- Smooth zoom (View section); it is off while the system asks for reduced animation.
+- Animations of GIF and WebP pause while the window is not active.
+
+### Changed
+- Licenses of every component that ships in the program (Open Sans, golang.org/x/sys, golang.org/x/text, go-text/typesetting) are now listed in `NOTICE` and kept in `third_party/`.
+- Removed the unused option `pixelGridAbove400` from `settings.json`; the file keeps working, the key is ignored.
+
 ## [0.3.0] - 2026-10-13
 
 ### Added
