@@ -258,10 +258,11 @@ func (a *App) OpenFiles(paths []string) {
 	a.Root.Refresh()
 }
 
-func (a *App) Handoff(paths []string) {
+func (a *App) Handoff(args []string) {
+	token, paths := DecodeHandoff(args)
 	a.OpenFiles(paths)
 	if a.ops.Raise != nil {
-		a.ops.Raise()
+		a.ops.Raise(token)
 	}
 }
 

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"image"
@@ -41,6 +40,7 @@ const (
 )
 
 func main() {
+	activationToken := window.TakeActivationToken()
 	screenshot := flag.String("screenshot", "", "render one PNG without a window and exit")
 	width := flag.Int("width", 0, "window width")
 	height := flag.Int("height", 0, "window height")
@@ -92,7 +92,7 @@ func main() {
 		var ierr error
 		primary, ierr = plat.Instance.Acquire()
 		if ierr == nil && !primary && !*newWindow && st.SingleWindow {
-			if err := plat.Instance.Send(paths); err == nil {
+			if err := plat.Instance.Send(app.EncodeHandoff(activationToken, paths)); err == nil {
 				return
 			}
 		}
@@ -176,7 +176,7 @@ func main() {
 	stopTheme := plat.Theme.Watch(a.SystemThemeChanged)
 	defer stopTheme()
 	if primary {
-		plat.Instance.Listen(func(args []string) { eng.Post(func() { a.Handoff(absPaths(args)) }) })
+		plat.Instance.Listen(func(args []string) { eng.Post(func() { a.Handoff(args) }) })
 		defer plat.Instance.Close()
 	}
 	sig := make(chan os.Signal, 1)
@@ -246,9 +246,9 @@ func windowOps(eng *engine.Engine, win *window.Window, a *app.App) uiwin.WindowO
 		BeginMove:     func() bool { return !win.Native().IsMaximized() && win.BeginMove() },
 		BeginResize:   func(edges int) bool { return !win.Native().IsMaximized() && win.BeginResize(edges) },
 		SetFullscreen: win.SetFullscreen,
-		Raise: func() {
-			if err := platform.RaiseWindow(win.Native()); err != nil && !errors.Is(err, platform.ErrUnsupported) {
-				slog.Warn("raise window", "err", err)
+		Raise: func(token string) {
+			if !win.ActivateWithToken(token) {
+				slog.Debug("window was not brought to the front")
 			}
 		},
 		Maximize: func(on bool) {

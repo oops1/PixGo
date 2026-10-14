@@ -5,7 +5,7 @@ go 1.27
 toolchain go1.27.0
 
 require (
-	github.com/oops1/headless-gui/v3 v3.34.0
+	github.com/oops1/headless-gui/v3 v3.35.1
 	golang.org/x/image v0.46.0
 	golang.org/x/sys v0.49.0
 )

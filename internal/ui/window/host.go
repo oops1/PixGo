@@ -82,7 +82,7 @@ type WindowOps struct {
 	BeginResize    func(edges int) bool
 	SetFullscreen  func(on bool) bool
 	Maximize       func(on bool)
-	Raise          func()
+	Raise          func(token string)
 }
 
 type CursorHider interface {

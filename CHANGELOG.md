@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.2] - 2026-10-14
+
+### Changed
+- Graphics engine updated to v3.35.1.
+- Opening an image from the file manager while PixGo runs brings its window to the front and restores it if it is minimized, now through the window activation of the engine. On Wayland and X11 the activation token of the launcher is passed to the running window, so the compositor lets it come forward; before, only Windows was covered.
+
 ## [0.4.1] - 2026-10-13
 
 ### Changed
