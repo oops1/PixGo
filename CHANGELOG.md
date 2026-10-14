@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.5.0] - 2026-10-14
+
+### Added
+- New formats: **AVIF**, **JPEG XL**, **HEIC/HEIF** (photos of phones with tiled images and rotation), **APNG** (animated PNG) and the embedded preview of **RAW** files (CR2, CR3, NEF, ARW, DNG, ORF, RW2, PEF, RAF). The preview of a RAW file is marked with the badge "Preview". The formats are recognized by their signature, shown in the gallery with thumbnails, and registered in the "Open with" lists of Windows and Linux.
+- WebP is now read with a new decoder: lossy, lossless, transparency and **animation** (it was a still picture only). **Save as** writes WebP, lossy with a quality of 1 to 100 or lossless.
+- The dialog **Save options** appears before a JPEG or WebP is written: quality 1 to 100 and the switch "Lossless"; the last choice is remembered.
+- Settings → Formats lists every format, lets you switch the optional ones (APNG, AVIF, JPEG XL, HEIC, RAW) off and on at once without a restart, and explains the patents of HEIC.
+- The information panel shows the EXIF, GPS, color profile and XMP of HEIC, AVIF, JPEG XL and RAW files, as far as each format stores them (the table is in `docs/formats.md`; the profile of JPEG XL is not read yet).
+- `docs/formats.md`: the table of formats, the limits and the known restrictions.
+
+### Changed
+- Every format can be left out of the build with a tag (`noapng`, `noavif`, `nojxl`, `noheic`, `noraw`); with all of them the program is 2.8 MiB smaller.
+- The parsers written in PixGo have fuzz tests; `scripts/fuzz-all.sh` runs every target.
+- The licenses and patent grants of the new libraries are listed in `NOTICE` and shipped in `third_party/`.
+- The list of releases in the Linux metadata is complete.
+
+### Notes
+- Color profiles, wide gamut (Display P3) and HDR curves of AVIF, HEIC and JPEG XL are not applied yet; the picture is shown as sRGB. See `docs/formats.md`.
+
 ## [0.4.2] - 2026-10-14
 
 ### Changed

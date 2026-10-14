@@ -82,21 +82,36 @@ Root: HKA; Subkey: "Software\Classes\{#ProgId}"; ValueType: string; ValueName: "
 Root: HKA; Subkey: "Software\Classes\{#ProgId}\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\pixgo.ico"; Tasks: assoc
 Root: HKA; Subkey: "Software\Classes\{#ProgId}\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#AppExe}"" ""%1"""; Tasks: assoc
 
+Root: HKA; Subkey: "Software\Classes\.apng\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
+Root: HKA; Subkey: "Software\Classes\.arw\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
 Root: HKA; Subkey: "Software\Classes\.bmp\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
+Root: HKA; Subkey: "Software\Classes\.cr2\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
+Root: HKA; Subkey: "Software\Classes\.cr3\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
 Root: HKA; Subkey: "Software\Classes\.cur\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
 Root: HKA; Subkey: "Software\Classes\.dib\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
+Root: HKA; Subkey: "Software\Classes\.dng\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
 Root: HKA; Subkey: "Software\Classes\.gif\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
 Root: HKA; Subkey: "Software\Classes\.ico\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
 Root: HKA; Subkey: "Software\Classes\.jfif\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
 Root: HKA; Subkey: "Software\Classes\.jpe\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
 Root: HKA; Subkey: "Software\Classes\.jpeg\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
 Root: HKA; Subkey: "Software\Classes\.jpg\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
+Root: HKA; Subkey: "Software\Classes\.nef\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
+Root: HKA; Subkey: "Software\Classes\.orf\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
+Root: HKA; Subkey: "Software\Classes\.pef\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
 Root: HKA; Subkey: "Software\Classes\.png\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
+Root: HKA; Subkey: "Software\Classes\.raf\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
+Root: HKA; Subkey: "Software\Classes\.rw2\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
 Root: HKA; Subkey: "Software\Classes\.svg\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
 Root: HKA; Subkey: "Software\Classes\.svgz\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
 Root: HKA; Subkey: "Software\Classes\.tif\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
 Root: HKA; Subkey: "Software\Classes\.tiff\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
 Root: HKA; Subkey: "Software\Classes\.webp\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
+Root: HKA; Subkey: "Software\Classes\.avif\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
+Root: HKA; Subkey: "Software\Classes\.heic\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
+Root: HKA; Subkey: "Software\Classes\.heif\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
+Root: HKA; Subkey: "Software\Classes\.hif\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
+Root: HKA; Subkey: "Software\Classes\.jxl\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
 
 Root: HKA; Subkey: "Software\Classes\Applications\{#AppExe}"; ValueType: string; ValueName: "FriendlyAppName"; ValueData: "{#AppName}"; Flags: uninsdeletekey; Tasks: assoc
 Root: HKA; Subkey: "Software\Classes\Applications\{#AppExe}\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#AppExe}"" ""%1"""; Tasks: assoc
@@ -105,21 +120,36 @@ Root: HKA; Subkey: "Software\PixGo"; Flags: uninsdeletekeyifempty; Tasks: assoc
 Root: HKA; Subkey: "Software\PixGo\Capabilities"; ValueType: string; ValueName: "ApplicationName"; ValueData: "{#AppName}"; Flags: uninsdeletekey; Tasks: assoc
 Root: HKA; Subkey: "Software\PixGo\Capabilities"; ValueType: string; ValueName: "ApplicationDescription"; ValueData: "{cm:AppDescription}"; Tasks: assoc
 Root: HKA; Subkey: "Software\PixGo\Capabilities"; ValueType: string; ValueName: "ApplicationIcon"; ValueData: "{app}\pixgo.ico,0"; Tasks: assoc
+Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".apng"; ValueData: "{#ProgId}"; Tasks: assoc
+Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".arw"; ValueData: "{#ProgId}"; Tasks: assoc
 Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".bmp"; ValueData: "{#ProgId}"; Tasks: assoc
+Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".cr2"; ValueData: "{#ProgId}"; Tasks: assoc
+Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".cr3"; ValueData: "{#ProgId}"; Tasks: assoc
 Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".cur"; ValueData: "{#ProgId}"; Tasks: assoc
 Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".dib"; ValueData: "{#ProgId}"; Tasks: assoc
+Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".dng"; ValueData: "{#ProgId}"; Tasks: assoc
 Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".gif"; ValueData: "{#ProgId}"; Tasks: assoc
 Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".ico"; ValueData: "{#ProgId}"; Tasks: assoc
 Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".jfif"; ValueData: "{#ProgId}"; Tasks: assoc
 Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".jpe"; ValueData: "{#ProgId}"; Tasks: assoc
 Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".jpeg"; ValueData: "{#ProgId}"; Tasks: assoc
 Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".jpg"; ValueData: "{#ProgId}"; Tasks: assoc
+Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".nef"; ValueData: "{#ProgId}"; Tasks: assoc
+Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".orf"; ValueData: "{#ProgId}"; Tasks: assoc
+Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".pef"; ValueData: "{#ProgId}"; Tasks: assoc
 Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".png"; ValueData: "{#ProgId}"; Tasks: assoc
+Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".raf"; ValueData: "{#ProgId}"; Tasks: assoc
+Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".rw2"; ValueData: "{#ProgId}"; Tasks: assoc
 Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".svg"; ValueData: "{#ProgId}"; Tasks: assoc
 Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".svgz"; ValueData: "{#ProgId}"; Tasks: assoc
 Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".tif"; ValueData: "{#ProgId}"; Tasks: assoc
 Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".tiff"; ValueData: "{#ProgId}"; Tasks: assoc
 Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".webp"; ValueData: "{#ProgId}"; Tasks: assoc
+Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".avif"; ValueData: "{#ProgId}"; Tasks: assoc
+Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".heic"; ValueData: "{#ProgId}"; Tasks: assoc
+Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".heif"; ValueData: "{#ProgId}"; Tasks: assoc
+Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".hif"; ValueData: "{#ProgId}"; Tasks: assoc
+Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".jxl"; ValueData: "{#ProgId}"; Tasks: assoc
 Root: HKA; Subkey: "Software\RegisteredApplications"; ValueType: string; ValueName: "{#AppName}"; ValueData: "Software\PixGo\Capabilities"; Flags: uninsdeletevalue; Tasks: assoc
 
 [Run]
