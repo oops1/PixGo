@@ -14,6 +14,23 @@ var ImageMimeTypes = []string{
 	"image/x-icon",
 	"image/vnd.microsoft.icon",
 	"image/x-win-bitmap",
+	"image/apng",
+	"image/avif",
+	"image/avif-sequence",
+	"image/heic",
+	"image/heic-sequence",
+	"image/heif",
+	"image/heif-sequence",
+	"image/jxl",
+	"image/x-canon-cr2",
+	"image/x-canon-cr3",
+	"image/x-nikon-nef",
+	"image/x-sony-arw",
+	"image/x-adobe-dng",
+	"image/x-fuji-raf",
+	"image/x-olympus-orf",
+	"image/x-panasonic-rw2",
+	"image/x-pentax-pef",
 }
 
 const DefaultDesktopID = "pixgo.desktop"

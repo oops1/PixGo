@@ -3,6 +3,7 @@ package app
 import (
 	"errors"
 	"runtime"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -46,17 +47,78 @@ func systemLanguageName() string {
 	return i18n.T("settings.language.en")
 }
 
-func (s *settingsState) Formats() []uisettings.Format {
-	decoders := s.a.Ctl.env.Registry.Decoders()
-	out := make([]uisettings.Format, 0, len(decoders))
-	for _, d := range decoders {
-		exts := make([]string, 0, len(d.Extensions()))
-		for _, e := range d.Extensions() {
-			exts = append(exts, strings.ToUpper(strings.TrimPrefix(e, ".")))
+type optionalFormat struct {
+	nameKey    string
+	noteKey    string
+	extensions []string
+}
+
+var optionalFormats = map[string]optionalFormat{
+	"apng": {nameKey: "settings.format.apng", extensions: []string{".apng"}},
+	"avif": {nameKey: "settings.format.avif", extensions: []string{".avif"}},
+	"jxl":  {nameKey: "settings.format.jxl", extensions: []string{".jxl"}},
+	"heic": {nameKey: "settings.format.heic", noteKey: "settings.format.heic.note", extensions: []string{".heic", ".heif"}},
+	"raw": {nameKey: "settings.format.raw", noteKey: "settings.format.raw.note",
+		extensions: []string{".cr2", ".cr3", ".nef", ".arw", ".dng", ".raf", ".orf", ".rw2", ".pef"}},
+}
+
+func extensionLabels(exts []string) []string {
+	out := make([]string, 0, len(exts))
+	for _, e := range exts {
+		out = append(out, strings.ToUpper(strings.TrimPrefix(e, ".")))
+	}
+	return out
+}
+
+func isOptionalFormat(id string) bool {
+	for _, o := range settings.OptionalFormats {
+		if o == id {
+			return true
 		}
-		out = append(out, uisettings.Format{ID: string(d.ID()), Name: d.Name(), Extensions: exts, Available: true, Enabled: true})
+	}
+	return false
+}
+
+func appendNew(list, extra []string) []string {
+	for _, e := range extra {
+		if !slices.Contains(list, e) {
+			list = append(list, e)
+		}
+	}
+	return list
+}
+
+func (s *settingsState) Formats() []uisettings.Format {
+	cfg := s.a.Settings.Get()
+	optionalExts := map[string][]string{}
+	var out []uisettings.Format
+	for _, d := range s.a.Ctl.env.Registry.Registered() {
+		id := string(d.ID())
+		exts := extensionLabels(d.Extensions())
+		if isOptionalFormat(id) {
+			optionalExts[id] = appendNew(optionalExts[id], exts)
+			continue
+		}
+		out = append(out, uisettings.Format{ID: id, Name: d.Name(), Extensions: exts, Available: true, Enabled: true})
 	}
 	sort.SliceStable(out, func(i, j int) bool { return out[i].Name < out[j].Name })
+	for _, id := range settings.OptionalFormats {
+		info, known := optionalFormats[id]
+		f := uisettings.Format{ID: id, Name: strings.ToUpper(id), Extensions: extensionLabels(info.extensions), Optional: true, Enabled: cfg.FormatEnabled(id)}
+		if known {
+			f.Name = i18n.T(info.nameKey)
+		}
+		if exts, ok := optionalExts[id]; ok {
+			f.Available = true
+			if len(exts) > 0 {
+				f.Extensions = exts
+			}
+			if info.noteKey != "" {
+				f.Note = i18n.T(info.noteKey)
+			}
+		}
+		out = append(out, f)
+	}
 	return out
 }
 

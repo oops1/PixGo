@@ -6,6 +6,7 @@ import (
 	"image/color"
 	"io/fs"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/oops1/headless-gui/v3/engine"
@@ -18,6 +19,7 @@ import (
 	"github.com/oops1/PixGo/internal/render"
 	"github.com/oops1/PixGo/internal/settings"
 	"github.com/oops1/PixGo/internal/ui/infopanel"
+	"github.com/oops1/PixGo/internal/ui/saveopts"
 	"github.com/oops1/PixGo/internal/ui/theme"
 	"github.com/oops1/PixGo/internal/ui/view"
 	"github.com/oops1/PixGo/internal/ui/window"
@@ -57,6 +59,8 @@ type App struct {
 	page                   window.Page
 	gal                    *galleryState
 	set                    *settingsState
+	saveDlg                *saveopts.Dialog
+	modalOpen              atomic.Bool
 }
 
 func New(eng *engine.Engine, opt Options) *App {
@@ -164,6 +168,8 @@ func (a *App) Content() widget.Widget {
 	}
 	return a.Canvas
 }
+
+func (a *App) Preview() bool { return a.Canvas.Preview() }
 
 func (a *App) AutoHide() bool { return a.Settings.Get().AutoHidePanels }
 

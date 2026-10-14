@@ -18,6 +18,7 @@ type Format struct {
 	ID         string
 	Name       string
 	Extensions []string
+	Note       string
 	Optional   bool
 	Available  bool
 	Enabled    bool

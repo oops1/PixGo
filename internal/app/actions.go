@@ -16,9 +16,10 @@ import (
 	"github.com/oops1/PixGo/internal/i18n"
 	"github.com/oops1/PixGo/internal/imaging"
 	"github.com/oops1/PixGo/internal/platform"
+	"github.com/oops1/PixGo/internal/settings"
+	"github.com/oops1/PixGo/internal/ui/saveopts"
+	uiwindow "github.com/oops1/PixGo/internal/ui/window"
 )
-
-const defaultJPEGQuality = 90
 
 func (a *App) hasFile() bool { return a.Ctl.Path() != "" && a.Ctl.Status() != StatusEmpty }
 
@@ -169,7 +170,8 @@ func typeForPath(types []saveType, path string) (saveType, bool) {
 }
 
 func (a *App) saveAs() {
-	if a.orientedFrame() == nil {
+	img := a.orientedFrame()
+	if img == nil || a.saveDlg != nil {
 		return
 	}
 	types := a.saveTypes()
@@ -199,19 +201,19 @@ func (a *App) saveAs() {
 			return p, nil
 		}, func(v any, err error) {
 			if p, _ := v.(string); err == nil && p != "" {
-				a.writeImage(p, types)
+				a.writeImage(p, types, img)
 				return
 			}
 			if errors.Is(err, platform.ErrUnsupported) {
-				a.saveWithEngineDialog(dir, name, types)
+				a.saveWithEngineDialog(dir, name, types, img)
 			}
 		})
 		return
 	}
-	a.saveWithEngineDialog(dir, name, types)
+	a.saveWithEngineDialog(dir, name, types, img)
 }
 
-func (a *App) saveWithEngineDialog(dir, name string, types []saveType) {
+func (a *App) saveWithEngineDialog(dir, name string, types []saveType, img *image.NRGBA) {
 	var filters []widget.FileFilter
 	for _, t := range types {
 		var exts []string
@@ -227,25 +229,86 @@ func (a *App) saveWithEngineDialog(dir, name string, types []saveType) {
 		Filters:     filters,
 	}, func(path string, ok bool) {
 		if ok {
-			a.writeImage(path, types)
+			a.writeImage(path, types, img)
 		}
 	})
 }
 
-func (a *App) writeImage(path string, types []saveType) {
+func saveKindOf(id codec.ID) (saveopts.Kind, bool) {
+	switch id {
+	case codec.JPEG:
+		return saveopts.JPEG, true
+	case codec.WebP:
+		return saveopts.WebP, true
+	}
+	return 0, false
+}
+
+func (a *App) lastSaveChoice(kind saveopts.Kind) saveopts.Values {
+	st := a.Settings.Get()
+	if kind == saveopts.WebP {
+		return saveopts.Values{Quality: st.SaveWebPQuality, Lossless: st.SaveWebPLossless}
+	}
+	return saveopts.Values{Quality: st.SaveJPEGQuality}
+}
+
+func (a *App) rememberSaveChoice(kind saveopts.Kind, v saveopts.Values) {
+	a.Settings.Update(func(s *settings.Settings) {
+		if kind == saveopts.WebP {
+			s.SaveWebPQuality, s.SaveWebPLossless = v.Quality, v.Lossless
+			return
+		}
+		s.SaveJPEGQuality = v.Quality
+	})
+}
+
+func (a *App) ModalOpen() bool { return a.modalOpen.Load() }
+
+func (a *App) focusPage() {
+	if a.page == uiwindow.PageGallery && a.gal != nil {
+		a.Eng.SetFocus(a.gal.page)
+		return
+	}
+	a.Root.FocusContent()
+}
+
+func (a *App) writeImage(path string, types []saveType, img *image.NRGBA) {
 	t, ok := typeForPath(types, path)
 	if !ok {
 		t = types[0]
 		path += t.ext
 	}
-	img := a.orientedFrame()
 	enc, _ := a.Ctl.env.Registry.Encoder(t.id)
 	if img == nil || enc == nil {
 		return
 	}
+	kind, asks := saveKindOf(t.id)
+	if !asks {
+		a.encodeTo(path, enc, img, codec.EncodeOptions{})
+		return
+	}
+	if a.saveDlg != nil {
+		return
+	}
+	a.modalOpen.Store(true)
+	a.saveDlg = saveopts.Show(a.Eng, kind, a.lastSaveChoice(kind), func(v saveopts.Values, ok bool) {
+		a.modalOpen.Store(false)
+		a.Eng.Post(func() {
+			a.saveDlg = nil
+			a.focusPage()
+			if !ok {
+				return
+			}
+			a.rememberSaveChoice(kind, v)
+			a.encodeTo(path, enc, img, codec.EncodeOptions{Quality: v.Quality, Lossless: v.Lossless})
+		})
+	})
+}
+
+func (a *App) encodeTo(path string, enc codec.Encoder, img *image.NRGBA, opts codec.EncodeOptions) {
 	a.Ctl.Async("save", func(ctx contextT) (any, error) {
 		var buf bytes.Buffer
-		if err := enc.Encode(&buf, img, codec.EncodeOptions{Quality: defaultJPEGQuality}); err != nil {
+		if err := enc.Encode(&buf, img, opts); err != nil {
 			return nil, err
 		}
 		return nil, fsutil.WriteAtomic(path, buf.Bytes(), 0o644)

@@ -122,6 +122,12 @@ var en = map[string]string{
 	"save.reencode":     "The file will be re-encoded and quality may be lost",
 	"save.bakeRotation": "Save with the rotation applied",
 
+	"save.options.title":    "Save options",
+	"save.options.save":     "Save",
+	"save.options.jpegHint": "Higher quality gives a better picture and a larger file.",
+	"save.options.webpHint": "Lossless keeps every pixel but makes the file larger. Quality is not used in this mode.",
+	"info.previewMark":      "(preview)",
+
 	"toast.copied":            "Copied",
 	"toast.pathCopied":        "Path copied",
 	"toast.imageCopied":       "Image copied",
@@ -294,7 +300,7 @@ var en = map[string]string{
 	"settings.format.avif":           "AVIF",
 	"settings.format.jxl":            "JPEG XL",
 	"settings.format.heic":           "HEIC / HEIF",
-	"settings.format.raw":            "RAW (embedded preview)",
+	"settings.format.raw":            "RAW — embedded preview",
 	"settings.defaultApps":           "Default apps",
 	"settings.defaultApps.button":    "Open Windows settings",
 	"settings.defaultApps.linux":     "Make PixGo the default image viewer in your desktop settings",
@@ -333,4 +339,8 @@ var en = map[string]string{
 	"settings.about.lastCheck":       "Last checked: %s",
 	"settings.about.neverChecked":    "not checked yet",
 	"open.filter.images":             "Images",
+
+	"settings.format.apng":      "Animated PNG (APNG)",
+	"settings.format.heic.note": "HEIC uses the HEVC video codec, which is covered by patents. PixGo only reads such files. If that matters to you, turn the format off.",
+	"settings.format.raw.note":  "Shows the preview embedded in the file, not a full development of the raw data.",
 }

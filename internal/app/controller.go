@@ -380,6 +380,7 @@ func (c *Controller) apply(d *imaging.Decoded) {
 		exif = d.Info.Orientation
 	}
 	c.exif = exif
+	c.canvas.SetPreview(d.Info.Preview)
 	if c.keepView {
 		c.canvas.SetImageKeepView(d.Source(), exif)
 	} else {

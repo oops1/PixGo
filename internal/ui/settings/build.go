@@ -64,8 +64,17 @@ func (b *builder) heading(text string) {
 	b.y += float64(h)
 }
 
+const (
+	noteLinesDefault = 5
+	noteLinesLong    = 8
+)
+
 func (b *builder) note(text string, indent int) {
-	lines := wrapLines(noteFont, text, b.xt-b.x0-indent, 5)
+	b.noteUpTo(text, indent, noteLinesDefault)
+}
+
+func (b *builder) noteUpTo(text string, indent, maxLines int) {
+	lines := wrapLines(noteFont, text, b.xt-b.x0-indent, maxLines)
 	y := b.top()
 	r := image.Rect(b.x0, y, b.x1, y+len(lines)*dim.lineHeight)
 	b.add(item{kind: kindNote, lines: lines, indent: indent, r: r})
@@ -229,7 +238,12 @@ func (b *builder) formatRow(f Format) {
 	}
 	it.name = fitText(bodyFont, f.Name, nameW)
 	b.add(it)
-	b.y += float64(dim.formatRowHeight + dim.formatGap)
+	b.y += float64(dim.formatRowHeight)
+	if f.Note != "" {
+		b.skip(2 * dim.k)
+		b.noteUpTo(f.Note, 0, noteLinesLong)
+	}
+	b.y += float64(dim.formatGap)
 }
 
 func (b *builder) section(s Section) {

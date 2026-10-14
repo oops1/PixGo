@@ -248,8 +248,15 @@ func (r *Root) handleGalleryKey(e widget.KeyEvent) bool {
 	return true
 }
 
+type modalAware interface{ ModalOpen() bool }
+
+func (r *Root) modalOpen() bool {
+	m, ok := r.host.(modalAware)
+	return ok && m.ModalOpen()
+}
+
 func (r *Root) HandleKey(e widget.KeyEvent) bool {
-	if !e.Pressed {
+	if !e.Pressed || r.modalOpen() {
 		return false
 	}
 	if r.host.Page() != PageViewer {

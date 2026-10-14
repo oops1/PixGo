@@ -3,6 +3,7 @@ package infopanel
 import (
 	"image"
 	"image/color"
+	"strings"
 
 	"github.com/oops1/headless-gui/v3/widget"
 
@@ -219,13 +220,25 @@ func (p *Panel) Draw(c widget.DrawContext) {
 
 	tx := o.X + textX
 	drawLines(c, nameFont, pl.nameLines, tx, o.Y+pl.nameBase, pl.nameStep, pl.textW, t.PanelValue)
-	subFont.DrawFit(c, p.model.Format, tx, o.Y+pl.formatBase, pl.textW, t.PanelLabel)
+	subFont.DrawFit(c, fitFormat(subFont, p.model.Format, p.model.FormatNote, pl.textW), tx, o.Y+pl.formatBase, pl.textW, t.PanelLabel)
 	subFont.DrawFit(c, p.model.FileSize, tx, o.Y+pl.sizeBase, pl.textW, t.PanelLabel)
 
 	for _, cp := range pl.cards {
 		p.drawCard(c, o, cp)
 	}
 	p.drawBar(c)
+}
+
+func fitFormat(f gfx.Font, format, note string, width int) string {
+	if note == "" || !strings.HasSuffix(format, note) || f.Measure(nil, format) <= width {
+		return format
+	}
+	head := strings.TrimSpace(strings.TrimSuffix(format, note))
+	room := width - f.Measure(nil, " "+note)
+	if head == "" || room < f.Measure(nil, "…") {
+		return format
+	}
+	return f.Fit(nil, head, room) + " " + note
 }
 
 func (p *Panel) drawClose(c widget.DrawContext, o image.Point) {

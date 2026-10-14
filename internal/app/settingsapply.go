@@ -3,18 +3,50 @@ package app
 import (
 	"github.com/oops1/headless-gui/v3/widget"
 
+	"github.com/oops1/PixGo/internal/codec"
 	"github.com/oops1/PixGo/internal/i18n"
 	"github.com/oops1/PixGo/internal/settings"
 	uisettings "github.com/oops1/PixGo/internal/ui/settings"
 	uiwindow "github.com/oops1/PixGo/internal/ui/window"
 )
 
+func (a *App) applyFormats(current settings.Settings) bool {
+	reg := a.Ctl.env.Registry
+	changed := false
+	for _, id := range settings.OptionalFormats {
+		on := current.FormatEnabled(id)
+		if reg.IsEnabled(codec.ID(id)) != on {
+			changed = true
+			reg.SetEnabled(codec.ID(id), on)
+		}
+	}
+	return changed
+}
+
+func (a *App) formatsChanged() {
+	if a.gal != nil {
+		a.gal.lister.InvalidateAll()
+		if a.gal.hist != nil && a.galleryBehind() {
+			a.gal.reload()
+		}
+	}
+	a.Ctl.RescanAsync()
+}
+
+func (a *App) galleryBehind() bool {
+	return a.page == uiwindow.PageGallery || a.page == uiwindow.PageSettings && a.set != nil && a.set.from == uiwindow.PageGallery
+}
+
 func (a *App) settingsChanged(old, current settings.Settings) {
 	if old.Language != current.Language {
 		i18n.SetLang(current.Language)
 		widget.SetLanguage(i18n.Lang())
 	}
+	formats := a.applyFormats(current)
 	a.ApplySettings()
+	if formats {
+		a.formatsChanged()
+	}
 	if old.Sort != current.Sort || old.SortDesc != current.SortDesc {
 		a.Ctl.ApplySort()
 		if a.gal != nil && a.page == uiwindow.PageGallery {

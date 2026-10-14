@@ -45,7 +45,14 @@ const (
 	GalleryList = "list"
 )
 
-var OptionalFormats = []string{"avif", "jxl", "heic", "raw"}
+const (
+	MinSaveQuality         = 1
+	MaxSaveQuality         = 100
+	DefaultSaveJPEGQuality = 90
+	DefaultSaveWebPQuality = 80
+)
+
+var OptionalFormats = []string{"apng", "avif", "jxl", "heic", "raw"}
 
 type Format struct {
 	Enabled bool `json:"enabled"`
@@ -88,6 +95,10 @@ type Settings struct {
 	GalleryView          string `json:"galleryView"`
 	GalleryThumbSize     int    `json:"galleryThumbSize"`
 
+	SaveJPEGQuality  int  `json:"saveJpegQuality"`
+	SaveWebPQuality  int  `json:"saveWebpQuality"`
+	SaveWebPLossless bool `json:"saveWebpLossless"`
+
 	Formats   map[string]Format `json:"formats"`
 	Slideshow Slideshow         `json:"slideshow"`
 	Updates   Updates           `json:"updates"`
@@ -117,6 +128,8 @@ func Defaults() Settings {
 		Preload: 1, ApplyExifOrientation: true, KeepZoomOnNavigate: false, LoopFolder: false,
 		Sort: SortName, SortDesc: false,
 		GalleryView: GalleryGrid, GalleryThumbSize: 128,
+
+		SaveJPEGQuality: DefaultSaveJPEGQuality, SaveWebPQuality: DefaultSaveWebPQuality, SaveWebPLossless: false,
 
 		Formats:   formats,
 		Slideshow: Slideshow{Interval: 5, Loop: true, Shuffle: false, Transition: TransitionNone},
@@ -161,6 +174,8 @@ func (s *Settings) Normalize() {
 	oneOf(&s.Slideshow.Transition, d.Slideshow.Transition, TransitionNone, TransitionFade)
 	clamp(&s.Preload, 0, 2, d.Preload)
 	clamp(&s.GalleryThumbSize, 96, 384, d.GalleryThumbSize)
+	clamp(&s.SaveJPEGQuality, MinSaveQuality, MaxSaveQuality, d.SaveJPEGQuality)
+	clamp(&s.SaveWebPQuality, MinSaveQuality, MaxSaveQuality, d.SaveWebPQuality)
 	clamp(&s.Slideshow.Interval, 1, 60, d.Slideshow.Interval)
 	clamp(&s.CacheMB, 256, 8192, d.CacheMB)
 	clamp(&s.MaxPixels, 4, 1000, d.MaxPixels)

@@ -49,10 +49,11 @@ type Canvas struct {
 	Chrome        func(x, y int) (widget.Cursor, bool)
 	OnActivity    func()
 
-	view viewer.View
-	src  render.Source
-	exif codec.Orientation
-	buf  *image.RGBA
+	view    viewer.View
+	src     render.Source
+	exif    codec.Orientation
+	buf     *image.RGBA
+	preview bool
 
 	scale float64
 	areaW int
@@ -109,9 +110,14 @@ func (c *Canvas) ReplaceFrame(src render.Source) {
 func (c *Canvas) Clear() {
 	c.cancelSmooth()
 	c.src = render.Source{}
+	c.preview = false
 	c.invalidate()
 	c.changed()
 }
+
+func (c *Canvas) SetPreview(on bool) { c.preview = on }
+
+func (c *Canvas) Preview() bool { return c.preview && c.HasImage() }
 
 func (c *Canvas) SetBackground(bg render.Background) {
 	c.Background = bg

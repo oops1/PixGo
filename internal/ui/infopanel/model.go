@@ -37,11 +37,12 @@ type Card struct {
 }
 
 type Model struct {
-	Path     string
-	Name     string
-	Format   string
-	FileSize string
-	Cards    []Card
+	Path       string
+	Name       string
+	Format     string
+	FormatNote string
+	FileSize   string
+	Cards      []Card
 }
 
 type Input struct {
@@ -56,7 +57,7 @@ type Input struct {
 }
 
 func BuildModel(in Input) Model {
-	m := Model{Path: in.Path, Name: in.Name, Format: in.Info.FormatName}
+	m := Model{Path: in.Path, Name: in.Name, Format: formatLine(in.Info), FormatNote: formatNote(in.Info)}
 	if in.FileSize > 0 {
 		m.FileSize = i18n.FormatBytes(in.FileSize)
 	}
@@ -78,6 +79,20 @@ func BuildModel(in Input) Model {
 	}
 	m.Cards = append(m.Cards, extra...)
 	return m
+}
+
+func formatLine(info codec.Info) string {
+	if info.Preview && info.FormatName != "" {
+		return info.FormatName + " " + i18n.T("info.previewMark")
+	}
+	return info.FormatName
+}
+
+func formatNote(info codec.Info) string {
+	if info.Preview && info.FormatName != "" {
+		return i18n.T("info.previewMark")
+	}
+	return ""
 }
 
 func sizesCard(in Input) Card {

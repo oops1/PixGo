@@ -91,8 +91,12 @@ func TestSourceDescribesLanguagesFormatsAndAbout(t *testing.T) {
 	if len(formats) < 8 {
 		t.Fatalf("formats = %d", len(formats))
 	}
+	registered := map[string]bool{}
+	for _, d := range a.Ctl.env.Registry.Registered() {
+		registered[string(d.ID())] = true
+	}
 	for _, f := range formats {
-		if f.Name == "" || len(f.Extensions) == 0 || !f.Available {
+		if f.Name == "" || len(f.Extensions) == 0 || f.Available != (registered[f.ID] || !f.Optional) {
 			t.Fatalf("format %+v", f)
 		}
 	}

@@ -39,6 +39,7 @@ type fakeHost struct {
 	zoom       string
 	failure    string
 	menu       widget.Widget
+	preview    bool
 
 	contentOverride widget.Widget
 }
@@ -87,6 +88,7 @@ func (h *fakeHost) Menu() widget.Widget      { return h.menu }
 func (h *fakeHost) AutoHide() bool           { return h.autoHide }
 func (h *fakeHost) Fullscreen() bool         { return h.fullscreen }
 func (h *fakeHost) Slideshow() SlideshowView { return h.slide }
+func (h *fakeHost) Preview() bool            { return h.preview }
 
 type timers struct {
 	pending []*timer

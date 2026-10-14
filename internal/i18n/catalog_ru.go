@@ -122,6 +122,12 @@ var ru = map[string]string{
 	"save.reencode":     "Файл будет перекодирован, возможна потеря качества",
 	"save.bakeRotation": "Сохранить с учётом поворота",
 
+	"save.options.title":    "Параметры сохранения",
+	"save.options.save":     "Сохранить",
+	"save.options.jpegHint": "Чем выше качество, тем лучше изображение и больше размер файла.",
+	"save.options.webpHint": "Режим «Без потерь» сохраняет каждый пиксель, но файл получается больше. Качество в нём не используется.",
+	"info.previewMark":      "(предпросмотр)",
+
 	"toast.copied":            "Скопировано",
 	"toast.pathCopied":        "Путь скопирован",
 	"toast.imageCopied":       "Изображение скопировано",
@@ -294,7 +300,7 @@ var ru = map[string]string{
 	"settings.format.avif":           "AVIF",
 	"settings.format.jxl":            "JPEG XL",
 	"settings.format.heic":           "HEIC / HEIF",
-	"settings.format.raw":            "RAW (встроенный предпросмотр)",
+	"settings.format.raw":            "RAW — встроенный просмотр",
 	"settings.defaultApps":           "Приложения по умолчанию",
 	"settings.defaultApps.button":    "Открыть параметры Windows",
 	"settings.defaultApps.linux":     "Назначьте PixGo программой по умолчанию для изображений в настройках рабочего стола",
@@ -333,4 +339,8 @@ var ru = map[string]string{
 	"settings.about.lastCheck":       "Последняя проверка: %s",
 	"settings.about.neverChecked":    "ещё не проверялось",
 	"open.filter.images":             "Изображения",
+
+	"settings.format.apng":      "Анимированный PNG (APNG)",
+	"settings.format.heic.note": "HEIC использует видеокодек HEVC, на который заявлены патенты. PixGo только читает такие файлы. Если это важно для вас, отключите формат.",
+	"settings.format.raw.note":  "Показывается встроенный в файл предварительный просмотр, а не полное проявление снимка.",
 }

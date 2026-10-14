@@ -321,6 +321,7 @@ func (r *Root) Draw(c widget.DrawContext) {
 	}
 	gfx.DrawChildren(c, r)
 	r.drawState(c, l)
+	r.drawPreviewBadge(c, l)
 	r.drawOverlay(c, l)
 	r.drawToast(c, l)
 	r.drawTip(c)
