@@ -128,6 +128,10 @@ func NewReaderAt(r io.ReaderAt, base, length int64) (*Reader, error) {
 }
 
 func newReader(src source) (*Reader, error) {
+	return newReaderAccepting(src, func(magic uint16) bool { return magic == 42 })
+}
+
+func newReaderAccepting(src source, accept func(magic uint16) bool) (*Reader, error) {
 	head, err := src.read(0, headerSize)
 	if err != nil {
 		return nil, err
@@ -141,7 +145,7 @@ func newReader(src source) (*Reader, error) {
 	default:
 		return nil, invalid("byte order mark %q", head[:2])
 	}
-	if order.Uint16(head[2:4]) != 42 {
+	if !accept(order.Uint16(head[2:4])) {
 		return nil, invalid("TIFF magic %d", order.Uint16(head[2:4]))
 	}
 	return &Reader{src: src, order: order, first: order.Uint32(head[4:8])}, nil

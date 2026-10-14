@@ -9,7 +9,16 @@ import (
 	"github.com/oops1/PixGo/internal/codec"
 )
 
-var fuzzIDs = []codec.ID{codec.JPEG, codec.PNG, codec.WebP, codec.TIFF, codec.APNG, codec.GIF}
+var fuzzIDs = []codec.ID{codec.JPEG, codec.PNG, codec.WebP, codec.TIFF, codec.APNG, codec.GIF, codec.HEIC, codec.AVIF, codec.JXL, codec.RAW}
+
+func fuzzSelector(id codec.ID) uint8 {
+	for i, candidate := range fuzzIDs {
+		if candidate == id {
+			return uint8(i)
+		}
+	}
+	return 0
+}
 
 func checkInvariants(t *testing.T, m *Metadata) {
 	t.Helper()
@@ -65,7 +74,17 @@ func FuzzRead(f *testing.F) {
 		f.Add(p, uint8(4))
 		f.Add(tf, uint8(5))
 	}
+	for _, s := range newContainerSamples(f) {
+		f.Add(s.data, fuzzSelector(s.id))
+		f.Add(s.data, fuzzSelector(codec.RAW))
+	}
 	f.Add(loopTIFF(le), uint8(3))
+	f.Add(patchMagic(le, loopTIFF(le), 0x4f52), fuzzSelector(codec.RAW))
+	f.Add(jxlContainer(jxlCodestream()), fuzzSelector(codec.JXL))
+	f.Add(jxlSignature, fuzzSelector(codec.JXL))
+	f.Add(cr3File(be, true, cr3Options{badCMT2: true}), fuzzSelector(codec.RAW))
+	f.Add([]byte(cr3Header), fuzzSelector(codec.RAW))
+	f.Add(heifFile(heifOptions{exif: heifExifData(le.tiff(photoParts(le, false)), 0xffffffff, false), profile: sRGBProfile(), kind: "rICC"}), fuzzSelector(codec.AVIF))
 	f.Add([]byte(xmpSample), uint8(0))
 	f.Add(sRGBProfile(), uint8(3))
 	f.Add([]byte{}, uint8(0))

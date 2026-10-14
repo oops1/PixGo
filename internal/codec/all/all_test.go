@@ -153,10 +153,22 @@ func TestRegistryProbeAndDecodeEverySample(t *testing.T) {
 	}
 }
 
+func coreRegistry(r *codec.Registry) *codec.Registry {
+	core := codec.NewRegistry()
+	for _, d := range r.Decoders() {
+		switch d.ID() {
+		case codec.JPEG, codec.PNG, codec.GIF, codec.BMP, codec.TIFF, codec.WebP, codec.ICO, codec.CUR, codec.SVG:
+			core.RegisterDecoder(d)
+		}
+	}
+	return core
+}
+
 func TestRegistryCatalogue(t *testing.T) {
 	r := newRegistry()
+	core := coreRegistry(r)
 	want := []string{".bmp", ".cur", ".dib", ".gif", ".ico", ".jfif", ".jpe", ".jpeg", ".jpg", ".png", ".svg", ".svgz", ".tif", ".tiff", ".webp"}
-	got := r.Extensions()
+	got := core.Extensions()
 	if len(got) != len(want) {
 		t.Fatalf("extensions %v, want %v", got, want)
 	}
@@ -173,10 +185,10 @@ func TestRegistryCatalogue(t *testing.T) {
 	if r.Supports("movie.mp4") || r.Supports("noextension") {
 		t.Fatal("unsupported file accepted")
 	}
-	if len(r.Decoders()) != 9 {
-		t.Fatalf("%d decoders", len(r.Decoders()))
+	if len(core.Decoders()) != 9 {
+		t.Fatalf("%d core decoders", len(core.Decoders()))
 	}
-	for _, id := range []codec.ID{codec.JPEG, codec.PNG, codec.BMP} {
+	for _, id := range []codec.ID{codec.JPEG, codec.PNG, codec.BMP, codec.WebP} {
 		e, ok := r.Encoder(id)
 		if !ok || e.ID() != id || e.Extension() == "" || e.Name() == "" {
 			t.Fatalf("encoder %s: %v", id, ok)
@@ -185,7 +197,7 @@ func TestRegistryCatalogue(t *testing.T) {
 	if _, ok := r.Encoder(codec.GIF); ok {
 		t.Fatal("unexpected GIF encoder")
 	}
-	if len(r.Encoders()) != 3 {
+	if len(r.Encoders()) != 4 {
 		t.Fatalf("%d encoders", len(r.Encoders()))
 	}
 }

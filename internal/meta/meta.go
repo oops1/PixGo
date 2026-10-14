@@ -18,6 +18,7 @@ const (
 	memoryWindow    = 1 << 20
 	maxContainerOps = 1 << 18
 	maxJPEGSegments = 1 << 14
+	maxExifBlock    = 8 << 20
 	ctxCheckEvery   = 64
 )
 
@@ -137,7 +138,11 @@ type blocks struct {
 	width, height int
 	tiffBase      int64
 	tiffLen       int64
+	tiffData      []byte
 	wholeTIFF     bool
+	camera        bool
+	noSize        bool
+	tree          *exif.Tree
 	icc           []byte
 	xmp           []byte
 }
@@ -157,6 +162,34 @@ func (b *blocks) setTIFF(base, length int64) {
 		return
 	}
 	b.tiffBase, b.tiffLen = base, length
+}
+
+func (b *blocks) setTIFFBytes(data []byte) {
+	if b.tiffLen != 0 || len(data) < 8 {
+		return
+	}
+	b.tiffData, b.tiffLen = data, int64(len(data))
+}
+
+func (b *blocks) exifTree(in input) (exif.Tree, bool) {
+	if b.tree != nil {
+		return *b.tree, true
+	}
+	if b.tiffLen == 0 {
+		return exif.Tree{}, false
+	}
+	var reader *exif.Reader
+	var err error
+	if b.tiffData != nil {
+		reader, err = exif.NewReader(b.tiffData)
+	} else {
+		reader, err = openTIFF(in, b.tiffBase, b.tiffLen, b.camera)
+	}
+	if err != nil {
+		return exif.Tree{}, false
+	}
+	tree, err := reader.Tree()
+	return tree, err == nil
 }
 
 func Read(ctx context.Context, r io.ReaderAt, size int64, id codec.ID) (*Metadata, error) {
@@ -182,6 +215,12 @@ func Read(ctx context.Context, r io.ReaderAt, size int64, id codec.ID) (*Metadat
 		scanErr = scanWebP(ctx, in, &found)
 	case codec.TIFF:
 		scanErr = scanTIFF(in, &found)
+	case codec.HEIC, codec.AVIF:
+		scanErr = scanHEIF(ctx, in, &found)
+	case codec.JXL:
+		scanErr = scanJXL(ctx, in, &found)
+	case codec.RAW:
+		scanErr = scanRAW(ctx, in, &found)
 	default:
 		return m, nil
 	}
@@ -198,22 +237,18 @@ func Read(ctx context.Context, r io.ReaderAt, size int64, id codec.ID) (*Metadat
 func finish(in input, b *blocks, m *Metadata) {
 	icc, xmp := b.icc, b.xmp
 	width, height := b.width, b.height
-	if b.tiffLen > 0 {
-		if reader, err := openTIFF(in, b.tiffBase, b.tiffLen); err == nil {
-			if tree, err := reader.Tree(); err == nil {
-				m.Exif, m.GPS = extractTags(tree)
-				if b.wholeTIFF {
-					w, h, tiffICC, tiffXMP := tiffPayloads(tree.IFD0)
-					if width == 0 && height == 0 {
-						width, height = w, h
-					}
-					if icc == nil {
-						icc = tiffICC
-					}
-					if xmp == nil {
-						xmp = tiffXMP
-					}
-				}
+	if tree, ok := b.exifTree(in); ok {
+		m.Exif, m.GPS = extractTags(tree)
+		if b.wholeTIFF {
+			w, h, tiffICC, tiffXMP := tiffPayloads(tree.IFD0)
+			if width == 0 && height == 0 && !b.noSize {
+				width, height = w, h
+			}
+			if icc == nil {
+				icc = tiffICC
+			}
+			if xmp == nil {
+				xmp = tiffXMP
 			}
 		}
 	}
@@ -226,9 +261,12 @@ func finish(in input, b *blocks, m *Metadata) {
 	}
 }
 
-func openTIFF(in input, base, length int64) (*exif.Reader, error) {
+func openTIFF(in input, base, length int64, camera bool) (*exif.Reader, error) {
 	if base < 0 || length < 8 || base > in.size || length > in.size-base {
 		return nil, corrupt("TIFF window %d+%d outside %d bytes", base, length, in.size)
+	}
+	if camera {
+		return exif.NewReaderAtCamera(in.r, base, length)
 	}
 	if length <= memoryWindow {
 		buf, err := in.read(base, int(length))

@@ -148,4 +148,4 @@ func (l Limits) Check(w, h int) error {
 	return nil
 }
 
-const SniffLen = 512
+const SniffLen = 4096

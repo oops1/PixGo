@@ -43,6 +43,18 @@ func (r *Registry) SetEnabled(id ID, on bool) {
 	r.disabled[id] = !on
 }
 
+func (r *Registry) IsEnabled(id ID) bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return !r.disabled[id]
+}
+
+func (r *Registry) Registered() []Decoder {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return append([]Decoder(nil), r.decoders...)
+}
+
 func (r *Registry) Decoders() []Decoder {
 	r.mu.RLock()
 	defer r.mu.RUnlock()

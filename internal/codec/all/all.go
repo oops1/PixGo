@@ -12,7 +12,15 @@ import (
 	"github.com/oops1/PixGo/internal/codec/webp"
 )
 
+var (
+	early    []func(*codec.Registry)
+	optional []func(*codec.Registry)
+)
+
 func Register(r *codec.Registry) {
+	for _, register := range early {
+		register(r)
+	}
 	r.RegisterDecoder(jpeg.Decoder{})
 	r.RegisterDecoder(png.Decoder{})
 	r.RegisterDecoder(gif.Decoder{})
@@ -26,4 +34,9 @@ func Register(r *codec.Registry) {
 	r.RegisterEncoder(jpeg.Encoder{})
 	r.RegisterEncoder(png.Encoder{})
 	r.RegisterEncoder(bmp.Encoder{})
+	r.RegisterEncoder(webp.Encoder{})
+
+	for _, register := range optional {
+		register(r)
+	}
 }

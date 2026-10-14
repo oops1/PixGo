@@ -37,3 +37,25 @@ github.com/go-text/typesetting
 Open Sans (font, embedded)
     Copyright 2020 The Open Sans Project Authors
     SIL Open Font License 1.1 (OpenSans-OFL.txt)
+
+github.com/gen2brain/vpx (WebP decoder and encoder)
+    Port of libwebp: Copyright (c) 2010 Google Inc. and contributors
+    BSD 3-Clause License (gen2brain-vpx.COPYING, gen2brain-vpx.COPYING.webpkit)
+    WebM patent grant (gen2brain-vpx.PATENTS)
+
+github.com/gen2brain/gav1d (AVIF decoder)
+    Port of dav1d: Copyright (c) 2018 VideoLAN and dav1d authors
+    BSD 2-Clause License (gen2brain-gav1d.COPYING)
+    AV1 patent license (gen2brain-gav1d.PATENTS)
+
+github.com/gen2brain/jxl (JPEG XL decoder)
+    Port of jxl-rs: Copyright (c) the JPEG XL Project Authors
+    BSD 3-Clause License (gen2brain-jxl.LICENSE)
+    Patent grant (gen2brain-jxl.PATENTS)
+
+github.com/gen2brain/h265 (HEIC decoder)
+    Copyright (c) 2025 roticv
+    MIT License (gen2brain-h265.LICENSE)
+    HEIC is based on the HEVC video codec, for which patents are declared.
+    PixGo only reads such files; the format can be switched off in the settings
+    or removed from the build with the build tag noheic.

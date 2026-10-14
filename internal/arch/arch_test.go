@@ -20,6 +20,7 @@ var engineFree = []string{
 	"internal/imaging",
 	"internal/render",
 	"internal/meta",
+	"internal/isobmff",
 	"internal/viewer",
 	"internal/jobs",
 	"internal/settings",
@@ -130,6 +131,8 @@ func TestVendorCodecsStayInTheirPackage(t *testing.T) {
 func TestDependenciesPointDownward(t *testing.T) {
 	forbidden := map[string][]string{
 		"internal/codec":    {"internal/ui", "internal/app", "internal/viewer", "internal/imaging", "internal/render"},
+		"internal/isobmff":  {"internal/ui", "internal/app", "internal/viewer", "internal/imaging", "internal/render"},
+		"internal/meta":     {"internal/ui", "internal/app", "internal/viewer", "internal/imaging", "internal/render"},
 		"internal/render":   {"internal/ui", "internal/app", "internal/imaging", "internal/viewer"},
 		"internal/imaging":  {"internal/ui", "internal/app", "internal/viewer"},
 		"internal/viewer":   {"internal/ui", "internal/app", "internal/imaging"},
