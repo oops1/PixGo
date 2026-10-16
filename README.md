@@ -6,18 +6,19 @@ PixGo follows the simplicity of the classic Windows Photo Viewer: the image fill
 
 ## Features
 
-- Opens a file and lets you page through the rest of its folder with preloading of the neighbours.
+- Opens a file and lets you page through the rest of its folder with preloading of the neighbours. Very large JPEG and TIFF pictures (up to 1000 Mpx) open in parts and stay sharp when you zoom; a 200 Mpx JPEG needs about 130 MB when open.
 - The mouse wheel pages through the folder; Ctrl + wheel zooms around the cursor. Fit to window or width, 100 %, pan by dragging, double click toggles fit and 100 %.
 - Opening an image from the file manager brings the running window to the front, even when it is minimized (Windows and X11).
 - Gallery (Ctrl+O): folders, favorites, recent files and drives on the side, a grid or list of thumbnails with a disk cache, address bar with history, filter by format.
 - Full screen with a compact bar and a slideshow (F5): interval, looping, shuffling.
 - Settings page (Ctrl+,) with live changes: theme, language, wheel, order of files, caches, default viewer.
-- Rotation and flips, EXIF orientation applied automatically; Save as JPEG, PNG, BMP or WebP with a choice of quality.
+- Rotation and flips, EXIF orientation applied automatically; Save as JPEG, PNG, BMP or WebP with a choice of quality, and lossless rotation of JPEG files.
 - JPEG, PNG, APNG, GIF, BMP, TIFF, WebP (also animated), SVG, ICO and CUR, AVIF, JPEG XL, HEIC and the embedded preview of RAW files; animated files play. Details and limits: [docs/formats.md](docs/formats.md).
 - Formats are detected by signature, not by extension.
 - Information panel with EXIF, color profile and GPS.
-- Dark and light themes, English and Russian interface; the text follows the size of the system font (`-font-size` overrides it).
-- Decoding never blocks the interface; a corrupt file never crashes the program.
+- Dark and light themes, English and Russian interface; the text follows the size of the system font (`-font-size` overrides it); sharp on displays up to 200 % scale.
+- Usable from the keyboard and with screen readers, see [docs/accessibility.md](docs/accessibility.md).
+- Decoding never blocks the interface; a corrupt file never crashes the program. Measured speed and memory: [docs/perf.md](docs/perf.md).
 - Tells you when a newer release is available, see [Updates](#updates).
 
 ## Install
@@ -75,8 +76,10 @@ go test ./...
 | Path | Purpose |
 |---|---|
 | `internal/codec` | decoder and encoder contracts, registry, one package per format |
-| `internal/imaging` | decode queue with priorities, cache, resolution pyramid |
+| `internal/imaging` | decode queue with priorities and a memory budget, cache, resolution pyramid, tiles of big pictures |
 | `internal/render` | viewport renderer |
+| `internal/jpegdec`, `internal/jpegxform` | JPEG decoder with scaling and regions, lossless JPEG transform |
+| `internal/par` | the shared thread budget |
 | `internal/viewer` | folder, navigation, zoom and pan model, slideshow |
 | `internal/gallery` | gallery model: places, history, listing, thumbnail grid math |
 | `internal/thumbs` | thumbnail queue by visibility, memory and disk cache |

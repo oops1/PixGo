@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.6.0] - 2026-10-16
+
+### Added
+- **Very large pictures.** A JPEG or TIFF that is larger than the decoding limit opens in parts instead of being refused: the whole picture appears at once at reduced size, and the detail is decoded for the visible area as you zoom and pan, up to 1000 Mpx. A 200 Mpx JPEG opens in about half a second, uses under 400 MB while you pan it at 1080p, and stays sharp at 100 % and above. Rotation and flips work on such pictures too. Other formats above the limit are still refused with a message (see `docs/formats.md`).
+- **Faster first picture.** A big JPEG shows a reduced copy as soon as it is read, with a small progress mark while the full resolution is finished: a 24 Mpx photo is on the screen 120 ms after the process starts (it was 237 ms), full resolution after 183 ms.
+- **Lossless JPEG rotation.** Saving a JPEG as JPEG offers the switch **Lossless** in the Save options dialog. With it the picture is not decoded and encoded again: the blocks of the original file are moved and mirrored the way you turned the picture, the EXIF orientation becomes 1 and the rest of the metadata is kept. It also works for pictures that are shown in parts. When the size is not a multiple of the block, the partial edge is cut and a notice says so. Details and limits are in `docs/formats.md`.
+- **Accessibility.** Every element of the viewer, the gallery, the information panel, the settings and the dialogs has a role, a name in the interface language and its states for screen readers (UI Automation on Windows, AT-SPI on Linux). Everything is reachable from the keyboard: Tab and Shift+Tab visit the controls, Enter and Space press them, arrows move inside the gallery, lists and settings, Esc steps back, Ctrl+arrows pan a zoomed picture, Shift+F10 or the Menu key opens the menu. A focus ring appears while the keyboard is used, with an inner line in the high-contrast theme. The full list of keys is in `docs/accessibility.md`.
+- **High-resolution displays.** Icons, borders, thumbnails and the focus ring are drawn at the physical size of the screen at 125 %, 150 %, 175 % and 200 %, so they stay sharp and aligned. The Windows executable declares per-monitor DPI awareness. `pixgo -screenshot … -scale 1.5` renders a window at a given scale.
+- **Measurements.** `pixgo -perf FILE` runs the program on the offscreen engine and reports the timeline from the creation of the process, the frame times of panning and zooming, the memory, the redrawn area per frame and the gallery speed. `docs/perf.md` has the method, the numbers of this release against 0.5.0 and the limits of the measurement.
+
+### Changed
+- **New JPEG decoder** written for PixGo (a fork of the standard library decoder): it decodes at 1/2, 1/4 and 1/8 size with the reduced inverse DCT, reads regions through a small index of the entropy stream, and uses several cores. A 24 Mpx file decodes in 67 ms instead of 175 ms, and thumbnails of big JPEGs in the gallery use the reduced decoding: 24 thumbnails of 24 Mpx pictures take 0.3 s instead of 1.1 s, and thumbnails of 200 Mpx pictures work.
+- **New TIFF reader** for strips and tiles (classic and BigTIFF; none, LZW, Deflate and PackBits; 1 to 16 bits): 3 to 6 times faster than before, and a TIFF is read by region without loading it whole. Layouts it does not handle still go through the old reader.
+- The cache size in Settings → Performance is now one memory budget for the cached pictures, the tiles of big pictures and the decodes in progress. A picture waits until its decode fits; neighbours are prefetched only after the current picture is ready, and not next to a picture shown in parts.
+- **Decoding and rendering threads** (Settings → Performance) now applies at once and to everything that works in parallel: decoding, scaling, rendering, thumbnails. It used to size only the loader and needed a restart.
+- **Pixels per picture** (Settings → Performance) is now the limit for decoding a picture whole; larger JPEG and TIFF pictures open in parts.
+- Save as is not offered as a pixel copy for a picture that is shown in parts or at reduced size; only the lossless JPEG copy is possible then, and a message says why. Copy image says so too.
+- After the start the garbage collector runs at 30 % (unless `GOGC` is set), which lowers the peak memory of big pictures without changing the speed.
+
+### Fixed
+- The **More** buttons were always drawn as disabled.
+- Esc could not close a message box on Linux.
+- The window grew by the scale factor at every start on displays above 100 %.
+- A file that is open as a picture in parts no longer blocks deleting or renaming it on Windows.
+
+### Notes
+- Progressive JPEG files above the decoding limit open at 1/8 detail only. Region reading of a progressive file is not possible without keeping every coefficient in memory.
+- Panning a 200 Mpx picture in a 4K window runs at about 30 frames per second; most of the frame time is in the engine (see `docs/perf.md`).
+- Not verified on real hardware: the switch of a window between monitors with different scales, a screen reader reading the pages, real photographs of 100 Mpx and more (the tests use generated pictures), and the Linux run of the measurements.
+
 ## [0.5.0] - 2026-10-14
 
 ### Added

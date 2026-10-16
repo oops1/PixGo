@@ -4,12 +4,12 @@ PixGo recognizes a file by its signature, not by its extension. The extension on
 
 | Format | Extensions | Read | Write | Animation | Alpha | Build tag to remove it |
 |---|---|---|---|---|---|---|
-| JPEG | `.jpg` `.jpeg` `.jpe` `.jfif` | yes | yes, quality 1–100 | no | no | – |
+| JPEG | `.jpg` `.jpeg` `.jpe` `.jfif` | yes, also in parts above the pixel limit | yes, quality 1–100, or lossless rotation of a JPEG | no | no | – |
 | PNG | `.png` | yes | yes | no | yes | – |
 | APNG | `.apng`, animated `.png` | yes | no | yes | yes | `noapng` |
 | GIF | `.gif` | yes | no | yes | yes | – |
 | BMP | `.bmp` `.dib` | yes | yes | no | yes | – |
-| TIFF | `.tif` `.tiff` | yes | no | no | yes | – |
+| TIFF | `.tif` `.tiff` | yes (also BigTIFF), also in parts above the pixel limit | no | no | yes | – |
 | WebP | `.webp` | yes, lossy and lossless | yes, lossy with quality 1–100 or lossless | yes | yes | – |
 | SVG | `.svg` `.svgz` | yes, drawn at the size of the window | no | no | yes | – |
 | ICO, CUR | `.ico` `.cur` | yes, the size that fits the window best | no | no | yes | – |
@@ -56,6 +56,28 @@ The information panel reads the camera data (EXIF), the GPS position, the color 
 - HEIF and AVIF use their own `irot` and `imir` boxes; the EXIF orientation of the same file is ignored so that a picture is never turned twice.
 - JPEG XL applies its orientation inside the decoder.
 
+## Lossless rotation
+
+When the picture on the screen comes from a JPEG file and you save it as JPEG, the **Save options** dialog has the switch **Lossless** (on by default). With the switch on, PixGo does not decode and encode the picture again: it takes the stored DCT coefficients of the original file, moves and mirrors the blocks the way you turned the picture (this includes the EXIF orientation that the viewer applied), and writes them out. Every coefficient of the original is kept, so the picture suffers no new compression loss (a decoder may differ from the original in the last digit of a few samples, because its rounding is not symmetric). The quality slider is off in this mode. The choice is remembered in the setting `saveJpegLossless` of `settings.json`.
+
+- **What is written.** A baseline file with Huffman tables that are optimized for the new order of the blocks, so the file is usually a little smaller; restart markers are dropped. All APPn markers (JFIF, EXIF, ICC profile, XMP, Adobe) and comments are kept in their order.
+- **What is fixed in the metadata.** EXIF orientation becomes 1, the pixel dimensions (`PixelXDimension`, `PixelYDimension`, `ImageWidth`, `ImageLength`) follow the new size, `XResolution` and `YResolution` swap places when the picture is turned by 90 degrees, and `tiff:Orientation` of the XMP packet becomes 1. The small preview picture inside the EXIF block would show the old position, so it is removed whenever the picture or its orientation changes. The multi-picture block (`MPF`) is removed too, because the extra pictures behind the main one are not copied.
+- **Which files.** Baseline and extended sequential JPEG with 8-bit samples: gray, YCbCr with any subsampling, CMYK and YCCK. Progressive, arithmetic-coded, 12-bit, lossless files and files that code the components in several scans are not changed this way: the switch is not offered for them and the picture is saved the usual way, with the chosen quality.
+- **Edges.** A JPEG is coded in blocks of 8 by 8 pixels; with chroma subsampling the units are 16 by 16 pixels (up to 32 by 16). A turn or a mirror can only move whole units. When the size of the picture is not a multiple of the unit on the edge that moves to the other side, that partial unit is cut off, as `jpegtran -trim` does: less than 16 pixels (less than 32 for 4:1:1 and 4:1:0 files), and PixGo tells you in the notice after saving. The rule for each operation:
+
+| Operation | Width must be a multiple of the unit | Height must be a multiple of the unit |
+|---|---|---|
+| Mirror left to right | yes | no |
+| Mirror top to bottom | no | yes |
+| Turn right by 90 degrees | no | yes |
+| Turn by 180 degrees | yes | yes |
+| Turn left by 90 degrees | yes | no |
+| Transpose | no | no |
+| Transverse | yes | yes |
+
+- **Memory.** The coefficients of the whole picture are kept in memory while the file is written, about 3 bytes per pixel for 4:2:0 and 6 bytes for 4:4:4 (a 100 Mpx photo needs roughly 300 MB). A picture above 268 Mpx is saved the usual way.
+- **When it falls back.** If the original file was changed or removed after it was opened, or cannot be read in this way, PixGo saves the picture that is on the screen with the quality of the dialog, without a message.
+
 ## Animation
 
 - All frames are composed on the canvas of the file with the disposal and blending rules of the format.
@@ -68,12 +90,26 @@ Every decoder checks the size of the file and the number of pixels **before** it
 
 | Limit | Default | Where to change |
 |---|---|---|
-| Pixels per picture | 100 million | Settings → Performance |
+| Pixels per picture that is decoded whole | 100 million, and not more than 1/16 of the cache size in pixels (64 million with the default cache of 1 GB) | Settings → Performance |
+| Pixels per picture that is shown in parts (JPEG, TIFF) | 1 000 million | – |
 | Size of a file | 512 MB | – |
 | Frames of an animation | 10 000 | – |
 | Pixels of a single frame | 400 million | – |
 
 Files above a limit are reported with a message and never crash the viewer.
+
+## Large pictures
+
+A JPEG or a TIFF that has more pixels than may be decoded whole is not refused. PixGo reads it in parts:
+
+- The whole picture is decoded once at 1/4 or 1/8 size (at most 16 million pixels) and shown at once. This overview stays in memory.
+- When the zoom needs more detail than the overview has, the visible area is decoded in tiles of 256 by 256 pixels and drawn over the overview. While a tile is not ready, the overview shows through; panning back finds the tiles in a cache.
+- JPEG: the entropy stream is indexed during the overview pass, so a tile is decoded without reading the rest of the picture (about 0.5 ms for a tile of 24 Mpx files). Only baseline (sequential) JPEG can be read by region. A **progressive** JPEG has to keep every coefficient for that, so above the limit it opens at 1/8 detail only; below the limit it is decoded whole as before.
+- TIFF: only the strips or tiles that cover the area are read and decompressed. Layouts that the TIFF reader of PixGo does not handle (planar, CCITT, JPEG inside TIFF, CMYK, Lab, YCbCr, 32-bit float) are refused above the limit.
+- Memory: the cache size of Settings → Performance is one budget for the cached pictures, the tiles of big pictures and the decodes that are running. A 200 Mpx JPEG needs about 130 MB when it is open and 300 to 400 MB while you pan it in a 1080p window ([perf.md](perf.md)).
+- Other formats (PNG, GIF, BMP, WebP, AVIF, JPEG XL, HEIC, RAW previews, SVG) above the limit are refused with a message.
+- Saving: a picture that is shown in parts or at reduced size cannot be saved as a pixel copy. The lossless JPEG copy (see above) works from the file, so a rotated copy of a huge JPEG can still be saved.
+- The gallery makes thumbnails of big JPEG and TIFF files from the reduced decoding.
 
 ## HEIC and patents
 
@@ -101,4 +137,4 @@ CGO_ENABLED=0 go build -tags "noapng noavif nojxl noheic noraw" ./cmd/pixgo
 ## Safety
 
 - The decoders of the third-party libraries (WebP, AVIF, JPEG XL, HEIC) are wrapped so that a panic in the calling goroutine becomes "corrupt file". The libraries start helper goroutines for big pictures; PixGo keeps them single-threaded by default, because a panic in a helper goroutine could not be caught and would end the program.
-- The parsers that are written in PixGo (APNG, RAW, BMP, ICO, GIF, the container of WebP, the ISO box reader for AVIF and HEIC, EXIF) have fuzz tests. `scripts/fuzz-all.sh 10m` runs every target for ten minutes.
+- The parsers and decoders that are written in PixGo (the JPEG decoder and the lossless JPEG transform, the TIFF reader, APNG, RAW, BMP, ICO, GIF, the container of WebP, the ISO box reader for AVIF and HEIC, EXIF, the tile manager) have fuzz tests. `scripts/fuzz-all.sh 10m` runs every target for ten minutes.
