@@ -27,6 +27,9 @@ func Limits(l codec.Limits) codec.Limits {
 	if l.MaxFramePixels <= 0 {
 		l.MaxFramePixels = defaults.MaxFramePixels
 	}
+	if l.MaxTiledPixels <= 0 {
+		l.MaxTiledPixels = defaults.MaxTiledPixels
+	}
 	return l
 }
 

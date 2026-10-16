@@ -16,7 +16,7 @@ func TestLimitsFillsZeroFieldsOnly(t *testing.T) {
 	if got := Limits(codec.Limits{}); got != defaults {
 		t.Fatalf("got %+v", got)
 	}
-	custom := codec.Limits{MaxFileBytes: 5, MaxPixels: 6, MaxFrames: 7, MaxFramePixels: 8}
+	custom := codec.Limits{MaxFileBytes: 5, MaxPixels: 6, MaxFrames: 7, MaxFramePixels: 8, MaxTiledPixels: 9}
 	if got := Limits(custom); got != custom {
 		t.Fatalf("got %+v", got)
 	}

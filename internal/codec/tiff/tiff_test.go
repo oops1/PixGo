@@ -132,10 +132,12 @@ func decode(data []byte) (*codec.Image, error) {
 
 func TestSniffAndExtensions(t *testing.T) {
 	d := Decoder{}
-	if !d.Sniff([]byte{'I', 'I', 42, 0, 8, 0, 0, 0}) || !d.Sniff([]byte{'M', 'M', 0, 42}) {
-		t.Fatal("TIFF signatures not recognised")
+	for _, head := range [][]byte{{'I', 'I', 42, 0, 8, 0, 0, 0}, {'M', 'M', 0, 42}, {'I', 'I', 43, 0, 8, 0, 0, 0}, {'M', 'M', 0, 43}} {
+		if !d.Sniff(head) {
+			t.Fatalf("%v not recognised as TIFF", head)
+		}
 	}
-	for _, head := range [][]byte{nil, {'I', 'I', 42}, {'I', 'I', 43, 0}, {'M', 'M', 42, 0}, {'I', 'I', 0, 42}, []byte("BM\x00\x00")} {
+	for _, head := range [][]byte{nil, {'I', 'I', 42}, {'I', 'I', 44, 0}, {'M', 'M', 42, 0}, {'M', 'M', 43, 0}, {'I', 'I', 0, 42}, {'I', 'I', 0, 43}, []byte("BM\x00\x00")} {
 		if d.Sniff(head) {
 			t.Fatalf("%v sniffed as TIFF", head)
 		}
@@ -404,4 +406,39 @@ func FuzzDecode(f *testing.F) {
 			testimg.RequireCodecError(t, err)
 		}
 	})
+}
+
+func TestDecoderIsTiledAndWorksThroughTheRegistry(t *testing.T) {
+	var _ codec.TiledDecoder = Decoder{}
+	f := kinds[12].fixture(48, 32, 81)
+	f.bigTIFF = true
+	f.compression = 8
+	f.tileW, f.tileH = 16, 16
+	data := f.bytes()
+	registry := codec.NewRegistry()
+	registry.RegisterDecoder(Decoder{})
+	decoder, ok := registry.Detect(data[:min(len(data), codec.SniffLen)], "scan.tif")
+	if !ok {
+		t.Fatal("a BigTIFF is not detected")
+	}
+	tiled, ok := decoder.(codec.TiledDecoder)
+	if !ok {
+		t.Fatal("the registered decoder is not a TiledDecoder")
+	}
+	reader, err := tiled.OpenTiled(context.Background(), bytes.NewReader(data), int64(len(data)), codec.DefaultLimits())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reader.Close()
+	overview, err := reader.Overview(context.Background(), 2)
+	if err != nil || overview.Rect.Dx() != 12 || overview.Rect.Dy() != 8 {
+		t.Fatalf("%v %v", overview, err)
+	}
+	lim := codec.DefaultLimits()
+	lim.MaxPixels = 1000
+	source := &codec.Source{R: bytes.NewReader(data), Size: int64(len(data)), Head: data}
+	_, info, err := registry.Probe(context.Background(), source, lim)
+	if !errors.Is(err, codec.ErrTooLarge) || info.Width != 48 || info.Height != 32 {
+		t.Fatalf("%+v %v", info, err)
+	}
 }

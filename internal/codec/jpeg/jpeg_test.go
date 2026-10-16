@@ -350,19 +350,67 @@ func BenchmarkEncode6000x4000(b *testing.B) {
 
 func FuzzDecode(f *testing.F) {
 	base := encodeStd(f, rgbaOf(testimg.Photo(16, 12)), 80)
-	f.Add(base)
-	f.Add(withExifOrientation(base, true, 6))
-	f.Add(hugeHeader(300, 200))
-	f.Fuzz(func(t *testing.T, data []byte) {
+	f.Add(base, uint8(0), uint16(0), uint16(0), uint16(0), uint16(0))
+	f.Add(withExifOrientation(base, true, 6), uint8(2), uint16(1), uint16(1), uint16(5), uint16(5))
+	f.Add(hugeHeader(300, 200), uint8(8), uint16(0), uint16(0), uint16(0), uint16(0))
+	f.Add(base, uint8(4), uint16(2), uint16(3), uint16(4), uint16(3))
+	f.Fuzz(func(t *testing.T, data []byte, scale uint8, x, y, w, h uint16) {
 		lim := testimg.SmallLimits()
 		Decoder{}.Sniff(data)
 		Decoder{}.Probe(context.Background(), bytes.NewReader(data), int64(len(data)), lim)
-		img, err := Decoder{}.Decode(context.Background(), bytes.NewReader(data), int64(len(data)), codec.Options{Limits: lim})
+		options := codec.Options{Limits: lim, Scale: int(scale % 12)}
+		if w != 0 && h != 0 {
+			region := image.Rect(int(x%64), int(y%64), int(x%64)+int(w%48), int(y%64)+int(h%48))
+			options.Region = &region
+		}
+		img, err := Decoder{}.Decode(context.Background(), bytes.NewReader(data), int64(len(data)), options)
 		if err == nil && (img == nil || img.First() == nil) {
 			t.Fatal("success without pixels")
 		}
 		if err != nil {
 			testimg.RequireCodecError(t, err)
+			return
+		}
+		if img.Scale != 1 && img.Scale != 2 && img.Scale != 4 && img.Scale != 8 {
+			t.Fatalf("scale %d", img.Scale)
+		}
+	})
+}
+
+func FuzzTileReader(f *testing.F) {
+	base := encodeStd(f, rgbaOf(testimg.Photo(40, 30)), 80)
+	f.Add(base, uint8(0), uint16(3), uint16(4), uint16(20), uint16(15))
+	f.Add(base, uint8(5), uint16(0), uint16(0), uint16(9), uint16(9))
+	f.Add(hugeHeader(300, 200), uint8(1), uint16(0), uint16(0), uint16(8), uint16(8))
+	f.Fuzz(func(t *testing.T, data []byte, shift uint8, x, y, w, h uint16) {
+		lim := testimg.SmallLimits()
+		lim.MaxTiledPixels = 1 << 24
+		tr, err := Decoder{}.OpenTiled(context.Background(), bytes.NewReader(data), int64(len(data)), lim)
+		if err != nil {
+			testimg.RequireCodecError(t, err)
+			return
+		}
+		defer tr.Close()
+		level := int(shift % 7)
+		overview, err := tr.Overview(context.Background(), level)
+		if err != nil {
+			testimg.RequireCodecError(t, err)
+			return
+		}
+		cw, ch := codec.LevelSize(tr.Info().Width, tr.Info().Height, level)
+		if overview.Bounds() != image.Rect(0, 0, cw, ch) {
+			t.Fatalf("overview %v for level %d of %+v", overview.Bounds(), level, tr.Info())
+		}
+		if level < tr.MinShift() {
+			return
+		}
+		r := image.Rect(int(x%80)-4, int(y%80)-4, int(x%80)-4+int(w%64)+1, int(y%80)-4+int(h%64)+1)
+		region, err := tr.Region(context.Background(), level, r)
+		if err != nil {
+			t.Fatalf("region %v at level %d: %v", r, level, err)
+		}
+		if !samePixels(region, crop(overview, r)) {
+			t.Fatalf("region %v at level %d differs from the overview", r, level)
 		}
 	})
 }

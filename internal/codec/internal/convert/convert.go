@@ -3,9 +3,10 @@ package convert
 import (
 	"image"
 	"image/color"
-	"runtime"
 	"sync"
 	"sync/atomic"
+
+	"github.com/oops1/PixGo/internal/par"
 )
 
 const (
@@ -18,7 +19,7 @@ func Bands(width, height int, work func(y0, y1 int)) {
 	if height <= 0 || width <= 0 {
 		return
 	}
-	workers := runtime.NumCPU()
+	workers := par.Count()
 	if int64(width)*int64(height) < parallelThresholdPixels || workers < 2 || height < 2*minBandRows {
 		work(0, height)
 		return

@@ -104,11 +104,33 @@ type Encoder interface {
 	Encode(w io.Writer, img *image.NRGBA, o EncodeOptions) error
 }
 
+type TileReader interface {
+	Info() Info
+	MinShift() int
+	Overview(ctx context.Context, shift int) (*image.NRGBA, error)
+	Region(ctx context.Context, shift int, r image.Rectangle) (*image.NRGBA, error)
+	Close() error
+}
+
+type TiledDecoder interface {
+	OpenTiled(ctx context.Context, r io.ReaderAt, size int64, lim Limits) (TileReader, error)
+}
+
+func LevelSize(w, h, shift int) (int, int) {
+	if shift <= 0 {
+		return w, h
+	}
+	d := 1 << uint(shift)
+	return (w + d - 1) / d, (h + d - 1) / d
+}
+
 type Limits struct {
 	MaxFileBytes   int64
 	MaxPixels      int64
 	MaxFrames      int
 	MaxFramePixels int64
+	MaxTiledPixels int64
+	TiledAbove     int64
 }
 
 func DefaultLimits() Limits {
@@ -117,6 +139,7 @@ func DefaultLimits() Limits {
 		MaxPixels:      100_000_000,
 		MaxFrames:      10_000,
 		MaxFramePixels: 400_000_000,
+		MaxTiledPixels: 1_000_000_000,
 	}
 }
 
@@ -133,6 +156,12 @@ func (l Limits) WithDefaults() Limits {
 	}
 	if l.MaxFramePixels <= 0 {
 		l.MaxFramePixels = d.MaxFramePixels
+	}
+	if l.MaxTiledPixels <= 0 {
+		l.MaxTiledPixels = d.MaxTiledPixels
+	}
+	if l.TiledAbove <= 0 || l.TiledAbove > l.MaxPixels {
+		l.TiledAbove = l.MaxPixels
 	}
 	return l
 }

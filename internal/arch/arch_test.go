@@ -30,6 +30,9 @@ var engineFree = []string{
 	"internal/thumbs",
 	"internal/updates",
 	"internal/gallery",
+	"internal/jpegxform",
+	"internal/jpegdec",
+	"internal/par",
 }
 
 var vendorCodecs = map[string]string{
@@ -130,17 +133,20 @@ func TestVendorCodecsStayInTheirPackage(t *testing.T) {
 
 func TestDependenciesPointDownward(t *testing.T) {
 	forbidden := map[string][]string{
-		"internal/codec":    {"internal/ui", "internal/app", "internal/viewer", "internal/imaging", "internal/render"},
-		"internal/isobmff":  {"internal/ui", "internal/app", "internal/viewer", "internal/imaging", "internal/render"},
-		"internal/meta":     {"internal/ui", "internal/app", "internal/viewer", "internal/imaging", "internal/render"},
-		"internal/render":   {"internal/ui", "internal/app", "internal/imaging", "internal/viewer"},
-		"internal/imaging":  {"internal/ui", "internal/app", "internal/viewer"},
-		"internal/viewer":   {"internal/ui", "internal/app", "internal/imaging"},
-		"internal/jobs":     {"internal/ui", "internal/app", "internal/codec"},
-		"internal/settings": {"internal/ui", "internal/app"},
-		"internal/i18n":     {"internal/ui", "internal/app"},
-		"internal/updates":  {"internal/ui", "internal/app"},
-		"internal/gallery":  {"internal/ui", "internal/app"},
+		"internal/codec":     {"internal/ui", "internal/app", "internal/viewer", "internal/imaging", "internal/render"},
+		"internal/isobmff":   {"internal/ui", "internal/app", "internal/viewer", "internal/imaging", "internal/render"},
+		"internal/meta":      {"internal/ui", "internal/app", "internal/viewer", "internal/imaging", "internal/render"},
+		"internal/render":    {"internal/ui", "internal/app", "internal/imaging", "internal/viewer"},
+		"internal/imaging":   {"internal/ui", "internal/app", "internal/viewer"},
+		"internal/viewer":    {"internal/ui", "internal/app", "internal/imaging"},
+		"internal/jobs":      {"internal/ui", "internal/app", "internal/codec"},
+		"internal/settings":  {"internal/ui", "internal/app"},
+		"internal/i18n":      {"internal/ui", "internal/app"},
+		"internal/updates":   {"internal/ui", "internal/app"},
+		"internal/gallery":   {"internal/ui", "internal/app"},
+		"internal/jpegxform": {"internal/ui", "internal/app", "internal/viewer", "internal/imaging", "internal/render"},
+		"internal/jpegdec":   {"internal/ui", "internal/app", "internal/viewer", "internal/imaging", "internal/render", "internal/codec"},
+		"internal/par":       {"internal/ui", "internal/app", "internal/viewer", "internal/imaging", "internal/render", "internal/codec", "internal/thumbs", "internal/settings"},
 	}
 	for _, fi := range scan(t) {
 		if fi.isTest {

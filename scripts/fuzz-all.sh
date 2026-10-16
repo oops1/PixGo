@@ -27,10 +27,30 @@ targets=(
     "internal/codec/heic FuzzProbe"
     "internal/codec/jxl FuzzDecode"
     "internal/codec/jxl FuzzProbe"
+    "internal/codec/tiff FuzzDecode"
+    "internal/codec/tiff FuzzTiledReader"
     "internal/isobmff FuzzOpen"
     "internal/meta/exif FuzzDecode"
     "internal/meta FuzzRead"
+    "internal/codec/jpeg FuzzDecode"
+    "internal/codec/jpeg FuzzTileReader"
+    "internal/jpegdec FuzzDecode"
+    "internal/jpegdec FuzzRegion"
+    "internal/jpegxform FuzzTransform"
+    "internal/imaging FuzzTileManager"
+    "internal/render FuzzWindowRender"
+    "internal/platform FuzzProcInfoParsers"
 )
+
+if [ -n "${FILTER:-}" ]; then
+    selected=()
+    for t in "${targets[@]}"; do
+        if [[ "$t" =~ $FILTER ]]; then
+            selected+=("$t")
+        fi
+    done
+    targets=("${selected[@]}")
+fi
 
 failed=0
 run() {
