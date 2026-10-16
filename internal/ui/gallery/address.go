@@ -26,7 +26,7 @@ func newAddressField(p *Page) *addressField {
 	f := &addressField{TextInput: in}
 	f.onBlur = func() {
 		if p.editing {
-			p.endEdit()
+			p.finishEdit(false)
 		}
 	}
 	in.OnEnter = p.commitEdit
@@ -75,14 +75,16 @@ func (p *Page) placeInput() {
 	p.input.SetBounds(image.Rect(a.Min.X+2, a.Min.Y+2, p.geo.filter.Min.X, a.Max.Y-2))
 }
 
-func (p *Page) endEdit() {
+func (p *Page) endEdit() { p.finishEdit(true) }
+
+func (p *Page) finishEdit(refocus bool) {
 	if !p.editing {
 		return
 	}
 	p.editing = false
 	p.clearBubble()
 	p.input.SetValidationError("")
-	if p.eng != nil {
+	if refocus && p.eng != nil {
 		p.eng.SetFocus(p)
 	}
 	p.invalidateRect(p.geo.address)

@@ -302,3 +302,15 @@ func TestDesktopIDFollowsTheAppIDAndTheEnvironmentWins(t *testing.T) {
 		t.Fatalf("environment: %q", got)
 	}
 }
+
+func TestInstanceNameFollowsTheProgramName(t *testing.T) {
+	SetInstanceName("")
+	if got := CurrentInstanceName(); got != InstanceName {
+		t.Fatalf("default: %q", got)
+	}
+	SetInstanceName("other-viewer")
+	t.Cleanup(func() { SetInstanceName("") })
+	if got := CurrentInstanceName(); got != "other-viewer" {
+		t.Fatalf("set: %q", got)
+	}
+}

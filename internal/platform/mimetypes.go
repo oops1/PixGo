@@ -51,3 +51,14 @@ func DesktopID() string {
 	}
 	return DefaultDesktopID
 }
+
+var instanceName atomic.Value
+
+func SetInstanceName(name string) { instanceName.Store(name) }
+
+func CurrentInstanceName() string {
+	if n, ok := instanceName.Load().(string); ok && n != "" {
+		return n
+	}
+	return InstanceName
+}

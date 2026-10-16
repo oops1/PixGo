@@ -129,7 +129,7 @@ func New() *Platform {
 		Folders:      NewKnownFolders(),
 		Volumes:      NewVolumes(),
 		SaveDialog:   NewSaveDialog(),
-		Instance:     NewInstance(InstanceName),
+		Instance:     NewInstance(CurrentInstanceName()),
 		Associations: NewAssociations(),
 		Paths:        NewPaths(),
 	}

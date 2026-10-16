@@ -2,6 +2,7 @@ package gallery
 
 import (
 	"testing"
+	"time"
 
 	"github.com/oops1/headless-gui/v3/widget"
 )
@@ -94,5 +95,26 @@ func TestEngineCursorOverTheEditorIsATextCursor(t *testing.T) {
 
 	if got := r.page.input.Cursor(150, 22); got != widget.CursorIBeam {
 		t.Fatalf("cursor = %v", got)
+	}
+}
+
+func TestMovingTheFocusAwayFromTheAddressBarDoesNotDeadlock(t *testing.T) {
+	r := newRig(t, mockSource(), mockW, mockH)
+	r.page.FocusAddress()
+	if !r.page.editing {
+		t.Fatal("the address bar did not start editing")
+	}
+	done := make(chan struct{})
+	go func() {
+		r.eng.SetFocus(nil)
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(3 * time.Second):
+		t.Fatal("moving the focus away from the address bar deadlocked on the focus lock of the engine")
+	}
+	if r.page.editing {
+		t.Fatal("the edit must end when the focus leaves the address bar")
 	}
 }

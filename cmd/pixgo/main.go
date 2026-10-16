@@ -22,6 +22,7 @@ import (
 	"github.com/oops1/PixGo/internal/codec"
 	codecall "github.com/oops1/PixGo/internal/codec/all"
 	"github.com/oops1/PixGo/internal/fonts"
+	"github.com/oops1/PixGo/internal/fsutil"
 	model "github.com/oops1/PixGo/internal/gallery"
 	"github.com/oops1/PixGo/internal/i18n"
 	"github.com/oops1/PixGo/internal/platform"
@@ -39,10 +40,15 @@ const (
 	updateCheckDelay = 4 * time.Second
 )
 
+const defaultAppID = "pixgo"
+
 var appID = "pixgo"
 
 func main() {
 	platform.SetDesktopID(appID + ".desktop")
+	if appID != defaultAppID {
+		platform.SetInstanceName(appID)
+	}
 	activationToken := window.TakeActivationToken()
 	screenshot := flag.String("screenshot", "", "render one PNG without a window and exit")
 	width := flag.Int("width", 0, "window width")
@@ -206,6 +212,9 @@ func main() {
 	}
 	win.SetOnCloseRequest(func() bool { a.Close(); return false })
 	win.SetOnFilesDropped(func(p []string, x, y int) { eng.Post(func() { a.OpenFiles(p) }) })
+	hangs := newHangWatch(eng.Post, fsutil.StateDir())
+	hangs.start()
+	defer hangs.close()
 	stopTheme := plat.Theme.Watch(a.SystemThemeChanged)
 	defer stopTheme()
 	if primary {

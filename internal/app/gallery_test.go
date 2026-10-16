@@ -408,3 +408,23 @@ func TestBackButtonAndOpenCommandsOpenTheGallery(t *testing.T) {
 	}
 	r.settle(t)
 }
+
+func TestOpeningAPictureWhileTheAddressBarIsEditedDoesNotFreeze(t *testing.T) {
+	a, _ := goldenApp(t, 1100, 700, nil)
+	first, _ := twoImages(t)
+	a.OpenGalleryAt(model.Folder(filepath.Dir(first)), "")
+	a.Eng.Flush()
+	a.gal.page.FocusAddress()
+	done := make(chan struct{})
+	go func() {
+		a.Eng.Post(func() { a.gal.openFile(first) })
+		a.Eng.Flush()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("opening a picture from the gallery while the address bar was edited froze the interface")
+	}
+	waitName(t, a, filepath.Base(first))
+}
