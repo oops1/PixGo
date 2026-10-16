@@ -11,8 +11,8 @@ PixGo recognizes a file by its signature, not by its extension. The extension on
 | BMP | `.bmp` `.dib` | yes | yes | no | yes | – |
 | TIFF | `.tif` `.tiff` | yes (also BigTIFF), also in parts above the pixel limit | no | no | yes | – |
 | WebP | `.webp` | yes, lossy and lossless | yes, lossy with quality 1–100 or lossless | yes | yes | – |
-| SVG | `.svg` `.svgz` | yes, drawn at the size of the window | no | no | yes | – |
-| ICO, CUR | `.ico` `.cur` | yes, the size that fits the window best | no | no | yes | – |
+| SVG | `.svg` `.svgz` | yes, drawn once, up to 1024 pixels on the long side | no | no | yes | – |
+| ICO, CUR | `.ico` `.cur` | yes, the largest picture of the file | no | no | yes | – |
 | AVIF | `.avif` | yes, 8 to 12 bits, image sequences | no | yes | yes | `noavif` |
 | JPEG XL | `.jxl` | yes, lossless and lossy, animation | no | yes | yes | `nojxl` |
 | HEIC, HEIF | `.heic` `.heif` `.hif` | yes, including tiled photos of phones | no | sequences | yes | `noheic` |

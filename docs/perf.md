@@ -7,7 +7,7 @@
 | Target | Result | Status |
 |---|---|---|
 | A 200 Mpx JPEG opens and pans with the process under 600 MB (peak working set), while open and while panning | 131 MB when open, 237 MB after panning, 307 MB after zooming through every step (window 1100x700). 301 and 380 MB in a 1920x1080 window, 523 and 576 MB in a 3840x2160 window | **PASS** |
-| A 24 Mpx JPEG, warm start: process creation to the first picture under 200 ms | 120 ms (median of 9 runs, min 119, max 122), full resolution 183 ms. 0.5.0 measured the same way: 237 ms | **PASS** (offscreen, see the limits below) |
+| A 24 Mpx JPEG, warm start: process creation to the first picture under 200 ms | 125 ms in 1.0.0 (median of 9 runs, min 121, max 137), full resolution 186 ms; 120 ms in 0.6.0; 0.5.0 measured the same way: 237 ms | **PASS** (offscreen, see the limits below) |
 
 The tiled-picture numbers are the same with and without neighbouring files in the folder (0.6 does not prefetch next to a tiled picture, see "Decisions").
 
@@ -41,21 +41,21 @@ Intel Core Ultra 7 265K (20 logical cores), 63.5 GiB RAM, Windows 11 (10.0.26200
 
 ## Results
 
-### 24 Mpx JPEG, start (window 1100x700, median of 9 fresh processes)
+### 24 Mpx JPEG, start (1.0.0, window 1100x700, median of 9 fresh processes)
 
 | Event | ms from process creation |
 |---|---|
-| packages initialised | 33.8 |
-| settings loaded | 34.1 |
-| engine ready | 54.9 |
-| app ready | 57.4 |
-| folder scanned | 57.7 |
-| loading frame rendered | 83.9 |
-| probe done | 84.1 |
-| first picture published (preview at 1/4, 1500x1000) | 115.2 |
-| **first picture rendered** | **120.4** |
-| full resolution ready | 182.5 |
-| first full frame rendered | 186.6 |
+| packages initialised | 34.2 |
+| settings loaded | 34.6 |
+| engine ready | 56.8 |
+| app ready | 61.0 |
+| open returned (since 1.0 the folder is listed in the background, after the picture is requested) | 61.4 |
+| loading frame rendered | 87.9 |
+| probe done | 87.9 |
+| first picture published (preview at 1/4, 1500x1000) | 119.8 |
+| **first picture rendered** | **125.0** |
+| full resolution ready | 186.3 |
+| first full frame rendered | 191.3 |
 
 Process peak: 64 MB when the app is ready, 79 MB with the preview, 199 MB with the full picture.
 

@@ -30,6 +30,8 @@ Every function that the mouse reaches is reachable from the keyboard. Disabled c
 | F5, Space | Start the slideshow; pause and resume it |
 | Shift+F10, Menu key | Open the menu (the same as the **More** button) |
 
+Rotate 180°, Fit to window, Fit to width and 100 % are also in the menu (the **More** button, Shift+F10 or the Menu key), next to the other rotate and zoom commands.
+
 The focus visits the controls in this order and wraps around: the buttons of the title bar (back, information, favorite, more), the image, the toolbar (gallery, delete, rotate left, zoom out, zoom, zoom in, rotate right, more, full screen), the arrows to the previous and next image, and the controls of the information panel when it is open. In full screen the order is the image, play or pause, slideshow settings, stop the slideshow, the two arrows and the exit button. The window buttons (minimize, maximize, close) are not tab stops; use the keys of the system (Alt+Space opens the window menu on Windows, Alt+F4 closes the window).
 
 When the information panel is opened from the keyboard with Enter, the focus moves into it: Tab goes through the close button, the copy buttons and the links, Up and Down scroll, Esc closes it and returns to the information button.

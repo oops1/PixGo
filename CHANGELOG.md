@@ -1,5 +1,33 @@
 # Changelog
 
+## [1.0.0] - 2026-10-16
+
+First stable release. Within 1.x the command line, the environment variables and the keys of `settings.json` keep working.
+
+### Added
+- New application icon, on a transparent background, for the window, the taskbar, the Windows installer and the Linux menus.
+- **Rotate 180°** in the menu, next to rotate left and right.
+- **Fit to window**, **Fit to width** and **100 %** in the menu, so every zoom mode has a visible control.
+- The settings open from the gallery too: Ctrl+, and a menu on the empty space of the grid and the side panel (right click or the Menu key), which also has **Refresh**.
+- The `+` key works as it is typed on every layout (Shift and `=`, with or without Ctrl), and the digits 1 and 2 of the numeric keypad fit the picture to the window and to the width.
+- The list of files of the folder is read again when the window becomes active, at most every two seconds, so files added or removed by other programs appear without reopening.
+- `PIXGO_NO_UPDATE_CHECK=1` turns the update check off for every user of a machine; `PIXGO_THREADS=N` sets the number of threads when Settings says Automatic. The program name used for the window class, the single-instance socket and the desktop file can be set when building (`-ldflags "-X main.appID=name"`).
+- README: how to use the program, the command line, the environment variables and the files it keeps. `docs/limitations.md` lists what PixGo does not do.
+
+### Changed
+- The first picture no longer waits for the folder: the file is requested at once and the folder is listed in the background. Until the list is read, the previous and next buttons are disabled.
+- **Restore last image** works on its own; it used to be ignored when **Remember window size** was off.
+- The window opens with its last size clamped to the monitor it appears on.
+- The unused setting `slideshow.transition` was removed; files that still have it keep working.
+
+### Fixed
+- Opening a picture from the file manager while the settings were shown loaded it behind the settings page; the page now closes and the picture appears.
+- The SVG and ICO lines of `docs/formats.md` described the program wrongly: SVG is drawn once, up to 1024 pixels on the long side, and ICO shows its largest picture.
+
+### Notes
+- The position of the window and the maximized state are saved but not restored yet: the window would visibly jump after it is shown.
+- The fuzz tests now also cover the PNG and SVG decoders; all 32 targets ran for ten minutes without a failure.
+
 ## [0.6.0] - 2026-10-16
 
 ### Added
