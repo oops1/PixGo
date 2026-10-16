@@ -215,7 +215,7 @@ func TestControllerRemovedFileReleasesItsSession(t *testing.T) {
 	dir := t.TempDir()
 	a := writeBig(t, dir, "a", 20000, 15000)
 	writeBig(t, dir, "b", 20000, 15000)
-	h.c.Open(a)
+	h.open(a)
 	h.pump(func() bool { return h.c.Status() == StatusReady })
 	if err := os.Remove(a); err != nil {
 		t.Fatalf("the open session must not block deleting the file: %v", err)
@@ -295,7 +295,7 @@ func TestControllerViewportHintComesFromTheCanvas(t *testing.T) {
 	h := newHarnessWith(t, func(s *settings.Settings) { s.MaxPixels = 100; s.Preload = 0 }, fake)
 	dir := t.TempDir()
 	p := writeBig(t, dir, "photo", 6000, 3000)
-	h.c.Open(p)
+	h.open(p)
 	h.pump(func() bool { return h.c.Status() == StatusReady })
 	calls := fake.decodeCalls()
 	if len(calls) != 2 || calls[0].Scale != 8 {
@@ -345,7 +345,7 @@ func TestTileBudgetFollowsCache(t *testing.T) {
 func TestControllerOrdinaryImagesStayUntouched(t *testing.T) {
 	h := newHarness(t, nil)
 	_, paths := makeFolder(t, 2)
-	h.c.Open(paths[0])
+	h.open(paths[0])
 	h.pump(func() bool { return h.c.Status() == StatusReady })
 	d := h.c.Shown()
 	if d == nil || d.Shift != 0 || d.Detail != nil || d.Reduced {

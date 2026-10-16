@@ -63,7 +63,7 @@ func waitReady(t *testing.T, a *App) {
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
 		a.Eng.Flush()
-		if a.Ctl.Status() == StatusReady {
+		if a.Ctl.Status() == StatusReady && !a.Ctl.Scanning() {
 			return
 		}
 		time.Sleep(2 * time.Millisecond)

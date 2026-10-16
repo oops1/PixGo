@@ -181,7 +181,7 @@ func TestOpenShowsImageAndTitle(t *testing.T) {
 func TestStepNavigatesAndPreloadsNeighbours(t *testing.T) {
 	h := newHarness(t, nil)
 	_, paths := makeFolder(t, 5)
-	h.c.Open(paths[2])
+	h.open(paths[2])
 	h.pump(func() bool { return h.c.Status() == StatusReady })
 	for _, p := range []string{paths[1], paths[3]} {
 		p := p
@@ -211,7 +211,7 @@ func TestStepNavigatesAndPreloadsNeighbours(t *testing.T) {
 func TestLoopSettingWraps(t *testing.T) {
 	h := newHarness(t, func(s *settings.Settings) { s.LoopFolder = true })
 	_, paths := makeFolder(t, 3)
-	h.c.Open(paths[2])
+	h.open(paths[2])
 	h.pump(func() bool { return h.c.Status() == StatusReady })
 	if !h.c.Step(1) || h.c.Name() != "img01.png" {
 		t.Fatalf("loop did not wrap: %s", h.c.Name())
@@ -223,7 +223,7 @@ func TestCorruptFileReportsFailure(t *testing.T) {
 	dir, paths := makeFolder(t, 2)
 	bad := filepath.Join(dir, "img03.png")
 	os.WriteFile(bad, append([]byte("\x89PNG\r\n\x1a\n"), make([]byte, 40)...), 0o644)
-	h.c.Open(paths[1])
+	h.open(paths[1])
 	h.pump(func() bool { return h.c.Status() == StatusReady })
 	h.c.Step(1)
 	h.pump(func() bool { return h.c.Status() == StatusFailed })
@@ -245,7 +245,7 @@ func TestCorruptFileReportsFailure(t *testing.T) {
 func TestInitialZoomFromSettings(t *testing.T) {
 	h := newHarness(t, func(s *settings.Settings) { s.InitialZoom = settings.ZoomActual })
 	_, paths := makeFolder(t, 1)
-	h.c.Open(paths[0])
+	h.open(paths[0])
 	h.pump(func() bool { return h.c.Status() == StatusReady })
 	if got := h.canvas.ZoomPercent(); got != 100 {
 		t.Errorf("zoom = %d%%, want 100%%", got)
@@ -306,7 +306,7 @@ func TestAnimationAdvancesAndRespectsFrameRateCap(t *testing.T) {
 	dir := t.TempDir()
 	p := filepath.Join(dir, "anim.gif")
 	writeGIF(t, p, 3, 2, 0)
-	h.c.Open(p)
+	h.open(p)
 	h.pump(func() bool { return h.c.Status() == StatusReady })
 	if h.pendingTimers() != 1 {
 		t.Fatalf("pending timers = %d, want 1", h.pendingTimers())
@@ -331,7 +331,7 @@ func TestAnimationPausesWhenInactive(t *testing.T) {
 	dir := t.TempDir()
 	p := filepath.Join(dir, "anim.gif")
 	writeGIF(t, p, 3, 10, 0)
-	h.c.Open(p)
+	h.open(p)
 	h.pump(func() bool { return h.c.Status() == StatusReady })
 	h.c.SetActive(false)
 	if h.pendingTimers() != 0 {
@@ -352,7 +352,7 @@ func TestNavigatingAwayStopsAnimation(t *testing.T) {
 	dir := t.TempDir()
 	writeGIF(t, filepath.Join(dir, "a.gif"), 3, 10, 0)
 	writePNG(t, filepath.Join(dir, "b.png"), 20, 20, color.NRGBA{1, 2, 3, 255})
-	h.c.Open(filepath.Join(dir, "a.gif"))
+	h.open(filepath.Join(dir, "a.gif"))
 	h.pump(func() bool { return h.c.Status() == StatusReady })
 	h.c.Step(1)
 	h.pump(func() bool { return h.c.Status() == StatusReady && h.c.Name() == "b.png" })
@@ -364,7 +364,7 @@ func TestNavigatingAwayStopsAnimation(t *testing.T) {
 func TestRescanPicksUpNewFile(t *testing.T) {
 	h := newHarness(t, nil)
 	dir, paths := makeFolder(t, 2)
-	h.c.Open(paths[0])
+	h.open(paths[0])
 	h.pump(func() bool { return h.c.Status() == StatusReady })
 	writePNG(t, filepath.Join(dir, "img99.png"), 10, 10, color.NRGBA{9, 9, 9, 255})
 	h.c.RescanAsync()

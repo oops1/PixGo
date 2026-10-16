@@ -138,7 +138,7 @@ func TestLosslessSaveRewritesTheFileWithoutReencoding(t *testing.T) {
 	if !st.SaveJPEGLossless || st.SaveJPEGQuality != 90 {
 		t.Fatalf("remembered lossless %v quality %d", st.SaveJPEGLossless, st.SaveJPEGQuality)
 	}
-	if !toastShown(r.app, i18n.T("toast.saved")) {
+	if !waitToast(r.app, i18n.T("toast.saved")) {
 		t.Fatal("no confirmation toast")
 	}
 }
@@ -209,7 +209,7 @@ func TestImperfectSizeIsTrimmedAndTheToastSaysSo(t *testing.T) {
 		t.Fatalf("size %v: 600 is not a multiple of the 16 px block, so 8 px must go", b)
 	}
 	r.settle()
-	if !toastShown(r.app, i18n.T("toast.savedTrimmed")) || toastShown(r.app, i18n.T("toast.saved")) {
+	if !waitToast(r.app, i18n.T("toast.savedTrimmed")) || toastShown(r.app, i18n.T("toast.saved")) {
 		t.Fatal("the toast must tell that the edge was trimmed")
 	}
 }
@@ -452,4 +452,16 @@ func TestEXIFOrientationIgnoredByTheSettingIsNotAppliedToTheFile(t *testing.T) {
 	if b := decodeJPEGFile(t, data).Bounds(); b.Dx() != 160 || b.Dy() != 96 {
 		t.Fatalf("size %v: the file must keep the stored layout, the same picture as on screen", b)
 	}
+}
+
+func waitToast(a *App, text string) bool {
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		a.Eng.Flush()
+		if toastShown(a, text) {
+			return true
+		}
+		time.Sleep(2 * time.Millisecond)
+	}
+	return false
 }
