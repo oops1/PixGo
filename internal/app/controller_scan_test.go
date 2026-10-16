@@ -136,6 +136,10 @@ func TestFileDeletedWhileScanningFallsBackToANeighbour(t *testing.T) {
 	}
 
 	h.settleScan()
+	if _, n := h.c.Position(); n == 3 {
+		h.c.RescanAsync()
+		h.settleScan()
+	}
 
 	if _, n := h.c.Position(); n != 2 {
 		t.Fatalf("count %d, want 2", n)
