@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.1] - 2026-10-16
+
+### Fixed
+- The program froze when the focus left the address bar of the gallery while it was being edited: for example when a picture was opened from the gallery after a click into the address, or when the window became active with the address selected. The window stayed on the screen but no longer redrew.
+- The **Open** button of the gallery and its arrow stand inside the status bar, in its middle, instead of over its top line.
+- The name of the single-instance socket follows the program name set when building (`-X main.appID=name`), like the window class and the desktop file.
+
+### Added
+- When the interface does not answer for 8 seconds, PixGo writes the stacks of all its threads to `hang-<date>.txt` in its state folder (`%LOCALAPPDATA%\PixGo` on Windows, `~/.local/state/pixgo` on Linux), at most five files per run. Attach the file when you report a freeze.
+
 ## [1.0.0] - 2026-10-16
 
 First stable release. Within 1.x the command line, the environment variables and the keys of `settings.json` keep working.

@@ -100,7 +100,7 @@ pixgo [options] [file...]
 | What | Windows | Linux |
 |---|---|---|
 | `settings.json` | `%APPDATA%\PixGo` | `~/.config/pixgo` |
-| `favorites.json`, `recent.json`, `window.json` | `%LOCALAPPDATA%\PixGo` | `~/.local/state/pixgo` |
+| `favorites.json`, `recent.json`, `window.json`; `hang-<date>.txt` when the interface stopped answering | `%LOCALAPPDATA%\PixGo` | `~/.local/state/pixgo` |
 | Thumbnails | `%LOCALAPPDATA%\PixGo\cache` | `~/.cache/pixgo` |
 
 `settings.json` is plain JSON and can be edited by hand while PixGo is closed. Versions 1.x keep its keys and the options above working.
