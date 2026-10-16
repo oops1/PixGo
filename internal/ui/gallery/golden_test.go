@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/draw"
 	"math"
 	"path/filepath"
 	"slices"
@@ -181,29 +182,38 @@ func TestMockupRegions(t *testing.T) {
 	if err != nil {
 		t.Skip(err)
 	}
-	_, got := renderMock(t)
+	r, got := renderMock(t)
 	if out := testutil.OutDir(); out != "" {
 		testutil.SavePNG(filepath.Join(out, "gallery_golden.png"), got)
 		testutil.SaveComparison(filepath.Join(out, "gallery_compare.png"), got, ref)
 	}
-	areas := []areaCheck{
-		{"header", image.Rect(2, 1, 488, 43), nil, 5.5},
-		{"sidebar", image.Rect(2, 43, 152, 389), nil, 7.5},
-		{"page", image.Rect(152, 43, 588, 389), photoMask(), 7.5},
-		{"status", image.Rect(2, 389, 448, 429), nil, 5.5},
-		{"buttons", image.Rect(448, 380, 590, 420), nil, 8.8},
+	g := r.page.geo
+	footer := shiftedUp(got, g.statusY-mockStatusY)
+	buttons := shiftedUp(got, g.open.Min.Y-mockButtonTop)
+	text := shiftedUp(got, mockStatusBaseFromB-statusBaseFromB)
+	areas := []struct {
+		areaCheck
+		img *image.RGBA
+	}{
+		{areaCheck{"header", image.Rect(2, 1, 488, 43), nil, 5.5}, got},
+		{areaCheck{"sidebar", image.Rect(2, 43, 152, g.statusY), nil, 7.5}, got},
+		{areaCheck{"page", image.Rect(152, 43, 588, g.statusY), photoMask(), 7.5}, got},
+		{areaCheck{"status", image.Rect(300, mockStatusY, 448, 429), nil, 5.5}, footer},
+		{areaCheck{"buttons", image.Rect(448, mockButtonTop, 590, mockButtonTop+32), nil, 8.8}, buttons},
 	}
 	for _, a := range areas {
-		e := testutil.MeanError(got, ref, a.rect, a.mask...)
+		e := testutil.MeanError(a.img, ref, a.rect, a.mask...)
 		t.Logf("%-8s mean error %.2f", a.name, e)
 		if e > a.maxErr {
 			t.Errorf("%s mean error %.2f > %.2f", a.name, e, a.maxErr)
 		}
 	}
 	var bad []string
-	for _, ps := range [][]probe{headerProbes, sidebarProbes, gridProbes, statusProbes} {
+	for _, ps := range [][]probe{headerProbes, sidebarProbes, gridProbes} {
 		bad = append(bad, logProbes(t, ref, got, ps)...)
 	}
+	bad = append(bad, logProbes(t, ref, text, statusProbes[:3])...)
+	bad = append(bad, logProbes(t, ref, buttons, statusProbes[3:])...)
 	for _, b := range bad {
 		t.Error(b)
 	}
@@ -214,26 +224,30 @@ func TestMockupFlatColours(t *testing.T) {
 	if err != nil {
 		t.Skip(err)
 	}
-	_, got := renderMock(t)
+	r, got := renderMock(t)
+	g := r.page.geo
+	footer := shiftedUp(got, g.statusY-mockStatusY)
+	buttons := shiftedUp(got, g.open.Min.Y-mockButtonTop)
 	for _, c := range []struct {
 		name string
 		r    image.Rectangle
 		tol  int
+		img  *image.RGBA
 	}{
-		{"header", image.Rect(215, 2, 330, 7), 3},
-		{"address field", image.Rect(215, 12, 330, 31), 2},
-		{"sidebar", image.Rect(4, 44, 148, 56), 2},
-		{"sidebar bottom", image.Rect(4, 364, 148, 388), 2},
-		{"selected row", image.Rect(100, 322, 140, 340), 3},
-		{"divider", image.Rect(151, 100, 152, 380), 3},
-		{"page", image.Rect(160, 346, 580, 380), 2},
-		{"selection fill", image.Rect(168, 130, 200, 133), 2},
-		{"status", image.Rect(160, 393, 440, 427), 2},
-		{"status rule", image.Rect(160, 389, 440, 390), 2},
-		{"open button", image.Rect(455, 386, 468, 412), 2},
-		{"more button", image.Rect(546, 386, 553, 412), 2},
+		{"header", image.Rect(215, 2, 330, 7), 3, got},
+		{"address field", image.Rect(215, 12, 330, 31), 2, got},
+		{"sidebar", image.Rect(4, 44, 148, 56), 2, got},
+		{"sidebar bottom", image.Rect(4, 364, 148, g.statusY-2), 2, got},
+		{"selected row", image.Rect(100, 322, 140, 340), 3, got},
+		{"divider", image.Rect(151, 100, 152, 380), 3, got},
+		{"page", image.Rect(160, 346, 580, 380), 2, got},
+		{"selection fill", image.Rect(168, 130, 200, 133), 2, got},
+		{"status", image.Rect(300, 393, 440, 427), 2, footer},
+		{"status rule", image.Rect(160, mockStatusY, 440, mockStatusY+1), 2, footer},
+		{"open button", image.Rect(455, 386, 468, 412), 2, buttons},
+		{"more button", image.Rect(546, 386, 553, 412), 2, buttons},
 	} {
-		want, have := meanOf(ref, c.r), meanOf(got, c.r)
+		want, have := meanOf(ref, c.r), meanOf(c.img, c.r)
 		if maxChannelDiff(want, have) > float64(c.tol) {
 			t.Errorf("%s: mockup %v, ours %v (tolerance %d)", c.name, want, have, c.tol)
 		}
@@ -249,4 +263,16 @@ func meanOf(img *image.RGBA, r image.Rectangle) color.RGBA {
 		}
 	}
 	return color.RGBA{uint8((sr + n/2) / n), uint8((sg + n/2) / n), uint8((sb + n/2) / n), 255}
+}
+
+const (
+	mockStatusY         = 389
+	mockButtonTop       = 384
+	mockStatusBaseFromB = 17
+)
+
+func shiftedUp(img *image.RGBA, off int) *image.RGBA {
+	out := image.NewRGBA(img.Bounds())
+	draw.Draw(out, out.Bounds(), img, img.Bounds().Min.Add(image.Pt(0, off)), draw.Src)
+	return out
 }

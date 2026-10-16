@@ -371,7 +371,7 @@ func TestHeaderHolesStayClearOfTheWindowButtons(t *testing.T) {
 	}
 }
 
-func TestHeaderGeometryFollowsTheMockup(t *testing.T) {
+func TestHeaderGeometryFollowsTheMockupAndTheFooterHoldsItsButtons(t *testing.T) {
 	g := computeGeometry(image.Rect(0, 0, 593, 430), baseMetrics())
 
 	cases := []struct {
@@ -381,10 +381,10 @@ func TestHeaderGeometryFollowsTheMockup(t *testing.T) {
 	}{
 		{"address bar", g.address, image.Rect(93, 8, 379, 35)},
 		{"views", g.views, image.Rect(391, 8, 448, 35)},
-		{"open", g.open, image.Rect(451, 384, 542, 416)},
-		{"more", g.more, image.Rect(544, 384, 575, 416)},
-		{"grid", g.grid, image.Rect(152, 43, 593, 389)},
-		{"sidebar", g.sidebar, image.Rect(0, 43, 151, 389)},
+		{"open", g.open, image.Rect(451, 390, 542, 422)},
+		{"more", g.more, image.Rect(544, 390, 575, 422)},
+		{"grid", g.grid, image.Rect(152, 43, 593, 382)},
+		{"sidebar", g.sidebar, image.Rect(0, 43, 151, 382)},
 	}
 	for _, c := range cases {
 		if c.got != c.want {

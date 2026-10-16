@@ -76,7 +76,7 @@ func TestTextMetricsAreExactlyTheMockupAtScaleOne(t *testing.T) {
 		t.Fatalf("metrics at k=1: %+v", m)
 	}
 	r := newRig(t, mockSource(), mockW, mockH)
-	if r.page.m.sideW != 151 || r.page.m.openW != 91 || r.page.geo.statusY != 389 {
+	if r.page.m.sideW != 151 || r.page.m.openW != 91 || r.page.geo.statusY != mockStatusY+41-statusFromBot {
 		t.Fatalf("laid out metrics: %+v", r.page.m)
 	}
 }
@@ -253,11 +253,9 @@ func TestButtonsGrowWithTheirLabelsAndKeepTheStatusBarProportions(t *testing.T) 
 		if g.open.Dy() != g.more.Dy() || g.open.Min.Y != g.more.Min.Y || g.more.Min.X-g.open.Max.X != 2 {
 			t.Errorf("buttons %v and %v must stay a pair", g.open, g.more)
 		}
-		if got := g.win.Max.Y - g.open.Max.Y; got != buttonBotFromB {
-			t.Errorf("bottom margin %d", got)
-		}
-		if over := g.statusY - g.open.Min.Y; over != buttonTopFromB-statusFromBot {
-			t.Errorf("buttons stand %d px above the status line, want %d", over, buttonTopFromB-statusFromBot)
+		above, below := g.open.Min.Y-g.statusY, g.win.Max.Y-g.open.Max.Y
+		if above < 6 || below < 6 || above-below > 1 || below-above > 1 {
+			t.Errorf("buttons %v must sit in the middle of the status bar from %d to %d (above %d, below %d)", g.open, g.statusY, g.win.Max.Y, above, below)
 		}
 		img := r.render()
 		ink := inkBoxIn(img, g.open.Inset(2))

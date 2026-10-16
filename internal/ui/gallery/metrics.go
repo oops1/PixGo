@@ -9,7 +9,7 @@ import (
 const (
 	headerHeight  = 42
 	sidebarWidth  = 151
-	statusFromBot = 41
+	statusFromBot = 48
 	controlTop    = 8
 	controlBottom = 35
 	controlRadius = 6
@@ -48,7 +48,7 @@ const (
 	buttonRadius      = 6
 	moreIconX         = 9
 	moreIconTop       = 9
-	statusBaseFromB   = 17
+	statusBaseFromB   = 21
 	statusLimitGap    = 12
 	statusNoticeMin   = 40
 	statusTextX       = 22
@@ -154,9 +154,10 @@ func computeGeometry(b image.Rectangle, m textMetrics) geometry {
 	g.viewGrid = image.Rect(vl+viewHalf, controlTop, vl+viewsWidth, controlBottom)
 	g.thumbs = image.Rect(w-thumbsHitFromR, controlTop, w-thumbsHitFromR+thumbsHitWidth, controlBottom)
 
-	top := h - buttonTopFromB - m.btnExtra
-	g.open = image.Rect(w-openRightFromR-m.openW, top, w-openRightFromR, h-buttonBotFromB)
-	g.more = image.Rect(w-moreLeftFromR, top, w-moreRightFromR, h-buttonBotFromB)
+	btnH := buttonTopFromB - buttonBotFromB + m.btnExtra
+	top := g.statusY + (h-g.statusY-btnH+1)/2
+	g.open = image.Rect(w-openRightFromR-m.openW, top, w-openRightFromR, top+btnH)
+	g.more = image.Rect(w-moreLeftFromR, top, w-moreRightFromR, top+btnH)
 	return g
 }
 
