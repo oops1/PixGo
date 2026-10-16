@@ -530,18 +530,25 @@ func TestAppIcon(t *testing.T) {
 		if c := img.RGBAAt(s/2, s/2); c.A != 255 {
 			t.Errorf("size %d: centre alpha %d", s, c.A)
 		}
-		var blue, white int
+		var blue, white, light int
 		for i := 0; i < len(img.Pix); i += 4 {
 			r, g, b, a := img.Pix[i], img.Pix[i+1], img.Pix[i+2], img.Pix[i+3]
 			if a == 255 && b > 180 && r < 120 {
 				blue++
 			}
+			if a == 255 && r > 170 && g > 170 && b > 170 {
+				light++
+			}
 			if a == 255 && r > 235 && g > 235 && b > 235 {
 				white++
 			}
 		}
-		if blue < s*s/8 || white < s*s/24 {
-			t.Errorf("size %d: blue %d white %d", s, blue, white)
+		minWhite := s * s / 24
+		if s < 32 {
+			minWhite = 0
+		}
+		if blue < s*s/8 || white < minWhite || light < s*s/40 {
+			t.Errorf("size %d: blue %d white %d light %d", s, blue, white, light)
 		}
 		draw.Draw(sheet.img, image.Rect(x, 0, x+s, s), img, image.Point{}, draw.Over)
 		x += s + 8
