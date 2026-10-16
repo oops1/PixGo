@@ -3,6 +3,7 @@ package gallery
 import (
 	"image"
 	"image/color"
+	"math"
 
 	"github.com/oops1/headless-gui/v3/widget"
 
@@ -23,6 +24,10 @@ func (p *Page) Draw(c widget.DrawContext) {
 	if b.Empty() || p.src() == nil {
 		return
 	}
+	if k := widget.ContextScale(c); k != p.k {
+		p.k = k
+		clear(p.labels)
+	}
 	p.ensureLayout()
 	t := p.theme()
 	restore := gfx.Clip(c, b)
@@ -31,6 +36,7 @@ func (p *Page) Draw(c widget.DrawContext) {
 	p.drawNav(c, t)
 	p.drawHeader(c, t)
 	p.drawStatus(c, t)
+	p.drawFocus(c, t)
 	p.drawBars(c, t)
 	p.drawBubble(c, t)
 }
@@ -293,19 +299,21 @@ func (p *Page) drawPhoto(c widget.DrawContext, t *theme.Theme, item model.Item, 
 		drawFolder(c, r)
 		return
 	}
-	if img := p.tileImage(item.Path, side, w, h, radius); img != nil {
+	if img := p.tileImage(c, item.Path, side, r, radius); img != nil {
 		c.DrawImageScaled(img, r.Min.X, r.Min.Y, w, h)
 		return
 	}
 	gfx.FillRound(c, r, float64(radius), t.GalleryTile)
 }
 
-func (p *Page) tileImage(path string, side, w, h, radius int) *image.RGBA {
-	src, ok := p.src().Thumb(path, side, true)
+func (p *Page) tileImage(c widget.DrawContext, path string, side int, r image.Rectangle, radius int) *image.RGBA {
+	k := widget.ContextScale(c)
+	size := widget.PhysicalRect(c, r)
+	src, ok := p.src().Thumb(path, thumbSideFor(side, size, k), true)
 	if !ok || src == nil || src.Bounds().Empty() {
 		return nil
 	}
-	return p.tiles.get(src, w, h, radius)
+	return p.tiles.get(src, size.X, size.Y, int(math.Round(float64(radius)*k)))
 }
 
 func drawFolder(c widget.DrawContext, r image.Rectangle) {
@@ -334,7 +342,7 @@ func (p *Page) prefetch(first, last int) {
 			continue
 		}
 		if it := p.snap.items[i]; !it.Dir {
-			p.src().Thumb(it.Path, p.snap.side, false)
+			p.src().Thumb(it.Path, p.prefetchSide(), false)
 		}
 	}
 }

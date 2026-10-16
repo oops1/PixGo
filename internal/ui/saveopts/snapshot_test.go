@@ -21,7 +21,7 @@ func TestSnapshots(t *testing.T) {
 			if !dark {
 				theme = "light"
 			}
-			r := newRigThemed(t, kind, Values{Quality: 72, Lossless: kind == WebP && lang == "en"}, 760, 420, dark)
+			r := newRigThemed(t, kind, Values{Quality: 72, Lossless: kind.lossless() && lang == "en"}, 760, 420, dark)
 			r.press('x')
 			name := fmt.Sprintf("saveopts_%s_%s_k%02d_%s.png", kindName(kind), lang, int(k*10+.5), theme)
 			testutil.SavePNG(filepath.Join(out, name), r.render())

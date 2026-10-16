@@ -38,8 +38,28 @@ type Background struct {
 	Cell    int
 }
 
+type Window struct {
+	Img   *image.NRGBA
+	Shift int
+	X, Y  int
+}
+
+func (w Window) Rect() image.Rectangle {
+	if w.Img == nil {
+		return image.Rectangle{}
+	}
+	return image.Rect(w.X, w.Y, w.X+w.Img.Rect.Dx(), w.Y+w.Img.Rect.Dy())
+}
+
+type Detail interface {
+	Window(shift int, need image.Rectangle) Window
+	SetOnChange(fn func())
+}
+
 type Source struct {
 	Levels []*image.NRGBA
 	Width  int
 	Height int
+	Shift  int
+	Detail Detail
 }

@@ -132,6 +132,7 @@ func (r *Root) OnMouseButton(e widget.MouseEvent) bool {
 }
 
 func (r *Root) press(e widget.MouseEvent) bool {
+	r.clearKeyboardFocus()
 	z := r.zoneAt(e.X, e.Y)
 	if z.Kind == ZoneNone {
 		return false
@@ -250,17 +251,33 @@ func (r *Root) handleGalleryKey(e widget.KeyEvent) bool {
 
 type modalAware interface{ ModalOpen() bool }
 
+type modalCounter interface{ ModalsOpen() bool }
+
 func (r *Root) modalOpen() bool {
-	m, ok := r.host.(modalAware)
-	return ok && m.ModalOpen()
+	if m, ok := r.host.(modalAware); ok && m.ModalOpen() {
+		return true
+	}
+	m, ok := r.host.(modalCounter)
+	return ok && m.ModalsOpen()
 }
 
 func (r *Root) HandleKey(e widget.KeyEvent) bool {
 	if !e.Pressed || r.modalOpen() {
 		return false
 	}
+	if r.menuOpen() {
+		r.menuSeen = true
+		return e.Code == widget.KeyTab
+	}
+	if r.menuSeen {
+		r.menuSeen = false
+		r.FocusContent()
+	}
 	if r.host.Page() != PageViewer {
 		return r.handleGalleryKey(e)
+	}
+	if r.handleFocusKey(e) {
+		return true
 	}
 	ch, ok := ChordOf(e)
 	if !ok {

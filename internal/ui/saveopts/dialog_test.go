@@ -24,6 +24,9 @@ func TestInitialValuesAreClampedAndKindSpecific(t *testing.T) {
 		{"jpeg has no lossless mode", JPEG, Values{Quality: 70, Lossless: true}, Values{Quality: 70}},
 		{"webp lossy", WebP, Values{Quality: 80}, Values{Quality: 80}},
 		{"webp lossless is kept", WebP, Values{Quality: 80, Lossless: true}, Values{Quality: 80, Lossless: true}},
+		{"jpeg lossless is kept", JPEGLossless, Values{Quality: 90, Lossless: true}, Values{Quality: 90, Lossless: true}},
+		{"jpeg lossless can be off", JPEGLossless, Values{Quality: 55}, Values{Quality: 55}},
+		{"jpeg lossless clamps the quality", JPEGLossless, Values{Quality: 0, Lossless: true}, Values{Quality: 1, Lossless: true}},
 		{"webp lower bound", WebP, Values{Quality: 1}, Values{Quality: 1}},
 		{"webp upper bound", WebP, Values{Quality: 100, Lossless: true}, Values{Quality: 100, Lossless: true}},
 		{"webp out of range", WebP, Values{Quality: 101}, Values{Quality: 100}},
@@ -50,6 +53,7 @@ func TestDialogOffersExactlyTheControlsOfItsFormat(t *testing.T) {
 	}{
 		{JPEG, false, []widget.AccessRole{widget.RoleSlider, widget.RoleButton, widget.RoleButton}},
 		{WebP, true, []widget.AccessRole{widget.RoleCheckBox, widget.RoleSlider, widget.RoleButton, widget.RoleButton}},
+		{JPEGLossless, true, []widget.AccessRole{widget.RoleCheckBox, widget.RoleSlider, widget.RoleButton, widget.RoleButton}},
 	}
 	for _, tc := range tests {
 		t.Run(kindName(tc.kind), func(t *testing.T) {
@@ -226,7 +230,7 @@ func TestKeyboardWorksAtOnceWithoutAClick(t *testing.T) {
 	tests := []struct {
 		kind Kind
 		want Part
-	}{{JPEG, PartSlider}, {WebP, PartCheck}}
+	}{{JPEG, PartSlider}, {WebP, PartCheck}, {JPEGLossless, PartCheck}}
 	for _, tc := range tests {
 		t.Run(kindName(tc.kind), func(t *testing.T) {
 			r := newRig(t, tc.kind, Values{Quality: 50}, 760, 420)
@@ -377,6 +381,8 @@ func TestTabWalksTheControlsInOrderAndWraps(t *testing.T) {
 		{"jpeg backward", JPEG, Values{Quality: 50}, true, []Part{PartCancel, PartSave, PartSlider, PartCancel}},
 		{"webp forward", WebP, Values{Quality: 50}, false, []Part{PartSlider, PartSave, PartCancel, PartCheck, PartSlider}},
 		{"webp backward", WebP, Values{Quality: 50}, true, []Part{PartCancel, PartSave, PartSlider, PartCheck, PartCancel}},
+		{"jpeg lossless forward", JPEGLossless, Values{Quality: 50}, false, []Part{PartSlider, PartSave, PartCancel, PartCheck, PartSlider}},
+		{"jpeg lossless on skips the slider", JPEGLossless, Values{Quality: 50, Lossless: true}, false, []Part{PartSave, PartCancel, PartCheck, PartSave}},
 		{"lossless skips the slider forward", WebP, Values{Quality: 50, Lossless: true}, false, []Part{PartSave, PartCancel, PartCheck, PartSave}},
 		{"lossless skips the slider backward", WebP, Values{Quality: 50, Lossless: true}, true, []Part{PartCancel, PartSave, PartCheck, PartCancel}},
 	}
@@ -672,7 +678,7 @@ func TestHintExplainsTheModeOfTheFormat(t *testing.T) {
 	tests := []struct {
 		kind Kind
 		key  string
-	}{{JPEG, "save.options.jpegHint"}, {WebP, "save.options.webpHint"}}
+	}{{JPEG, "save.options.jpegHint"}, {WebP, "save.options.webpHint"}, {JPEGLossless, "save.options.jpegLosslessHint"}}
 	for _, lang := range langs {
 		for _, tc := range tests {
 			t.Run(lang+"/"+kindName(tc.kind), func(t *testing.T) {
@@ -726,5 +732,45 @@ func TestMovingTheDialogKeepsTheControlsWorking(t *testing.T) {
 
 	if len(r.results) != 1 || r.last().values.Quality != 15 {
 		t.Fatalf("results %+v", r.results)
+	}
+}
+
+func TestJPEGLosslessDialogReportsTheSwitchAndKeepsTheQuality(t *testing.T) {
+	r := newRig(t, JPEGLossless, Values{Quality: 64, Lossless: true}, 760, 420)
+	if r.d.Kind() != JPEGLossless || r.d.Enabled(PartSlider) || !r.d.Enabled(PartCheck) {
+		t.Fatalf("kind %v, slider enabled %v, check enabled %v", r.d.Kind(), r.d.Enabled(PartSlider), r.d.Enabled(PartCheck))
+	}
+
+	r.press(widget.KeyEnter)
+
+	if got := r.last(); !got.ok || got.values != (Values{Quality: 64, Lossless: true}) {
+		t.Fatalf("result %+v", got)
+	}
+}
+
+func TestJPEGLosslessSwitchedOffGivesBackTheSliderAndTheChosenQuality(t *testing.T) {
+	r := newRig(t, JPEGLossless, Values{Quality: 64, Lossless: true}, 760, 420)
+
+	r.press(widget.KeySpace)
+	r.press(widget.KeyTab)
+	r.press(widget.KeyHome)
+	r.press(widget.KeyRight)
+	r.press(widget.KeyEnter)
+
+	if got := r.last(); !got.ok || got.values != (Values{Quality: 2}) {
+		t.Fatalf("result %+v", got)
+	}
+}
+
+func TestJPEGLosslessHintMentionsTheEdgeInBothLanguages(t *testing.T) {
+	for _, lang := range langs {
+		withScale(t, 1, lang)
+		r := newRig(t, JPEGLossless, Values{Quality: 70, Lossless: true}, 760, 420)
+
+		hint := strings.Join(r.d.HintLines(), " ")
+
+		if !strings.Contains(hint, "15") {
+			t.Errorf("%s hint %q does not name the 15 px limit", lang, hint)
+		}
 	}
 }

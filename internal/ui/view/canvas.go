@@ -17,6 +17,10 @@ type Engine interface {
 	InvalidateRect(r image.Rectangle)
 }
 
+type poster interface {
+	Post(fn func())
+}
+
 type WheelMode uint8
 
 const (
@@ -54,6 +58,8 @@ type Canvas struct {
 	exif    codec.Orientation
 	buf     *image.RGBA
 	preview bool
+	detail  render.Detail
+	post    func(fn func())
 
 	scale float64
 	areaW int
@@ -75,8 +81,39 @@ type Canvas struct {
 
 func New(eng Engine) *Canvas {
 	c := &Canvas{eng: eng, scale: 1, exif: codec.OrientNormal, Now: time.Now, CtrlWheelZoom: true}
+	if p, ok := eng.(poster); ok {
+		c.post = p.Post
+	}
 	c.view.Reset(viewer.ZoomFit)
 	return c
+}
+
+func (c *Canvas) SetPost(post func(fn func())) { c.post = post }
+
+func (c *Canvas) bindDetail(d render.Detail) {
+	if d == c.detail {
+		return
+	}
+	if c.detail != nil {
+		c.detail.SetOnChange(nil)
+	}
+	c.detail = d
+	if d != nil {
+		d.SetOnChange(func() { c.detailChanged(d) })
+	}
+}
+
+func (c *Canvas) detailChanged(d render.Detail) {
+	apply := func() {
+		if d == c.detail {
+			c.invalidate()
+		}
+	}
+	if c.post != nil {
+		c.post(apply)
+		return
+	}
+	apply()
 }
 
 func (c *Canvas) View() *viewer.View { return &c.view }
@@ -90,6 +127,7 @@ func (c *Canvas) HasImage() bool { return len(c.src.Levels) > 0 && c.src.Width >
 func (c *Canvas) SetImage(src render.Source, exif codec.Orientation, mode viewer.ZoomMode) {
 	c.cancelSmooth()
 	c.src = src
+	c.bindDetail(src.Detail)
 	if !exif.Valid() {
 		exif = codec.OrientNormal
 	}
@@ -104,12 +142,14 @@ func (c *Canvas) SetImage(src render.Source, exif codec.Orientation, mode viewer
 
 func (c *Canvas) ReplaceFrame(src render.Source) {
 	c.src = src
+	c.bindDetail(src.Detail)
 	c.invalidate()
 }
 
 func (c *Canvas) Clear() {
 	c.cancelSmooth()
 	c.src = render.Source{}
+	c.bindDetail(nil)
 	c.preview = false
 	c.invalidate()
 	c.changed()
@@ -413,6 +453,7 @@ func (c *Canvas) OnMouseWheelPixelsMod(x, y int, dx, dy float64, mod widget.KeyM
 func (c *Canvas) SetImageKeepView(src render.Source, exif codec.Orientation) {
 	c.cancelSmooth()
 	c.src = src
+	c.bindDetail(src.Detail)
 	if !exif.Valid() {
 		exif = codec.OrientNormal
 	}

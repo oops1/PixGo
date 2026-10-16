@@ -18,11 +18,22 @@ type KeyRouter struct {
 	Target KeyHandler
 }
 
+type PointerObserver interface {
+	PointerPressed()
+}
+
 func (k *KeyRouter) SendKeyEvent(e widget.KeyEvent) {
 	if k.Target != nil && k.Target.HandleKey(e) {
 		return
 	}
 	k.Engine.SendKeyEvent(e)
+}
+
+func (k *KeyRouter) SendMouseButton(x, y int, btn widget.MouseButton, pressed bool) {
+	if o, ok := k.Target.(PointerObserver); ok && pressed {
+		o.PointerPressed()
+	}
+	k.Engine.SendMouseButton(x, y, btn, pressed)
 }
 
 func ChordOf(e widget.KeyEvent) (commands.Chord, bool) {

@@ -7,13 +7,13 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/oops1/PixGo/internal/codec"
 	"github.com/oops1/PixGo/internal/fsutil"
+	"github.com/oops1/PixGo/internal/par"
 )
 
 type Size int
@@ -103,7 +103,34 @@ func DefaultOptions() Options {
 }
 
 func defaultWorkers() int {
-	return max(1, runtime.NumCPU()/4)
+	return par.Share(4)
+}
+
+func (s *Service) Workers() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.target
+}
+
+func (s *Service) SetWorkers(n int) {
+	if n <= 0 {
+		n = defaultWorkers()
+	}
+	n = min(n, par.MaxThreads)
+	s.mu.Lock()
+	if s.closed {
+		s.mu.Unlock()
+		return
+	}
+	s.target = n
+	s.maxAbandoned.Store(int32(max(2, 2*n)))
+	for s.running < n {
+		s.running++
+		s.wg.Add(1)
+		go s.worker()
+	}
+	s.mu.Unlock()
+	s.cond.Broadcast()
 }
 
 type jobKey struct {
@@ -145,7 +172,7 @@ type Service struct {
 
 	now          func() time.Time
 	budget       time.Duration
-	maxAbandoned int32
+	maxAbandoned atomic.Int32
 	abandoned    atomic.Int32
 	lastPrune    atomic.Int64
 
@@ -161,6 +188,8 @@ type Service struct {
 	pending map[jobKey]*job
 	queue   []*job
 	seq     uint64
+	target  int
+	running int
 	vis     map[string]int
 	subs    []subscriber
 	subID   uint64
@@ -196,28 +225,24 @@ func New(reg *codec.Registry, post func(func()), opt Options) *Service {
 	}
 	ctx, stop := context.WithCancel(context.Background())
 	s := &Service{
-		reg:          reg,
-		post:         post,
-		limits:       limits,
-		opt:          opt,
-		now:          clock,
-		budget:       budget,
-		maxAbandoned: int32(max(2, 2*opt.Workers)),
-		ctx:          ctx,
-		stop:         stop,
-		cache:        newLRU(opt.MemoryEntries),
-		stats:        map[string]statEntry{},
-		pending:      map[jobKey]*job{},
-		vis:          map[string]int{},
+		reg:     reg,
+		post:    post,
+		limits:  limits,
+		opt:     opt,
+		now:     clock,
+		budget:  budget,
+		ctx:     ctx,
+		stop:    stop,
+		cache:   newLRU(opt.MemoryEntries),
+		stats:   map[string]statEntry{},
+		pending: map[jobKey]*job{},
+		vis:     map[string]int{},
 	}
 	s.cond = sync.NewCond(&s.mu)
 	if opt.DiskDir != "" {
 		s.disk = &diskCache{dir: opt.DiskDir}
 	}
-	s.wg.Add(opt.Workers)
-	for i := 0; i < opt.Workers; i++ {
-		go s.worker()
-	}
+	s.SetWorkers(opt.Workers)
 	if s.disk != nil {
 		s.wg.Add(1)
 		go func() {
@@ -486,7 +511,8 @@ func (s *Service) next() *job {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for {
-		if s.closed {
+		if s.closed || s.running > s.target {
+			s.running--
 			return nil
 		}
 		if j := s.popLocked(); j != nil {

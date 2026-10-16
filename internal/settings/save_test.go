@@ -110,3 +110,62 @@ func TestSaveOptionsDoNotDisturbTheOtherSettings(t *testing.T) {
 		t.Fatalf("unrelated settings changed: %+v", after)
 	}
 }
+
+func TestJPEGLosslessIsOnByDefaultAndWhenTheKeyIsMissing(t *testing.T) {
+	if !Defaults().SaveJPEGLossless {
+		t.Fatal("the default must be lossless")
+	}
+	for _, in := range []string{`{}`, `{"version":2}`, `{"version":2,"saveJpegQuality":55}`} {
+		got, err := Decode([]byte(in))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !got.SaveJPEGLossless || got.Version != Current {
+			t.Errorf("%s: lossless %v version %d", in, got.SaveJPEGLossless, got.Version)
+		}
+	}
+}
+
+func TestJPEGLosslessSwitchedOffStaysOff(t *testing.T) {
+	got, err := Decode([]byte(`{"version":2,"saveJpegLossless":false}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.SaveJPEGLossless {
+		t.Fatal("an explicit false was turned back on")
+	}
+	b, err := got.Encode()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(b), `"saveJpegLossless": false`) || !strings.Contains(string(b), `"version": 2`) {
+		t.Fatalf("encoded: %s", b)
+	}
+}
+
+func TestJPEGLosslessChoiceSurvivesARestart(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	st, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	st.Update(func(s *Settings) { s.SaveJPEGLossless = false })
+	if err := st.Flush(); err != nil {
+		t.Fatal(err)
+	}
+
+	again, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if again.Get().SaveJPEGLossless {
+		t.Fatal("the switch came back on after a restart")
+	}
+}
+
+func TestSchemaVersionStaysTwoWithTheNewSaveField(t *testing.T) {
+	if Current != 2 {
+		t.Fatalf("the schema version is %d", Current)
+	}
+}

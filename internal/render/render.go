@@ -5,6 +5,8 @@ import (
 	"image"
 	"math"
 	"sync"
+
+	"github.com/oops1/PixGo/internal/par"
 )
 
 const (
@@ -104,16 +106,8 @@ func (p *plan) setup(dst *image.RGBA, r image.Rectangle, src Source, m Mapping, 
 	if w <= 0 || h <= 0 || len(src.Levels) == 0 || !(m.Scale > 0) || math.IsInf(m.Scale, 0) {
 		return
 	}
-	if math.Abs(m.Scale-1) < unitScaleTolerance {
-		m.Scale = 1
-		m.OriginX = math.Floor(m.OriginX + 0.5)
-		m.OriginY = math.Floor(m.OriginY + 0.5)
-	}
-	level := 0
-	for level+1 < len(src.Levels) && m.Scale*float64(uint(2)<<uint(level)) <= 1 {
-		level++
-	}
-	lvl := src.Levels[level]
+	m = normalizeMapping(m)
+	lvl, levelShift, ox, oy := pickLevel(src, m, image.Rect(r.Min.X-dst.Rect.Min.X, r.Min.Y-dst.Rect.Min.Y, r.Max.X-dst.Rect.Min.X, r.Max.Y-dst.Rect.Min.Y))
 	if lvl == nil || lvl.Rect.Empty() {
 		return
 	}
@@ -125,7 +119,7 @@ func (p *plan) setup(dst *image.RGBA, r image.Rectangle, src Source, m Mapping, 
 
 	ow, oh := m.Orient.Size(w, h)
 	tr := m.Orient.Transposes()
-	shift := 1 / float64(uint(1)<<uint(level))
+	shift := 1 / float64(uint(1)<<uint(levelShift))
 	checker := bg.Kind == BgChecker
 	cell := float64(bg.Cell)
 	if bg.Cell <= 0 {
@@ -158,11 +152,11 @@ func (p *plan) setup(dst *image.RGBA, r image.Rectangle, src Source, m Mapping, 
 		cell:    cell,
 	}
 	if tr {
-		xs.limit, xs.mul = lh, lvl.Stride
-		ys.limit, ys.mul = lw, 4
+		xs.limit, xs.mul, xs.offset = lh, lvl.Stride, float64(oy)
+		ys.limit, ys.mul, ys.offset = lw, 4, float64(ox)
 	} else {
-		xs.limit, xs.mul = lw, 4
-		ys.limit, ys.mul = lh, lvl.Stride
+		xs.limit, xs.mul, xs.offset = lw, 4, float64(ox)
+		ys.limit, ys.mul, ys.offset = lh, lvl.Stride, float64(oy)
 	}
 	p.xa.build(&xs)
 	p.ya.build(&ys)
@@ -177,26 +171,52 @@ func (p *plan) setup(dst *image.RGBA, r image.Rectangle, src Source, m Mapping, 
 	}
 }
 
+func pickLevel(src Source, m Mapping, px image.Rectangle) (lvl *image.NRGBA, levelShift, ox, oy int) {
+	want := LevelShift(m.Scale)
+	base := max(src.Shift, 0)
+	if src.Detail != nil {
+		for n := want; n < base; n++ {
+			if win, ok := fetchWindow(src, m, px, n); ok {
+				return win.Img, win.Shift, win.X, win.Y
+			}
+		}
+	}
+	idx := clampInt(want-base, 0, len(src.Levels)-1)
+	return src.Levels[idx], base + idx, 0, 0
+}
+
+func fetchWindow(src Source, m Mapping, px image.Rectangle, shift int) (Window, bool) {
+	need := levelNeed(visibleRect(m, src.Width, src.Height, px), shift, src.Width, src.Height)
+	if need.Empty() {
+		return Window{}, false
+	}
+	win := src.Detail.Window(shift, need)
+	if win.Img == nil || win.Shift != shift || win.Img.Rect.Empty() || !need.In(win.Rect()) {
+		return Window{}, false
+	}
+	return win, true
+}
+
 func makePalette(r, g, b uint8) palette {
 	return palette{px: pack(r, g, b), r: uint32(r), g: uint32(g), b: uint32(b)}
 }
 
 func (p *plan) run() {
-	workers := workerCount()
+	workers := par.Count()
 	if p.nx*p.ny < smallAreaPx {
 		workers = 1
 	}
 	if p.transposed {
 		tx := (p.nx + tileSide - 1) / tileSide
 		ty := (p.ny + tileSide - 1) / tileSide
-		parallel(tx*ty, workers, func(t int) {
+		par.Parallel(tx*ty, workers, func(t int) {
 			p.renderTile((t%tx)*tileSide, (t/tx)*tileSide)
 		})
 		return
 	}
 	chunk := clampInt(p.ny/(workers*3), minRowsTask, maxRowsTask)
 	tasks := (p.ny + chunk - 1) / chunk
-	parallel(tasks, workers, func(t int) {
+	par.Parallel(tasks, workers, func(t int) {
 		for i := t * chunk; i < min(p.ny, (t+1)*chunk); i++ {
 			o := p.dst.PixOffset(p.rect.Min.X, p.rect.Min.Y+i)
 			p.span(p.dst.Pix[o:o+p.nx*4], i, 0, p.nx)

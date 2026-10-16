@@ -67,7 +67,7 @@ func (a *App) refreshInfo() {
 	}
 	in.Created, in.HasCreated = fsutil.CreationTime(path)
 	a.info.SetModel(infopanel.BuildModel(in))
-	if d := a.Ctl.Decoded(); d != nil && a.Ctl.Status() == StatusReady {
+	if d := a.Ctl.Shown(); d != nil && a.Ctl.Status() == StatusReady {
 		a.info.SetThumbnail(d.Source(), a.Ctl.ExifOrientation())
 	}
 	if a.Ctl.Status() != StatusReady {

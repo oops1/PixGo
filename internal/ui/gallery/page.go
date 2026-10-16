@@ -81,6 +81,11 @@ type Page struct {
 	taken   bool
 	reveal  int
 	navSeek bool
+
+	focus     stop
+	keyNav    bool
+	navCursor int
+	k         float64
 }
 
 type tap struct {
@@ -112,6 +117,7 @@ func New(eng *engine.Engine, d Deps) *Page {
 	p := &Page{eng: eng, deps: d, tiles: newTileCache(), labels: map[labelKey]labelVal{}, widths: map[widthKey]int{}, m: baseMetrics(), hover: noHit, pressed: noHit, dirty: true}
 	p.lastFirst, p.lastLast = -1, -1
 	p.reveal = -1
+	p.navCursor = -1
 	p.input = newAddressField(p)
 	p.kids = []widget.Widget{p.input}
 	return p

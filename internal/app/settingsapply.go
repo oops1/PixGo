@@ -44,6 +44,9 @@ func (a *App) settingsChanged(old, current settings.Settings) {
 	}
 	formats := a.applyFormats(current)
 	a.ApplySettings()
+	if a.gal != nil && a.gal.svc != nil && old.DecodeThreads != current.DecodeThreads {
+		a.gal.svc.SetWorkers(0)
+	}
 	if formats {
 		a.formatsChanged()
 	}

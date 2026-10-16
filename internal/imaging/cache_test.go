@@ -231,3 +231,77 @@ func TestCacheConcurrentUse(t *testing.T) {
 		t.Fatal("negative usage")
 	}
 }
+
+func TestCacheOnEvictSeesEveryDroppedEntryButNotTheSurvivor(t *testing.T) {
+	c := NewCache(1000)
+	var dropped []string
+	c.SetOnEvict(func(d *Decoded) { dropped = append(dropped, d.Key.Path) })
+	a := decodedOf("a", 400, cacheEpoch)
+	b := decodedOf("b", 400, cacheEpoch)
+	c.Put(a)
+	c.Put(b)
+	c.Put(b)
+	c.Put(decodedOf("c", 400, cacheEpoch))
+	if len(dropped) != 1 || dropped[0] != "a" {
+		t.Fatalf("budget eviction: %v", dropped)
+	}
+	if !a.Released() || b.Released() {
+		t.Fatal("only the dropped entry may be released")
+	}
+	c.Remove("b")
+	c.Put(decodedOf("c", 800, cacheEpoch.Add(1)))
+	c.SetBudget(1)
+	c.SetBudget(1 << 20)
+	c.Put(decodedOf("d", 100, cacheEpoch))
+	c.Clear()
+	if len(dropped) != 5 {
+		t.Fatalf("every removal path must report: %v", dropped)
+	}
+	c.SetOnEvict(nil)
+	c.Put(decodedOf("z", 400, cacheEpoch))
+	c.Clear()
+}
+
+func TestCacheClearReleasesPinnedEntries(t *testing.T) {
+	c := NewCache(1 << 20)
+	d := decodedOf("a", 400, cacheEpoch)
+	c.Put(d)
+	c.Pin(d.Key)
+	c.Clear()
+	if !d.Released() || c.Len() != 0 || c.Used() != 0 {
+		t.Fatalf("released %v len %d used %d", d.Released(), c.Len(), c.Used())
+	}
+	c.Unpin(d.Key)
+}
+
+func TestDecodedSourceOfAReducedLevel(t *testing.T) {
+	lvl := image.NewNRGBA(image.Rect(0, 0, 100, 50))
+	withInfo := &Decoded{Levels: []*image.NRGBA{lvl}, Shift: 2, Info: codec.Info{Width: 399, Height: 197}}
+	src := withInfo.Source()
+	if src.Width != 399 || src.Height != 197 || src.Shift != 2 {
+		t.Fatalf("source %+v", src)
+	}
+	bare := &Decoded{Levels: []*image.NRGBA{lvl}, Shift: 2}
+	src = bare.Source()
+	if src.Width != 400 || src.Height != 200 {
+		t.Fatalf("source without info %dx%d", src.Width, src.Height)
+	}
+	plain := &Decoded{Levels: []*image.NRGBA{lvl}}
+	if src = plain.Source(); src.Width != 100 || src.Height != 50 || src.Shift != 0 || src.Detail != nil {
+		t.Fatalf("plain source %+v", src)
+	}
+	if got := plain.FrameSource(3); got.Width != 100 {
+		t.Fatalf("frame beyond the animation falls back to the picture: %+v", got)
+	}
+	frames := &Decoded{Levels: []*image.NRGBA{lvl}, Frames: []codec.Frame{{Pix: lvl}, {Pix: image.NewNRGBA(image.Rect(0, 0, 8, 6))}}}
+	if got := frames.FrameSource(1); got.Width != 8 || got.Height != 6 || len(got.Levels) != 1 {
+		t.Fatalf("frame source %+v", got)
+	}
+	var none *Decoded
+	if got := none.Source(); len(got.Levels) != 0 {
+		t.Fatal("nil decoded has no source")
+	}
+	if none.Bytes() != 0 {
+		t.Fatal("nil decoded has no bytes")
+	}
+}

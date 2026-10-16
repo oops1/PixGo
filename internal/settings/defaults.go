@@ -79,3 +79,5 @@ func DefaultAnimationFPS() int {
 	}
 	return 30
 }
+
+func TotalRAM() uint64 { return totalRAM() }

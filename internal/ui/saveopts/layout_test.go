@@ -19,7 +19,7 @@ func TestLayoutKeepsEveryControlInsideTheDialogAtEveryScale(t *testing.T) {
 		body := image.Rectangle{Max: l.size}
 
 		parts := map[string]image.Rectangle{"caption": l.caption, "slider": l.slider, "hint": l.hint, "save": l.save, "cancel": l.cancel}
-		if kind == WebP {
+		if kind.lossless() {
 			parts["check"] = l.check
 		}
 		for name, r := range parts {
@@ -27,7 +27,7 @@ func TestLayoutKeepsEveryControlInsideTheDialogAtEveryScale(t *testing.T) {
 				t.Errorf("%s %v leaves the dialog %v", name, r, body)
 			}
 		}
-		if kind == JPEG && !l.check.Empty() {
+		if !kind.lossless() && !l.check.Empty() {
 			t.Errorf("a JPEG dialog has no checkbox, got %v", l.check)
 		}
 		order := []string{"check", "caption", "slider", "hint", "save"}
@@ -63,7 +63,7 @@ func TestLayoutTextAlwaysFitsItsBox(t *testing.T) {
 		if need := label + l.m.s(8) + l.value.Dx(); need > l.caption.Dx() {
 			t.Errorf("caption needs %d, the row offers %d", need, l.caption.Dx())
 		}
-		if kind == WebP {
+		if kind.lossless() {
 			if need := l.m.boxSize + l.m.boxGap + bodyFont.Measure(nil, i18n.T("save.lossless")); need > l.check.Dx() {
 				t.Errorf("checkbox row needs %d, has %d", need, l.check.Dx())
 			}
@@ -223,7 +223,7 @@ func TestEveryControlIsClickableAtEveryScale(t *testing.T) {
 		r := newRig(t, kind, Values{Quality: 50}, 900, 600)
 
 		for _, p := range []Part{PartCheck, PartSlider, PartSave, PartCancel} {
-			if p == PartCheck && kind == JPEG {
+			if p == PartCheck && !kind.lossless() {
 				continue
 			}
 			x, y := centre(r.d.Rect(p))
@@ -334,7 +334,7 @@ func TestShortCanvasSqueezesTheGapsSoTheButtonsStayVisible(t *testing.T) {
 			}
 			body := image.Rectangle{Max: l.size}
 			parts := map[string]image.Rectangle{"caption": l.caption, "slider": l.slider, "hint": l.hint, "save": l.save, "cancel": l.cancel}
-			if kind == WebP {
+			if kind.lossless() {
 				parts["check"] = l.check
 			}
 			order := []string{"check", "caption", "slider", "hint", "save"}

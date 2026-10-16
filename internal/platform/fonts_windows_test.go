@@ -60,3 +60,33 @@ func TestWindowsBodySizeIsTheSystemMessageFont(t *testing.T) {
 		t.Fatalf("a normal Windows setup gives 9 to 12 pt, got %v", pt)
 	}
 }
+
+func TestMessageFontPointsDoNotDependOnTheDPIItIsAskedFor(t *testing.T) {
+	var first float64
+	for _, dpi := range []uint32{96, 120, 144, 168, 192, 240} {
+		pt, ok := messageFontPtAt(dpi)
+		if !ok {
+			t.Skip("SystemParametersInfoForDpi is not available")
+		}
+		if first == 0 {
+			first = pt
+		}
+		if pt < first-0.3 || pt > first+0.3 {
+			t.Errorf("%v dpi gives %v pt, 96 dpi gives %v pt", dpi, pt, first)
+		}
+	}
+}
+
+func TestBodySizeIsReadAtTheReferenceDPINotAtTheSystemOne(t *testing.T) {
+	t.Setenv(EnvFontPt, "")
+	want, ok := messageFontPtAt(referenceDPI)
+	if !ok {
+		t.Skip("SystemParametersInfoForDpi is not available")
+	}
+	if v, has := readDWORD(accessibilityKey, "TextScaleFactor"); has && v >= 100 && v <= 225 {
+		want *= float64(v) / 100
+	}
+	if got := NewSystemFonts().BodyPt(); got != clampBodyPt(want) {
+		t.Errorf("body size %v, want %v", got, clampBodyPt(want))
+	}
+}

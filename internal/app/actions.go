@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"image"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/oops1/headless-gui/v3/widget"
 	"github.com/oops1/headless-gui/v3/window"
@@ -15,6 +17,7 @@ import (
 	"github.com/oops1/PixGo/internal/fsutil"
 	"github.com/oops1/PixGo/internal/i18n"
 	"github.com/oops1/PixGo/internal/imaging"
+	"github.com/oops1/PixGo/internal/jpegxform"
 	"github.com/oops1/PixGo/internal/platform"
 	"github.com/oops1/PixGo/internal/settings"
 	"github.com/oops1/PixGo/internal/ui/saveopts"
@@ -105,9 +108,17 @@ func (a *App) orientedFrame() *image.NRGBA {
 	return imaging.Orient(d.Levels[0], a.Canvas.Orientation())
 }
 
+func (a *App) hasPartialPicture() bool {
+	d := a.Ctl.Shown()
+	return d != nil && len(d.Levels) > 0 && !d.FullResolution()
+}
+
 func (a *App) copyImage() {
 	img := a.orientedFrame()
 	if img == nil {
+		if a.hasPartialPicture() {
+			a.errorBox(i18n.T("error.partialCopy"))
+		}
 		return
 	}
 	a.Ctl.Async("copyImage", func(ctx contextT) (any, error) {
@@ -169,9 +180,114 @@ func typeForPath(types []saveType, path string) (saveType, bool) {
 	return saveType{}, false
 }
 
+type losslessSource struct {
+	path    string
+	size    int64
+	modTime time.Time
+	op      jpegxform.Op
+	perfect bool
+}
+
+type saveJob struct {
+	img      *image.NRGBA
+	lossless *losslessSource
+}
+
+type saveOutcome struct {
+	trimmed bool
+}
+
+func (o saveOutcome) toastKey() string {
+	if o.trimmed {
+		return "toast.savedTrimmed"
+	}
+	return "toast.saved"
+}
+
+var (
+	errSourceChanged  = errors.New("the source file changed after it was shown")
+	errPartialPicture = errors.New("only part of the picture is loaded")
+)
+
+func (a *App) losslessSource() *losslessSource {
+	if a.Ctl.Info().Format != codec.JPEG {
+		return nil
+	}
+	path := a.Ctl.Path()
+	if path == "" {
+		return nil
+	}
+	f, err := os.Open(path)
+	if err != nil {
+		return nil
+	}
+	defer f.Close()
+	st, err := f.Stat()
+	if err != nil || !st.Mode().IsRegular() {
+		return nil
+	}
+	op := jpegxform.FromOrientation(a.Canvas.Orientation())
+	perfect, err := jpegxform.Perfect(f, st.Size(), op)
+	if err != nil {
+		return nil
+	}
+	return &losslessSource{path: path, size: st.Size(), modTime: st.ModTime(), op: op, perfect: perfect}
+}
+
+func (s *losslessSource) transform(ctx contextT) ([]byte, error) {
+	f, err := os.Open(s.path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	st, err := f.Stat()
+	if err != nil {
+		return nil, err
+	}
+	if st.Size() != s.size || !st.ModTime().Equal(s.modTime) {
+		return nil, errSourceChanged
+	}
+	var buf bytes.Buffer
+	if err := jpegxform.TransformContext(ctx, &buf, f, s.size, s.op, jpegxform.Options{Trim: !s.perfect}); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func losslessUnavailable(err error) bool {
+	for _, target := range []error{errSourceChanged, codec.ErrUnsupported, codec.ErrCorrupt, codec.ErrTooLarge, jpegxform.ErrImperfect, fs.ErrNotExist} {
+		if errors.Is(err, target) {
+			return true
+		}
+	}
+	return false
+}
+
+func (a *App) captureSaveJob() *saveJob {
+	shown := a.Ctl.Shown()
+	if shown == nil || len(shown.Levels) == 0 {
+		return nil
+	}
+	return &saveJob{img: a.orientedFrame(), lossless: a.losslessSource()}
+}
+
+func (j *saveJob) partialMessage() string {
+	if j.lossless == nil {
+		return i18n.T("error.partialSaveNone")
+	}
+	return i18n.T("error.partialSave")
+}
+
 func (a *App) saveAs() {
-	img := a.orientedFrame()
-	if img == nil || a.saveDlg != nil {
+	if a.saveDlg != nil {
+		return
+	}
+	job := a.captureSaveJob()
+	if job == nil {
+		return
+	}
+	if job.img == nil && job.lossless == nil {
+		a.errorBox(job.partialMessage())
 		return
 	}
 	types := a.saveTypes()
@@ -201,19 +317,19 @@ func (a *App) saveAs() {
 			return p, nil
 		}, func(v any, err error) {
 			if p, _ := v.(string); err == nil && p != "" {
-				a.writeImage(p, types, img)
+				a.writeImage(p, types, job)
 				return
 			}
 			if errors.Is(err, platform.ErrUnsupported) {
-				a.saveWithEngineDialog(dir, name, types, img)
+				a.saveWithEngineDialog(dir, name, types, job)
 			}
 		})
 		return
 	}
-	a.saveWithEngineDialog(dir, name, types, img)
+	a.saveWithEngineDialog(dir, name, types, job)
 }
 
-func (a *App) saveWithEngineDialog(dir, name string, types []saveType, img *image.NRGBA) {
+func (a *App) saveWithEngineDialog(dir, name string, types []saveType, job *saveJob) {
 	var filters []widget.FileFilter
 	for _, t := range types {
 		var exts []string
@@ -229,7 +345,7 @@ func (a *App) saveWithEngineDialog(dir, name string, types []saveType, img *imag
 		Filters:     filters,
 	}, func(path string, ok bool) {
 		if ok {
-			a.writeImage(path, types, img)
+			a.writeImage(path, types, job)
 		}
 	})
 }
@@ -246,19 +362,25 @@ func saveKindOf(id codec.ID) (saveopts.Kind, bool) {
 
 func (a *App) lastSaveChoice(kind saveopts.Kind) saveopts.Values {
 	st := a.Settings.Get()
-	if kind == saveopts.WebP {
+	switch kind {
+	case saveopts.WebP:
 		return saveopts.Values{Quality: st.SaveWebPQuality, Lossless: st.SaveWebPLossless}
+	case saveopts.JPEGLossless:
+		return saveopts.Values{Quality: st.SaveJPEGQuality, Lossless: st.SaveJPEGLossless}
 	}
 	return saveopts.Values{Quality: st.SaveJPEGQuality}
 }
 
 func (a *App) rememberSaveChoice(kind saveopts.Kind, v saveopts.Values) {
 	a.Settings.Update(func(s *settings.Settings) {
-		if kind == saveopts.WebP {
+		switch kind {
+		case saveopts.WebP:
 			s.SaveWebPQuality, s.SaveWebPLossless = v.Quality, v.Lossless
-			return
+		case saveopts.JPEGLossless:
+			s.SaveJPEGQuality, s.SaveJPEGLossless = v.Quality, v.Lossless
+		default:
+			s.SaveJPEGQuality = v.Quality
 		}
-		s.SaveJPEGQuality = v.Quality
 	})
 }
 
@@ -272,26 +394,37 @@ func (a *App) focusPage() {
 	a.Root.FocusContent()
 }
 
-func (a *App) writeImage(path string, types []saveType, img *image.NRGBA) {
+func (a *App) writeImage(path string, types []saveType, job *saveJob) {
 	t, ok := typeForPath(types, path)
 	if !ok {
 		t = types[0]
 		path += t.ext
 	}
 	enc, _ := a.Ctl.env.Registry.Encoder(t.id)
-	if img == nil || enc == nil {
+	if job == nil || enc == nil {
+		return
+	}
+	if job.img == nil && (t.id != codec.JPEG || job.lossless == nil) {
+		a.errorBox(job.partialMessage())
 		return
 	}
 	kind, asks := saveKindOf(t.id)
 	if !asks {
-		a.encodeTo(path, enc, img, codec.EncodeOptions{})
+		a.encodeTo(path, enc, job.img, codec.EncodeOptions{})
 		return
+	}
+	if kind == saveopts.JPEG && job.lossless != nil {
+		kind = saveopts.JPEGLossless
 	}
 	if a.saveDlg != nil {
 		return
 	}
 	a.modalOpen.Store(true)
-	a.saveDlg = saveopts.Show(a.Eng, kind, a.lastSaveChoice(kind), func(v saveopts.Values, ok bool) {
+	initial := a.lastSaveChoice(kind)
+	if job.img == nil {
+		initial.Lossless = true
+	}
+	a.saveDlg = saveopts.Show(a.Eng, kind, initial, func(v saveopts.Values, ok bool) {
 		a.modalOpen.Store(false)
 		a.Eng.Post(func() {
 			a.saveDlg = nil
@@ -299,10 +432,41 @@ func (a *App) writeImage(path string, types []saveType, img *image.NRGBA) {
 			if !ok {
 				return
 			}
+			viaFile := kind == saveopts.JPEGLossless && v.Lossless
+			if job.img == nil && !viaFile {
+				a.errorBox(job.partialMessage())
+				return
+			}
 			a.rememberSaveChoice(kind, v)
-			a.encodeTo(path, enc, img, codec.EncodeOptions{Quality: v.Quality, Lossless: v.Lossless})
+			opts := codec.EncodeOptions{Quality: v.Quality, Lossless: v.Lossless && kind == saveopts.WebP}
+			if viaFile {
+				a.writeLossless(path, enc, job, opts)
+				return
+			}
+			a.encodeTo(path, enc, job.img, opts)
 		})
 	})
+}
+
+func (a *App) writeLossless(path string, enc codec.Encoder, job *saveJob, fallback codec.EncodeOptions) {
+	a.Ctl.Async("save", func(ctx contextT) (any, error) {
+		data, err := job.lossless.transform(ctx)
+		outcome := saveOutcome{trimmed: !job.lossless.perfect}
+		if err != nil {
+			if !losslessUnavailable(err) {
+				return nil, err
+			}
+			if job.img == nil {
+				return nil, errPartialPicture
+			}
+			var buf bytes.Buffer
+			if err := enc.Encode(&buf, job.img, fallback); err != nil {
+				return nil, err
+			}
+			data, outcome = buf.Bytes(), saveOutcome{}
+		}
+		return outcome, fsutil.WriteAtomic(path, data, 0o644)
+	}, a.savedHandler)
 }
 
 func (a *App) encodeTo(path string, enc codec.Encoder, img *image.NRGBA, opts codec.EncodeOptions) {
@@ -311,13 +475,20 @@ func (a *App) encodeTo(path string, enc codec.Encoder, img *image.NRGBA, opts co
 		if err := enc.Encode(&buf, img, opts); err != nil {
 			return nil, err
 		}
-		return nil, fsutil.WriteAtomic(path, buf.Bytes(), 0o644)
-	}, func(_ any, err error) {
-		if err != nil {
-			a.errorBox(i18n.T("error.save"))
-			return
-		}
-		a.Root.Toast(i18n.T("toast.saved"))
-		a.Ctl.RescanAsync()
-	})
+		return saveOutcome{}, fsutil.WriteAtomic(path, buf.Bytes(), 0o644)
+	}, a.savedHandler)
+}
+
+func (a *App) savedHandler(v any, err error) {
+	if errors.Is(err, errPartialPicture) {
+		a.errorBox(i18n.T("error.partialSave"))
+		return
+	}
+	if err != nil {
+		a.errorBox(i18n.T("error.save"))
+		return
+	}
+	outcome, _ := v.(saveOutcome)
+	a.Root.Toast(i18n.T(outcome.toastKey()))
+	a.Ctl.RescanAsync()
 }

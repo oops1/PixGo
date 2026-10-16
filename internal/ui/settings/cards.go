@@ -16,16 +16,34 @@ type picKey struct {
 	w, h   int
 	cell   int
 	radius float64
+	scale  float64
 	c1, c2 color.RGBA
 }
 
 func (p *Page) picture(pic picture, t *theme.Theme) *image.RGBA {
-	k := picKey{pic: pic, w: dim.bgPicW, h: dim.bgPicH, radius: dim.bgPicRadius}
+	w, h := dim.bgPicW, dim.bgPicH
 	if isTheme(pic) {
-		k.w, k.h, k.radius = dim.themePicW, dim.themePicH, dim.themePicRadius
+		w, h = dim.themePicW, dim.themePicH
+	}
+	return p.pictureSized(pic, t, 1, w, h)
+}
+
+func (p *Page) pictureFor(c widget.DrawContext, pic picture, at image.Rectangle, t *theme.Theme) *image.RGBA {
+	size := widget.PhysicalRect(c, at)
+	return p.pictureSized(pic, t, widget.ContextScale(c), size.X, size.Y)
+}
+
+func (p *Page) pictureSized(pic picture, t *theme.Theme, scale float64, w, h int) *image.RGBA {
+	k := picKey{pic: pic, w: w, h: h, radius: dim.bgPicRadius * scale, scale: scale}
+	if isTheme(pic) {
+		k.radius = dim.themePicRadius * scale
 	}
 	if pic == picBgChecker {
-		k.c1, k.c2, k.cell = t.Checker1, t.Checker2, dim.checkerCell
+		k.c1, k.c2, k.cell = t.Checker1, t.Checker2, max(int(math.Round(float64(dim.checkerCell)*scale)), 1)
+	}
+	if scale != p.picScale {
+		clear(p.pics)
+		p.picScale = scale
 	}
 	if img, ok := p.pics[k]; ok {
 		return img
@@ -61,7 +79,7 @@ func (p *Page) drawThemeCard(c widget.DrawContext, t *theme.Theme, it *item, r i
 	strokeRound(c, ring.grow(1), dim.themeRingRadius+1, 1, haloRing)
 	strokeRound(c, ring, dim.themeRingRadius, width, col)
 	picR := image.Rect(left+dim.themePicDX, r.Min.Y+dim.themePicDY, left+dim.themePicDX+dim.themePicW, r.Min.Y+dim.themePicDY+dim.themePicH)
-	c.DrawImage(p.picture(it.pic, t), picR.Min.X, picR.Min.Y)
+	c.DrawImageScaled(p.pictureFor(c, it.pic, picR, t), picR.Min.X, picR.Min.Y, picR.Dx(), picR.Dy())
 	strokeRound(c, fr(picR), dim.themePicRadius, 1, gfx.Alpha(t.Text, .22))
 	w := captionFont.Measure(c, it.text)
 	drawText(c, captionFont, it.text, r.Min.X+(r.Dx()-w)/2, r.Min.Y+dim.themeLabelBase, t.Text)
@@ -96,7 +114,7 @@ func (p *Page) drawBackgroundCard(c widget.DrawContext, t *theme.Theme, it *item
 		strokeRound(c, vec, dim.bgPicRadius, 1, gfx.Alpha(t.Text, .2))
 	default:
 		strokeRound(c, fr(pic).grow(1), dim.bgPicRadius+1, 1, shadowRing)
-		c.DrawImage(p.picture(it.pic, t), pic.Min.X, pic.Min.Y)
+		c.DrawImageScaled(p.pictureFor(c, it.pic, pic, t), pic.Min.X, pic.Min.Y, pic.Dx(), pic.Dy())
 	}
 	w := smallCapFont.Measure(c, it.text)
 	drawText(c, smallCapFont, it.text, r.Min.X+(r.Dx()-w)/2, r.Min.Y+dim.bgLabelBase, t.Text)
@@ -208,7 +226,7 @@ func checker(w, h, cell int, c1, c2 color.RGBA) *image.RGBA {
 	return img
 }
 
-func systemBackground(w, h int) *image.RGBA {
+func systemBackground(w, h int, scale float64) *image.RGBA {
 	img := image.NewRGBA(image.Rect(0, 0, w, h))
 	mx, my := w/2, h/2
 	cx, cy := float64(mx), float64(my)
@@ -227,16 +245,16 @@ func systemBackground(w, h int) *image.RGBA {
 				col = mixRGB(rgb8(49, 60, 70), rgb8(90, 99, 109), fx/cx)
 			case y < my:
 				col = rgb8(182, 187, 195)
-				if d < cy-2 {
+				if d < cy-2*scale {
 					col = rgb8(126, 139, 155)
 				}
 			default:
 				col = mixRGB(rgb8(205, 209, 215), rgb8(224, 226, 231), (fy-cy)/cy)
-				if d < cy-2 {
+				if d < cy-2*scale {
 					col = rgb8(152, 163, 176)
 				}
 			}
-			if d < 2.5 {
+			if d < 2.5*scale {
 				col = rgb8(30, 36, 43)
 			}
 			img.SetRGBA(x, y, col)
@@ -256,7 +274,7 @@ func renderPicture(k picKey) *image.RGBA {
 	case picThemeDark:
 		img = wallpaper(w, h, w/2, darkLeft, darkRight)
 	case picBgSystem:
-		img = systemBackground(w, h)
+		img = systemBackground(w, h, math.Max(k.scale, 1))
 	case picBgWhite:
 		img = solid(w, h, rgb8(248, 249, 249))
 	case picBgBlack:

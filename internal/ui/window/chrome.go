@@ -68,6 +68,9 @@ func (r *Root) enabled(k ZoneKind) bool {
 	if r.ForceEnabled {
 		return true
 	}
+	if k == ZoneMore || k == ZoneToolMore {
+		return r.OnMore != nil
+	}
 	cmd := r.command(k)
 	return cmd != nil && cmd.IsEnabled()
 }
@@ -192,20 +195,18 @@ func (r *Root) drawCaption(c widget.DrawContext, l Layout, z Zone) {
 
 func gfxBlend(a, b color.RGBA, f float64) color.RGBA { return gfx.Blend(a, b, f) }
 
-func (r *Root) drawState(c widget.DrawContext, l Layout) {
-	t := r.Theme
+func (r *Root) stateText() (head, body string, ok bool) {
 	st := r.host.State()
 	if st == StateReady {
-		return
+		return "", "", false
 	}
 	if st == StateLoading {
 		if cv := r.host.Content(); cv != nil {
-			if h, ok := cv.(interface{ HasImage() bool }); ok && h.HasImage() {
-				return
+			if h, has := cv.(interface{ HasImage() bool }); has && h.HasImage() {
+				return "", "", false
 			}
 		}
 	}
-	var head, body string
 	switch st {
 	case StateEmpty:
 		head, body = i18n.T("empty.title"), i18n.T("empty.hint")
@@ -213,6 +214,15 @@ func (r *Root) drawState(c widget.DrawContext, l Layout) {
 		head = i18n.T("viewer.loading")
 	case StateFailed:
 		head, body = i18n.T("error.open"), r.host.FailureText()
+	}
+	return head, body, true
+}
+
+func (r *Root) drawState(c widget.DrawContext, l Layout) {
+	t := r.Theme
+	head, body, ok := r.stateText()
+	if !ok {
+		return
 	}
 	cx := (l.View.Min.X + l.View.Max.X) / 2
 	cy := (l.View.Min.Y + l.View.Max.Y) / 2

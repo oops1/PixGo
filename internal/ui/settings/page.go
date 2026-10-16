@@ -64,9 +64,10 @@ type Page struct {
 	bar       scrollBar
 	wheelFrac float64
 
-	pics    map[picKey]*image.RGBA
-	noted   bool
-	stopNot func()
+	pics     map[picKey]*image.RGBA
+	picScale float64
+	noted    bool
+	stopNot  func()
 }
 
 func New(eng *engine.Engine, d Deps) *Page {

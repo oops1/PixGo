@@ -15,6 +15,7 @@
         "minimum-os": "win10",
         "execution-level": "as invoker",
         "ui-access": false,
+        "dpi-awareness": "per monitor v2",
         "long-path-aware": true
       }
     }

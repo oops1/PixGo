@@ -69,5 +69,9 @@ func (a *App) escape() {
 	}
 	if a.fullscreen {
 		a.SetFullscreen(false)
+		return
+	}
+	if a.infoOpen && !active {
+		a.toggleInfo()
 	}
 }

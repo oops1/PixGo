@@ -18,12 +18,15 @@ import (
 var (
 	scales = []float64{1, 1.2, 1.33, 1.6}
 	langs  = []string{"ru", "en"}
-	kinds  = []Kind{JPEG, WebP}
+	kinds  = []Kind{JPEG, WebP, JPEGLossless}
 )
 
 func kindName(k Kind) string {
-	if k == WebP {
+	switch k {
+	case WebP:
 		return "webp"
+	case JPEGLossless:
+		return "jpeg-lossless"
 	}
 	return "jpeg"
 }

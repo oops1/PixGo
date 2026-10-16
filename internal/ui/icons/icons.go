@@ -82,6 +82,49 @@ func maskOf(name string, i int, d def) []uint8 {
 	return m
 }
 
+type hiKey struct {
+	name   string
+	layer  int
+	k      float64
+	pw, ph int
+}
+
+var hiCache = struct {
+	sync.Mutex
+	m map[hiKey][]uint8
+}{m: map[hiKey][]uint8{}}
+
+func maskOfHi(name string, i int, d def, k float64, pw, ph int) []uint8 {
+	key := hiKey{name, i, k, pw, ph}
+	hiCache.Lock()
+	defer hiCache.Unlock()
+	m, ok := hiCache.m[key]
+	if !ok {
+		m = gfx.MaskHi(d.layers[i].shape(), pw, ph, k)
+		hiCache.m[key] = m
+	}
+	return m
+}
+
+func drawHi(c widget.DrawContext, name string, d def, x, y int, a, b color.RGBA, k float64) {
+	pw, ph := gfx.HiPhysSize(x, y, d.size.W, d.size.H, k)
+	for i, l := range d.layers {
+		m := maskOfHi(name, i, d, k, pw, ph)
+		switch l.tone {
+		case primary:
+			gfx.PaintMaskHi(c, m, x, y, d.size.W, d.size.H, k, func(int, int) color.RGBA { return a })
+		case secondary:
+			gfx.PaintMaskHi(c, m, x, y, d.size.W, d.size.H, k, func(int, int) color.RGBA { return b })
+		default:
+			top, bottom := l.top, l.bottom
+			gfx.PaintMaskHi(c, m, x, y, d.size.W, d.size.H, k, func(row, rows int) color.RGBA {
+				f := (float64(row) + .5) / float64(rows)
+				return color.RGBA{lerp(top.R, bottom.R, f), lerp(top.G, bottom.G, f), lerp(top.B, bottom.B, f), lerp(top.A, bottom.A, f)}
+			})
+		}
+	}
+}
+
 func Has(name string) bool { _, ok := defs[name]; return ok }
 
 func SizeOf(name string) Size { return defs[name].size }
@@ -93,6 +136,10 @@ func Draw(c widget.DrawContext, name string, x, y int, col color.RGBA) {
 func DrawTwoTone(c widget.DrawContext, name string, x, y int, a, b color.RGBA) {
 	d, ok := defs[name]
 	if !ok {
+		return
+	}
+	if k := widget.ContextScale(c); k != 1 {
+		drawHi(c, name, d, x, y, a, b, k)
 		return
 	}
 	for i, l := range d.layers {

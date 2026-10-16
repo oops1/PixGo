@@ -30,6 +30,7 @@ const (
 	ZoneSlideSettings
 	ZoneSlideExit
 	ZoneSlideBar
+	ZonePanel
 	ZoneResizeTop
 	ZoneResizeBottom
 	ZoneResizeLeft

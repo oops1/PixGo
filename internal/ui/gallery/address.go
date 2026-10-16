@@ -48,6 +48,7 @@ func (p *Page) startEdit() {
 		return
 	}
 	p.ensureLayout()
+	p.focus = stopAddress
 	t := p.theme()
 	in := p.input
 	in.Background, in.BorderColor, in.FocusBorder = t.GalleryField, t.GalleryField, t.Accent

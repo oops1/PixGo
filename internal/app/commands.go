@@ -67,7 +67,7 @@ func (a *App) registerCommands() {
 		CmdInfo:            a.hasFile,
 		CmdSlideshow:       a.canSlideshow,
 		CmdSlideshowToggle: a.canSlideshow,
-		CmdEscape:          func() bool { return a.fullscreen || a.slideshowActive() },
+		CmdEscape:          func() bool { return a.fullscreen || a.slideshowActive() || a.infoOpen },
 	}
 	for _, s := range Specs {
 		a.Commands.Add(commands.Command{

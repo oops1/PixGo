@@ -18,11 +18,18 @@ func (p *Page) AccessChildren() []widget.AccessInfo {
 	}
 	p.ensureLayout()
 	g := p.geo
-	out := []widget.AccessInfo{{Role: widget.RoleButton, Name: i18n.T("cmd.back"), Bounds: g.back}}
+	back := widget.AccessInfo{Role: widget.RoleButton, Name: i18n.T("cmd.back"), Bounds: g.back}
+	if p.focus == focusBack {
+		back.States = []string{widget.StateFocused}
+	}
+	out := []widget.AccessInfo{back}
 	for s := Section(0); s < sectionCount; s++ {
 		info := widget.AccessInfo{Role: widget.RoleRadioButton, Name: i18n.T(sectionKeys[s]), Bounds: navRowRect(s)}
 		if s == p.sec {
 			info.States = []string{widget.StateSelected}
+			if p.focus == focusNav {
+				info.States = append(info.States, widget.StateFocused)
+			}
 		}
 		out = append(out, info)
 	}
@@ -62,6 +69,9 @@ func (p *Page) itemAccess(it *item, off image.Point) (widget.AccessInfo, bool) {
 		}
 	case kindRadio, kindCard:
 		info.Role, info.Name = widget.RoleRadioButton, it.text
+		if it.on {
+			info.States = append(info.States, widget.StateSelected)
+		}
 	case kindDropdown:
 		info.Role, info.Name, info.Value = widget.RoleComboBox, it.name, it.text
 	case kindSlider:

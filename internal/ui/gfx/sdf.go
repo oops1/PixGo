@@ -66,12 +66,20 @@ func fillCoverage(c widget.DrawContext, bounds image.Rectangle, coverage func(x,
 }
 
 func FillDistance(c widget.DrawContext, bounds image.Rectangle, d Distance, premul color.RGBA) {
+	if k := widget.ContextScale(c); k != 1 {
+		fillDistanceHi(c, bounds, d, k, premul)
+		return
+	}
 	fillCoverage(c, bounds, func(x, y int) float64 {
 		return clamp01(0.5 - d(float64(x)+.5, float64(y)+.5))
 	}, premul)
 }
 
 func StrokeDistance(c widget.DrawContext, bounds image.Rectangle, d Distance, width float64, premul color.RGBA) {
+	if k := widget.ContextScale(c); k != 1 {
+		strokeDistanceHi(c, bounds, d, width, k, premul)
+		return
+	}
 	half := width / 2
 	fillCoverage(c, bounds, func(x, y int) float64 {
 		v := d(float64(x)+.5, float64(y)+.5)
@@ -80,10 +88,18 @@ func StrokeDistance(c widget.DrawContext, bounds image.Rectangle, d Distance, wi
 }
 
 func FillRound(c widget.DrawContext, r image.Rectangle, radius float64, premul color.RGBA) {
+	if k := widget.ContextScale(c); k != 1 {
+		fillRoundHi(c, r, radius, k, premul)
+		return
+	}
 	FillDistance(c, r, RoundRectDistance(r, radius), premul)
 }
 
 func StrokeRound(c widget.DrawContext, r image.Rectangle, radius, width float64, premul color.RGBA) {
+	if k := widget.ContextScale(c); k != 1 {
+		strokeRoundHi(c, r, radius, width, k, premul)
+		return
+	}
 	StrokeDistance(c, r, RoundRectDistance(r, radius), width, premul)
 }
 

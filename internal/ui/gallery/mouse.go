@@ -226,6 +226,8 @@ func (p *Page) leftButton(e widget.MouseEvent) bool {
 }
 
 func (p *Page) pressLeft(e widget.MouseEvent, h hit) bool {
+	p.clearKeyNav()
+	p.focusFromHit(h)
 	if p.editing {
 		switch h.kind {
 		case hitAddress:

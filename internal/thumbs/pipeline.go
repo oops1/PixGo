@@ -3,6 +3,7 @@ package thumbs
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"image"
 	stdjpeg "image/jpeg"
@@ -33,7 +34,7 @@ func guarded[T any](s *Service, ctx context.Context, fn func() (T, error)) (T, e
 	if err := ctx.Err(); err != nil {
 		return zero, err
 	}
-	if s.abandoned.Load() >= s.maxAbandoned {
+	if s.abandoned.Load() >= s.maxAbandoned.Load() {
 		return fn()
 	}
 	done := make(chan outcome[T], 1)
@@ -110,10 +111,13 @@ func (s *Service) render(ctx context.Context, j *job) Thumb {
 	fail := func(err error) Thumb {
 		return Thumb{Err: err, SrcW: info.Width, SrcH: info.Height}
 	}
+	oversize := false
 	if err != nil {
-		return fail(err)
-	}
-	if err := lim.Check(info.Width, info.Height); err != nil {
+		if p.dec == nil || !errors.Is(err, codec.ErrTooLarge) || info.Width <= 0 || info.Height <= 0 {
+			return fail(err)
+		}
+		oversize = true
+	} else if err := lim.Check(info.Width, info.Height); err != nil {
 		return fail(fmt.Errorf("%w: %dx%d", err, info.Width, info.Height))
 	}
 	o := validOrientation(info.Orientation)
@@ -130,25 +134,21 @@ func (s *Service) render(ctx context.Context, j *job) Thumb {
 		return fail(err)
 	}
 
-	opts := codec.Options{Limits: lim, Frames: codec.FirstFrame}
-	if n := scaleHint(max(info.Width, info.Height), side); n > 1 {
-		opts.Scale = n
+	var pix *image.NRGBA
+	var imgInfo codec.Info
+	if oversize {
+		pix, imgInfo, err = s.decodeReduced(ctx, p.dec, src, lim, info, side)
+	} else {
+		pix, imgInfo, err = s.decodeScaled(ctx, p.dec, src, lim, info, side, sw, sh)
 	}
-	if info.Vector {
-		opts.VectorW, opts.VectorH = sw, sh
-	}
-	img, err := guarded(s, ctx, func() (*codec.Image, error) {
-		return s.reg.Decode(ctx, p.dec, src, opts)
-	})
 	if err != nil {
 		return fail(err)
 	}
-	pix := img.First()
 	if pix == nil || pix.Bounds().Empty() {
 		return fail(codec.ErrCorrupt)
 	}
-	if img.Info.Format != "" && img.Info.Orientation.Valid() {
-		o = img.Info.Orientation
+	if imgInfo.Format != "" && imgInfo.Orientation.Valid() {
+		o = imgInfo.Orientation
 	}
 	pw, ph := pix.Bounds().Dx(), pix.Bounds().Dy()
 	ow, oh = orientedSize(o, info.Width, info.Height)

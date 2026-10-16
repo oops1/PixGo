@@ -6,6 +6,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"weak"
+
+	"github.com/oops1/PixGo/internal/par"
 )
 
 const opacityRingSize = 192
@@ -102,14 +104,14 @@ func scanOpaque(img *image.NRGBA) bool {
 	b := img.Rect
 	w4, h := b.Dx()*4, b.Dy()
 	base := img.PixOffset(b.Min.X, b.Min.Y)
-	workers := workerCount()
+	workers := par.Count()
 	if w4*h < 1<<18 {
 		workers = 1
 	}
 	chunk := max(1, (h+workers*4-1)/(workers*4))
 	tasks := (h + chunk - 1) / chunk
 	var translucent atomic.Bool
-	parallel(tasks, workers, func(t int) {
+	par.Parallel(tasks, workers, func(t int) {
 		for y := t * chunk; y < min(h, (t+1)*chunk); y++ {
 			if translucent.Load() {
 				return

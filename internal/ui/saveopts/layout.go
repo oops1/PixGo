@@ -29,9 +29,20 @@ type Kind uint8
 const (
 	JPEG Kind = iota + 1
 	WebP
+	JPEGLossless
 )
 
-func (k Kind) lossless() bool { return k == WebP }
+func (k Kind) lossless() bool { return k == WebP || k == JPEGLossless }
+
+func (k Kind) hintKey() string {
+	switch k {
+	case WebP:
+		return "save.options.webpHint"
+	case JPEGLossless:
+		return "save.options.jpegLosslessHint"
+	}
+	return "save.options.jpegHint"
+}
 
 type metrics struct {
 	k, ks     float64
@@ -150,10 +161,6 @@ func build(kind Kind, maxW int, gq float64) layout {
 	qualityText := i18n.T("save.quality")
 	saveText := i18n.T("save.options.save")
 	cancelText := i18n.T("dialog.cancel")
-	hintKey := "save.options.jpegHint"
-	if kind.lossless() {
-		hintKey = "save.options.webpHint"
-	}
 
 	checkW := m.boxSize + m.boxGap + bodyFont.Measure(nil, checkText)
 	valueW := bodyFont.Measure(nil, "100")
@@ -194,7 +201,7 @@ func build(kind Kind, maxW int, gq float64) layout {
 	sliderH := 2*m.thumbR + m.s(8)
 	l.slider = image.Rect(m.padX, y, m.padX+cw, y+sliderH)
 	y += sliderH + step(m.s(6))
-	l.hintText = wrap(hintFont, i18n.T(hintKey), cw, hintMaxLines)
+	l.hintText = wrap(hintFont, i18n.T(kind.hintKey()), cw, hintMaxLines)
 	hintStep := hintH + m.lineGap
 	l.hint = image.Rect(m.padX, y, m.padX+cw, y+len(l.hintText)*hintStep)
 	y += len(l.hintText)*hintStep + step(m.s(18))

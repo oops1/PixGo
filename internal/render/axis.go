@@ -34,6 +34,7 @@ type axisSpec struct {
 	extent  float64
 	mapper  coordMapper
 	shift   float64
+	offset  float64
 	limit   int
 	mul     int
 	nearest bool
@@ -90,7 +91,7 @@ func (a *axis) build(s *axisSpec) {
 			first = k
 		}
 		last = k
-		c := s.mapper.at(t) * s.shift
+		c := float64(s.mapper.at(t)*s.shift) - s.offset
 		if s.nearest {
 			i := clampInt(int(math.Floor(c)), 0, s.limit-1)
 			a.off0[k], a.off1[k], a.frac[k] = i*s.mul, i*s.mul, 0

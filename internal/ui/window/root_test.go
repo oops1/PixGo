@@ -40,6 +40,7 @@ type fakeHost struct {
 	failure    string
 	menu       widget.Widget
 	preview    bool
+	panel      widget.Widget
 
 	contentOverride widget.Widget
 }
@@ -83,7 +84,7 @@ func (h *fakeHost) Content() widget.Widget {
 	}
 	return h.content
 }
-func (h *fakeHost) Panel() widget.Widget     { return nil }
+func (h *fakeHost) Panel() widget.Widget     { return h.panel }
 func (h *fakeHost) Menu() widget.Widget      { return h.menu }
 func (h *fakeHost) AutoHide() bool           { return h.autoHide }
 func (h *fakeHost) Fullscreen() bool         { return h.fullscreen }
@@ -126,8 +127,14 @@ func (ts *timers) live() int {
 
 type recordingEngine struct {
 	*engine.Engine
-	rects []image.Rectangle
-	full  int
+	rects   []image.Rectangle
+	full    int
+	focused widget.Widget
+}
+
+func (r *recordingEngine) SetFocus(w widget.Widget) {
+	r.focused = w
+	r.Engine.SetFocus(w)
 }
 
 func (r *recordingEngine) InvalidateRect(rc image.Rectangle) {

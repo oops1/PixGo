@@ -33,12 +33,14 @@ func (r frect) distance(radius float64) gfx.Distance {
 	}
 }
 
+func (r frect) gfx() gfx.RectF { return gfx.RectF{X0: r.x0, Y0: r.y0, X1: r.x1, Y1: r.y1} }
+
 func fillRound(c widget.DrawContext, r frect, radius float64, col color.RGBA) {
-	gfx.FillDistance(c, r.bounds(), r.distance(radius), col)
+	gfx.FillRoundF(c, r.gfx(), radius, col)
 }
 
 func strokeRound(c widget.DrawContext, r frect, radius, width float64, col color.RGBA) {
-	gfx.StrokeDistance(c, r.bounds(), r.distance(radius), width, col)
+	gfx.StrokeRoundF(c, r.gfx(), radius, width, col)
 }
 
 func fillDisc(c widget.DrawContext, cx, cy, radius float64, col color.RGBA) {

@@ -64,7 +64,14 @@ func (p *Page) outline(c widget.DrawContext, t *theme.Theme, r frect, radius flo
 }
 
 func (p *Page) ring(c widget.DrawContext, t *theme.Theme, r frect, radius float64) {
-	strokeRound(c, r.grow(2), radius+2, 2, t.Focus)
+	gfx.RingOf(t).RectF(c, r.gfx(), radius)
+}
+
+func (p *Page) discRing(c widget.DrawContext, t *theme.Theme, cx, cy, rad float64) {
+	if t.Name == "contrast" {
+		strokeDisc(c, cx, cy, rad+1.5, 1, t.Canvas)
+	}
+	strokeDisc(c, cx, cy, rad+3.5, 2, t.Focus)
 }
 
 func (p *Page) drawHeader(c widget.DrawContext, t *theme.Theme) {
@@ -274,7 +281,7 @@ func (p *Page) drawRadio(c widget.DrawContext, t *theme.Theme, it *item, r image
 	}
 	p.drawLabel(c, t, it, r)
 	if st.focus {
-		strokeDisc(c, cx, cy, rad+3.5, 2, t.Focus)
+		p.discRing(c, t, cx, cy, rad)
 	}
 }
 
@@ -345,7 +352,7 @@ func (p *Page) drawSlider(c widget.DrawContext, t *theme.Theme, it *item, r imag
 		drawText(c, bodyFont, it.valueText, x1+dim.sliderInset+dim.sliderLabelGap, r.Min.Y+dim.checkBase, p.secondary(t))
 	}
 	if st.focus {
-		strokeDisc(c, tx, fy, dim.sliderThumb/2+3.5, 2, t.Focus)
+		p.discRing(c, t, tx, fy, dim.sliderThumb/2)
 	}
 }
 

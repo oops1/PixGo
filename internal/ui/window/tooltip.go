@@ -25,30 +25,26 @@ type tooltip struct {
 	stop func()
 }
 
-func (r *Root) tipText(k ZoneKind) string {
+func (r *Root) plainLabel(k ZoneKind) (string, bool) {
 	switch k {
 	case ZoneMin:
-		return i18n.T("window.minimize")
+		return i18n.T("window.minimize"), true
 	case ZoneMax:
 		if r.Layout().Opt.Maximized {
-			return i18n.T("window.restore")
+			return i18n.T("window.restore"), true
 		}
-		return i18n.T("window.maximize")
+		return i18n.T("window.maximize"), true
 	case ZoneClose:
-		return i18n.T("window.close")
+		return i18n.T("window.close"), true
 	case ZoneToolZoomLabel:
-		return i18n.T("zoom.label")
-	case ZoneSlidePlay:
-		return r.slidePlayTip()
+		return i18n.T("zoom.label"), true
 	case ZoneSlideSettings:
-		return i18n.T("slideshow.settings")
-	case ZoneDrag, ZoneNone, ZoneSlideBar:
-		return ""
+		return i18n.T("slideshow.settings"), true
 	}
-	cmd := r.command(k)
-	if cmd == nil {
-		return ""
-	}
+	return "", false
+}
+
+func (r *Root) commandLabel(k ZoneKind, cmd *commands.Command) string {
 	label := cmd.Label()
 	if (k == ZoneToolFullscreen || k == ZoneExit || k == ZoneSlideExit) && r.host.Fullscreen() {
 		label = i18n.T("cmd.fullscreenExit")
@@ -56,13 +52,65 @@ func (r *Root) tipText(k ZoneKind) string {
 	if k == ZoneFavorite && r.host.Favorite() {
 		label = i18n.T("cmd.favorite.remove")
 	}
+	return label
+}
+
+func (r *Root) tipText(k ZoneKind) string {
+	if s, ok := r.plainLabel(k); ok {
+		return s
+	}
+	switch k {
+	case ZoneSlidePlay:
+		return r.slidePlayTip()
+	case ZoneDrag, ZoneNone, ZoneSlideBar:
+		return ""
+	}
+	cmd := r.command(k)
+	if cmd == nil {
+		return ""
+	}
+	label := r.commandLabel(k, cmd)
 	if sc := cmd.Shortcut(); sc != "" {
 		return label + " (" + sc + ")"
 	}
 	return label
 }
 
-func (r *Root) slidePlayTip() string {
+func (r *Root) zoneLabel(k ZoneKind) string {
+	if s, ok := r.plainLabel(k); ok {
+		return s
+	}
+	switch k {
+	case ZoneSlidePlay:
+		label, _ := r.slidePlayParts()
+		return label
+	case ZoneDrag, ZoneNone, ZoneSlideBar:
+		return ""
+	}
+	if cmd := r.command(k); cmd != nil {
+		return r.commandLabel(k, cmd)
+	}
+	return ""
+}
+
+func (r *Root) zoneShortcut(k ZoneKind) string {
+	if _, ok := r.plainLabel(k); ok {
+		return ""
+	}
+	switch k {
+	case ZoneSlidePlay:
+		_, sc := r.slidePlayParts()
+		return sc
+	case ZoneDrag, ZoneNone, ZoneSlideBar:
+		return ""
+	}
+	if cmd := r.command(k); cmd != nil {
+		return cmd.Shortcut()
+	}
+	return ""
+}
+
+func (r *Root) slidePlayParts() (label, shortcut string) {
 	v := r.host.Slideshow()
 	id, key := "slideshow.start", "cmd.slideshow"
 	switch {
@@ -71,13 +119,18 @@ func (r *Root) slidePlayTip() string {
 	case v.Active:
 		id, key = "slideshow.toggle", "cmd.slideshowResume"
 	}
-	text := i18n.T(key)
 	if reg := r.host.Registry(); reg != nil {
 		if cmd := reg.Get(commands.ID(id)); cmd != nil {
-			if sc := cmd.Shortcut(); sc != "" {
-				return text + " (" + sc + ")"
-			}
+			shortcut = cmd.Shortcut()
 		}
+	}
+	return i18n.T(key), shortcut
+}
+
+func (r *Root) slidePlayTip() string {
+	text, sc := r.slidePlayParts()
+	if sc != "" {
+		return text + " (" + sc + ")"
 	}
 	return text
 }

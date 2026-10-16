@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -53,7 +54,21 @@ func main() {
 	galleryDir := flag.String("gallery", "", "open the gallery on this folder")
 	openSettings := flag.Bool("settings", false, "open the settings page")
 	fontSize := flag.Float64("font-size", 0, "body text size in points; 0 follows the system")
+	scale := flag.Float64("scale", 0, "interface scale: 1, 1.25, 1.5, 1.75 or 2; 0 follows the display")
+	perfFlags := registerPerfFlags()
 	flag.Parse()
+	uiScale, err := parseScale(*scale)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(2)
+	}
+	var perf *perfRun
+	if perfFlags.active() {
+		if *perfFlags.runs > 1 {
+			os.Exit(runRepeatedSelf(*perfFlags.runs, os.Args[1:], *perfFlags.jsonPath))
+		}
+		perf = newPerfRun(perfFlags.options(perfSize(*width, defaultWidth), perfSize(*height, defaultHeight), uiScale))
+	}
 	if *showVersion {
 		fmt.Println("PixGo", buildinfo.String())
 		return
@@ -85,10 +100,11 @@ func main() {
 		i18n.SetLang(l)
 	}
 	st := store.Get()
+	perf.phase("settings loaded")
 
 	plat := platform.New()
 	var primary bool
-	if *screenshot == "" {
+	if *screenshot == "" && perf == nil {
 		var ierr error
 		primary, ierr = plat.Instance.Acquire()
 		if ierr == nil && !primary && !*newWindow && st.SingleWindow {
@@ -100,7 +116,7 @@ func main() {
 
 	ws, _ := settings.LoadWindowState()
 	w, h := defaultWidth, defaultHeight
-	if st.RememberWindow && ws.HasBounds() {
+	if st.RememberWindow && ws.HasBounds() && perf == nil {
 		w, h = ws.W, ws.H
 	}
 	if *width > 0 {
@@ -120,6 +136,13 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+	if uiScale > 0 {
+		if *screenshot != "" || perf != nil {
+			eng.SetScale(uiScale)
+		} else {
+			os.Setenv(scaleEnv, strconv.FormatFloat(uiScale, 'g', -1, 64))
+		}
+	}
 
 	reg := codec.NewRegistry()
 	codecall.Register(reg)
@@ -127,8 +150,14 @@ func main() {
 		reg.SetEnabled(codec.ID(id), st.FormatEnabled(id))
 	}
 
+	perf.phase("engine ready")
 	a := app.New(eng, app.Options{Settings: store, Platform: plat, Registry: reg})
+	tuneGC()
 	a.Root.ForceEnabled = *mockup
+	if perf != nil {
+		eng.SetRootFullCanvas(a.Root)
+		os.Exit(perf.execute(eng, a))
+	}
 
 	if *screenshot != "" {
 		eng.SetRootFullCanvas(a.Root)
@@ -273,7 +302,8 @@ func saveWindowState(eng *engine.Engine, win *window.Window, a *app.App) {
 	ws := settings.DefaultWindowState()
 	ws.Maximized = n.IsMaximized()
 	if !ws.Maximized {
-		ws.W, ws.H = n.GetSize()
+		w, h := n.GetSize()
+		ws.W, ws.H = logicalSize(w, h, eng.Scale())
 		ws.X, ws.Y = n.GetPosition()
 	} else if old, err := settings.LoadWindowState(); err == nil {
 		ws = old

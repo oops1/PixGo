@@ -24,6 +24,7 @@ import (
 
 type harness struct {
 	t      *testing.T
+	eng    *engine.Engine
 	c      *Controller
 	canvas *view.Canvas
 	mu     sync.Mutex
@@ -41,6 +42,11 @@ type fakeTimer struct {
 
 func newHarness(t *testing.T, mutate func(*settings.Settings)) *harness {
 	t.Helper()
+	return newHarnessWith(t, mutate)
+}
+
+func newHarnessWith(t *testing.T, mutate func(*settings.Settings), extra ...codec.Decoder) *harness {
+	t.Helper()
 	i18n.SetLang("ru")
 	st := settings.Defaults()
 	if mutate != nil {
@@ -48,11 +54,15 @@ func newHarness(t *testing.T, mutate func(*settings.Settings)) *harness {
 	}
 	h := &harness{t: t, now: time.Unix(5000, 0)}
 	eng := engine.New(400, 300, 30)
+	h.eng = eng
 	h.canvas = view.New(eng)
 	eng.SetRootFullCanvas(h.canvas)
 	reg := codec.NewRegistry()
 	reg.RegisterDecoder(pngcodec.Decoder{})
 	reg.RegisterDecoder(gif.Decoder{})
+	for _, d := range extra {
+		reg.RegisterDecoder(d)
+	}
 	h.c = NewController(Env{
 		Registry: reg,
 		Settings: settings.NewMemory(st),

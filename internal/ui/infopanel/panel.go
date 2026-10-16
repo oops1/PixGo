@@ -117,6 +117,9 @@ type Panel struct {
 	cache  placed
 	cacheW int
 	cacheK float64
+
+	active bool
+	cur    int
 }
 
 func New(eng Engine, t *theme.Theme) *Panel {
@@ -226,6 +229,7 @@ func (p *Panel) Draw(c widget.DrawContext) {
 	for _, cp := range pl.cards {
 		p.drawCard(c, o, cp)
 	}
+	p.drawFocus(c)
 	p.drawBar(c)
 }
 
@@ -395,6 +399,10 @@ func (p *Panel) OnMouseButton(e widget.MouseEvent) bool {
 	if e.Pressed {
 		return h.kind != hitNone
 	}
+	return p.activate(h)
+}
+
+func (p *Panel) activate(h hit) bool {
 	switch h.kind {
 	case hitClose:
 		if p.OnClose != nil {

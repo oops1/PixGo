@@ -12,6 +12,7 @@ import (
 	"github.com/oops1/PixGo/internal/i18n"
 	"github.com/oops1/PixGo/internal/imaging"
 	"github.com/oops1/PixGo/internal/jobs"
+	"github.com/oops1/PixGo/internal/par"
 	"github.com/oops1/PixGo/internal/settings"
 	"github.com/oops1/PixGo/internal/ui/view"
 	"github.com/oops1/PixGo/internal/viewer"
@@ -50,6 +51,7 @@ type Controller struct {
 
 	current string
 	shown   *imaging.Decoded
+	pinned  bool
 	status  Status
 	err     error
 	info    codec.Info
@@ -72,6 +74,7 @@ func NewController(env Env, canvas *view.Canvas) *Controller {
 		env.Now = time.Now
 	}
 	st := env.Settings.Get()
+	par.Set(st.DecodeThreads)
 	c := &Controller{
 		env:       env,
 		canvas:    canvas,
@@ -81,7 +84,8 @@ func NewController(env Env, canvas *view.Canvas) *Controller {
 		Recent:    viewer.NewPathList(200),
 		exif:      codec.OrientNormal,
 	}
-	c.loader = imaging.NewLoader(env.Registry, c.cache, env.Post, st.DecodeThreads, c.limits)
+	c.loader = imaging.NewLoader(env.Registry, c.cache, env.Post, 0, c.limits)
+	c.loader.SetTileBudget(tileBudgetFor(int64(st.CacheMB) << 20))
 	c.unsub = c.loader.Subscribe(c.onLoaderEvent)
 	c.anim.owner = c
 	seed := uint64(env.Now().UnixNano())
@@ -100,6 +104,18 @@ func (c *Controller) Close() {
 	}
 	c.loader.Close()
 	c.runner.Close()
+	c.setShown(nil)
+	c.cache.Clear()
+}
+
+const (
+	cacheBytesPerTiledPixel = 16
+	tileBudgetDivisor       = 4
+	minTileBudget           = 32 << 20
+)
+
+func tileBudgetFor(cacheBytes int64) int64 {
+	return min(max(cacheBytes/tileBudgetDivisor, minTileBudget), imaging.DefaultTileBudget)
 }
 
 func (c *Controller) limits() codec.Limits {
@@ -108,6 +124,8 @@ func (c *Controller) limits() codec.Limits {
 	if st.MaxPixels > 0 {
 		l.MaxPixels = int64(st.MaxPixels) * 1_000_000
 	}
+	l.MaxTiledPixels = max(l.MaxTiledPixels, l.MaxPixels)
+	l.TiledAbove = min(l.MaxPixels, (int64(st.CacheMB)<<20)/cacheBytesPerTiledPixel)
 	return l
 }
 
@@ -123,8 +141,14 @@ func (c *Controller) Path() string   { return c.current }
 func (c *Controller) Info() codec.Info {
 	return c.info
 }
-func (c *Controller) Decoded() *imaging.Decoded { return c.shown }
-func (c *Controller) Folder() *viewer.Folder    { return c.folder }
+func (c *Controller) Decoded() *imaging.Decoded {
+	if c.shown.FullResolution() {
+		return c.shown
+	}
+	return nil
+}
+func (c *Controller) Shown() *imaging.Decoded { return c.shown }
+func (c *Controller) Folder() *viewer.Folder  { return c.folder }
 func (c *Controller) Navigator() *viewer.Navigator {
 	return c.nav
 }
@@ -217,7 +241,7 @@ func (c *Controller) fail(path string, err error) {
 	c.anim.stop()
 	c.loader.Want(nil)
 	c.current = path
-	c.shown = nil
+	c.setShown(nil)
 	c.status = StatusFailed
 	c.err = err
 	c.info = codec.Info{}
@@ -228,7 +252,7 @@ func (c *Controller) fail(path string, err error) {
 func (c *Controller) clear() {
 	c.anim.stop()
 	c.current = ""
-	c.shown = nil
+	c.setShown(nil)
 	c.status = StatusEmpty
 	c.err = nil
 	c.info = codec.Info{}
@@ -319,6 +343,8 @@ func (c *Controller) show(keepView bool) {
 
 func (c *Controller) want() {
 	st := c.env.Settings.Get()
+	f := c.canvas.Frame()
+	c.loader.SetViewportHint(f.AreaW, f.AreaH)
 	reqs := []imaging.Request{{Path: c.current, Prio: imaging.PrioCurrent}}
 	for n, i := range c.nav.Neighbors(st.Preload) {
 		prio := imaging.PrioNeighbor
@@ -350,6 +376,10 @@ func (c *Controller) sync() {
 	case imaging.StateProbed:
 		c.status = StatusLoading
 		c.info = en.Info
+	case imaging.StatePreview:
+		c.status = StatusLoading
+		c.info = en.Info
+		c.apply(en.Img)
 	case imaging.StateFailed:
 		c.status = StatusFailed
 		c.err = en.Err
@@ -365,15 +395,35 @@ func (c *Controller) sync() {
 
 func (c *Controller) showFailure() {
 	c.anim.stop()
-	c.shown = nil
+	c.setShown(nil)
 	c.canvas.Clear()
 }
 
+func (c *Controller) setShown(d *imaging.Decoded) {
+	prev, wasPinned := c.shown, c.pinned
+	c.shown = d
+	c.pinned = d != nil && !d.Reduced
+	if c.pinned {
+		c.cache.Pin(d.Key)
+	}
+	if prev != nil && wasPinned {
+		c.cache.Unpin(prev.Key)
+	}
+}
+
+func replacesPreview(prev, next *imaging.Decoded) bool {
+	if prev == nil || !prev.Reduced || next.Reduced || prev.Key.Path != next.Key.Path {
+		return false
+	}
+	a, b := prev.Source(), next.Source()
+	return a.Width == b.Width && a.Height == b.Height
+}
+
 func (c *Controller) apply(d *imaging.Decoded) {
-	if d == nil || d == c.shown {
+	if d == nil || d == c.shown || d.Released() {
 		return
 	}
-	c.shown = d
+	prev := c.shown
 	c.info = d.Info
 	exif := codec.OrientNormal
 	if c.env.Settings.Get().ApplyExifOrientation && d.Info.Orientation.Valid() {
@@ -381,11 +431,15 @@ func (c *Controller) apply(d *imaging.Decoded) {
 	}
 	c.exif = exif
 	c.canvas.SetPreview(d.Info.Preview)
-	if c.keepView {
+	switch {
+	case replacesPreview(prev, d):
+		c.canvas.ReplaceFrame(d.Source())
+	case c.keepView:
 		c.canvas.SetImageKeepView(d.Source(), exif)
-	} else {
+	default:
 		c.canvas.SetImage(d.Source(), exif, c.initialMode())
 	}
+	c.setShown(d)
 	c.keepView = false
 	c.anim.start(d)
 }
@@ -480,6 +534,25 @@ func (c *Controller) ApplySort() {
 	c.changed()
 }
 
+func (c *Controller) LoaderWorkers() int { return c.loader.Workers() }
+
+func (c *Controller) SetViewportHint(w, h int) { c.loader.SetViewportHint(w, h) }
+
+func (c *Controller) LoaderPending() int { return c.loader.Pending() }
+
+func (c *Controller) Limits() codec.Limits { return c.limits() }
+
+func (c *Controller) Registry() *codec.Registry { return c.env.Registry }
+
+func (c *Controller) Supports(path string) bool { return c.env.Registry.Supports(path) }
+
+func (c *Controller) ApplyThreads() {
+	par.Set(c.env.Settings.Get().DecodeThreads)
+	c.loader.SetWorkers(0)
+}
+
 func (c *Controller) ApplyCache() {
-	c.cache.SetBudget(int64(c.env.Settings.Get().CacheMB) << 20)
+	bytes := int64(c.env.Settings.Get().CacheMB) << 20
+	c.cache.SetBudget(bytes)
+	c.loader.SetTileBudget(tileBudgetFor(bytes))
 }

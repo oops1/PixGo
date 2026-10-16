@@ -96,6 +96,7 @@ type Settings struct {
 	GalleryThumbSize     int    `json:"galleryThumbSize"`
 
 	SaveJPEGQuality  int  `json:"saveJpegQuality"`
+	SaveJPEGLossless bool `json:"saveJpegLossless"`
 	SaveWebPQuality  int  `json:"saveWebpQuality"`
 	SaveWebPLossless bool `json:"saveWebpLossless"`
 
@@ -129,7 +130,8 @@ func Defaults() Settings {
 		Sort: SortName, SortDesc: false,
 		GalleryView: GalleryGrid, GalleryThumbSize: 128,
 
-		SaveJPEGQuality: DefaultSaveJPEGQuality, SaveWebPQuality: DefaultSaveWebPQuality, SaveWebPLossless: false,
+		SaveJPEGQuality: DefaultSaveJPEGQuality, SaveJPEGLossless: true,
+		SaveWebPQuality: DefaultSaveWebPQuality, SaveWebPLossless: false,
 
 		Formats:   formats,
 		Slideshow: Slideshow{Interval: 5, Loop: true, Shuffle: false, Transition: TransitionNone},

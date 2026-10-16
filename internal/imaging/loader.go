@@ -3,13 +3,18 @@ package imaging
 import (
 	"context"
 	"errors"
-	"fmt"
-	"os"
-	"runtime"
 	"sync"
 	"sync/atomic"
 
 	"github.com/oops1/PixGo/internal/codec"
+	"github.com/oops1/PixGo/internal/par"
+)
+
+const (
+	defaultViewW = 1920
+	defaultViewH = 1080
+
+	MinLoaderWorkers = 2
 )
 
 var errNotRegularFile = errors.New("imaging: not a regular file")
@@ -30,14 +35,22 @@ type Entry struct {
 }
 
 type job struct {
-	path   string
-	prio   Priority
-	seq    uint64
-	vw, vh int
-	lim    codec.Limits
-	ctx    context.Context
-	cancel context.CancelFunc
+	path     string
+	prio     Priority
+	livePrio atomic.Uint32
+	seq      uint64
+	vw, vh   int
+	lim      codec.Limits
+	ctx      context.Context
+	cancel   context.CancelFunc
 }
+
+func (j *job) setPrio(p Priority) {
+	j.prio = p
+	j.livePrio.Store(uint32(p))
+}
+
+func (j *job) currentPrio() Priority { return Priority(j.livePrio.Load()) }
 
 type slot struct {
 	entry Entry
@@ -61,11 +74,21 @@ type Loader struct {
 	closed atomic.Bool
 	wg     sync.WaitGroup
 
-	mu    sync.Mutex
-	cond  *sync.Cond
-	queue []*job
-	seq   uint64
-	quit  bool
+	viewW      atomic.Int32
+	viewH      atomic.Int32
+	tileBudget atomic.Int64
+	explicit   atomic.Int32
+
+	mu      sync.Mutex
+	cond    *sync.Cond
+	queue   []*job
+	seq     uint64
+	quit    bool
+	target  int
+	running int
+	active  map[*job]struct{}
+
+	heavy atomic.Pointer[string]
 
 	slots map[string]*slot
 	subs  []subscriber
@@ -79,9 +102,6 @@ func NewLoader(reg *codec.Registry, cache *Cache, post func(func()), workers int
 	if cache == nil {
 		cache = NewCache(0)
 	}
-	if workers <= 0 {
-		workers = max(2, runtime.NumCPU()/2)
-	}
 	ctx, stop := context.WithCancel(context.Background())
 	l := &Loader{
 		reg:    reg,
@@ -91,13 +111,49 @@ func NewLoader(reg *codec.Registry, cache *Cache, post func(func()), workers int
 		ctx:    ctx,
 		stop:   stop,
 		slots:  map[string]*slot{},
+		active: map[*job]struct{}{},
 	}
+	l.viewW.Store(defaultViewW)
+	l.viewH.Store(defaultViewH)
+	l.tileBudget.Store(DefaultTileBudget)
 	l.cond = sync.NewCond(&l.mu)
-	l.wg.Add(workers)
-	for i := 0; i < workers; i++ {
+	l.SetWorkers(workers)
+	return l
+}
+
+func autoWorkers() int { return max(MinLoaderWorkers, par.Count()/2) }
+
+func (l *Loader) Workers() int {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.target
+}
+
+func (l *Loader) SetWorkers(n int) {
+	l.explicit.Store(int32(max(n, 0)))
+	l.mu.Lock()
+	if l.quit {
+		l.mu.Unlock()
+		return
+	}
+	l.target = autoWorkers()
+	if n > 0 {
+		l.target = min(n, par.MaxThreads)
+	}
+	for l.running < l.target {
+		l.running++
+		l.wg.Add(1)
 		go l.worker()
 	}
-	return l
+	l.mu.Unlock()
+	l.cond.Broadcast()
+}
+
+func (l *Loader) tileWorkerCount() int {
+	if n := int(l.explicit.Load()); n > 0 {
+		return min(max(n/2, 1), MaxTileWorkers)
+	}
+	return 0
 }
 
 func (l *Loader) currentLimits() codec.Limits {
@@ -110,7 +166,8 @@ func (l *Loader) currentLimits() codec.Limits {
 func (l *Loader) newJobLocked(r Request, lim codec.Limits) *job {
 	ctx, cancel := context.WithCancel(l.ctx)
 	l.seq++
-	j := &job{path: r.Path, prio: r.Prio, seq: l.seq, vw: r.VectorW, vh: r.VectorH, lim: lim, ctx: ctx, cancel: cancel}
+	j := &job{path: r.Path, seq: l.seq, vw: r.VectorW, vh: r.VectorH, lim: lim, ctx: ctx, cancel: cancel}
+	j.setPrio(r.Prio)
 	l.queue = append(l.queue, j)
 	return j
 }
@@ -145,6 +202,7 @@ func (l *Loader) Want(reqs []Request) {
 			wanted[r.Path] = r
 		}
 	}
+	l.releaseHeavyUnless(reqs)
 	lim := l.currentLimits()
 	l.mu.Lock()
 	for path, s := range l.slots {
@@ -166,14 +224,18 @@ func (l *Loader) Want(reqs []Request) {
 			continue
 		}
 		s.req.Prio = r.Prio
-		if s.job != nil && s.job.prio != r.Prio {
+		switch {
+		case s.job != nil && s.job.prio != r.Prio:
 			l.seq++
-			s.job.prio = r.Prio
+			s.job.setPrio(r.Prio)
 			s.job.seq = l.seq
+		case s.job == nil && (s.entry.State == StateQueued || s.entry.State == StateProbed):
+			s.job = l.newJobLocked(r, lim)
 		}
 	}
 	l.mu.Unlock()
 	l.cond.Broadcast()
+	l.cache.Kick()
 }
 
 func (l *Loader) Entry(path string) (Entry, bool) {
@@ -181,7 +243,25 @@ func (l *Loader) Entry(path string) (Entry, bool) {
 	if s == nil {
 		return Entry{}, false
 	}
+	if s.entry.State == StateReady && s.entry.Img.Released() {
+		l.requeue(s)
+	}
 	return s.entry, true
+}
+
+func (l *Loader) requeue(s *slot) {
+	if l.closed.Load() {
+		return
+	}
+	lim := l.currentLimits()
+	l.mu.Lock()
+	if s.job != nil {
+		l.cancelLocked(s.job)
+	}
+	s.job = l.newJobLocked(s.req, lim)
+	l.mu.Unlock()
+	s.entry = Entry{Path: s.entry.Path, State: StateQueued}
+	l.cond.Broadcast()
 }
 
 func (l *Loader) Subscribe(fn func(path string)) (unsubscribe func()) {
@@ -252,14 +332,38 @@ func (l *Loader) worker() {
 			return
 		}
 		l.run(j)
+		l.finished(j)
 	}
+}
+
+func (l *Loader) Pending() int {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return len(l.queue) + len(l.active)
+}
+
+func (l *Loader) finished(j *job) {
+	l.mu.Lock()
+	delete(l.active, j)
+	l.mu.Unlock()
+	l.cond.Broadcast()
+}
+
+func (l *Loader) currentRunningLocked() bool {
+	for j := range l.active {
+		if j.prio == PrioCurrent {
+			return true
+		}
+	}
+	return false
 }
 
 func (l *Loader) next() *job {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	for {
-		if l.quit {
+		if l.quit || l.running > l.target {
+			l.running--
 			return nil
 		}
 		if n := len(l.queue); n > 0 {
@@ -271,9 +375,14 @@ func (l *Loader) next() *job {
 				}
 			}
 			j := l.queue[best]
+			if j.prio != PrioCurrent && l.currentRunningLocked() {
+				l.cond.Wait()
+				continue
+			}
 			l.queue[best] = l.queue[n-1]
 			l.queue[n-1] = nil
 			l.queue = l.queue[:n-1]
+			l.active[j] = struct{}{}
 			return j
 		}
 		l.cond.Wait()
@@ -302,12 +411,33 @@ func (l *Loader) apply(j *job, st State, info codec.Info, img *Decoded, err erro
 		}
 		s.entry.State = StateProbed
 		s.entry.Info = info
+	case StatePreview:
+		if s.entry.State != StateQueued && s.entry.State != StateProbed && s.entry.State != StatePreview {
+			return
+		}
+		s.entry.State = StatePreview
+		s.entry.Info = info
+		s.entry.Img = img
 	case StateReady:
+		if img.Released() {
+			l.requeue(s)
+			return
+		}
 		s.entry.State = StateReady
 		s.entry.Info = img.Info
 		s.entry.Img = img
 		s.entry.Err = nil
 		s.job = nil
+	case stateSkipped:
+		if s.entry.State != StateQueued && s.entry.State != StateProbed {
+			return
+		}
+		if s.req.Prio == PrioCurrent {
+			l.requeue(s)
+			return
+		}
+		s.job = nil
+		return
 	case StateFailed:
 		s.entry.State = StateFailed
 		s.entry.Err = err
@@ -316,69 +446,4 @@ func (l *Loader) apply(j *job, st State, info codec.Info, img *Decoded, err erro
 		return
 	}
 	l.notify(j.path)
-}
-
-func (l *Loader) run(j *job) {
-	defer func() {
-		if v := recover(); v != nil {
-			l.publish(j, StateFailed, codec.Info{}, nil, fmt.Errorf("imaging: panic while loading %s: %v", j.path, v))
-		}
-	}()
-	if j.ctx.Err() != nil {
-		return
-	}
-	st, err := os.Stat(j.path)
-	if err == nil && !st.Mode().IsRegular() {
-		err = errNotRegularFile
-	}
-	if err != nil {
-		l.publish(j, StateFailed, codec.Info{}, nil, err)
-		return
-	}
-	key := Key{Path: j.path, Size: st.Size(), ModTime: st.ModTime()}
-	if d, ok := l.cache.Get(key); ok {
-		l.publish(j, StateReady, d.Info, d, nil)
-		return
-	}
-	src, err := codec.OpenFile(j.path)
-	if err != nil {
-		l.publish(j, StateFailed, codec.Info{}, nil, err)
-		return
-	}
-	defer src.Close()
-	dec, info, err := l.reg.Probe(j.ctx, src, j.lim)
-	if err != nil {
-		l.publish(j, StateFailed, codec.Info{}, nil, err)
-		return
-	}
-	l.publish(j, StateProbed, info, nil, nil)
-	opts := codec.Options{Limits: j.lim, Frames: codec.FirstFrame}
-	if info.Animated {
-		opts.Frames = codec.AllFrames
-	}
-	if info.Vector {
-		opts.VectorW, opts.VectorH = j.vw, j.vh
-	}
-	img, err := l.reg.Decode(j.ctx, dec, src, opts)
-	if err != nil {
-		l.publish(j, StateFailed, info, nil, err)
-		return
-	}
-	if j.ctx.Err() != nil {
-		return
-	}
-	decoded := img.Info
-	if decoded.Format == "" {
-		decoded = info
-	}
-	d := &Decoded{
-		Key:     key,
-		Info:    decoded,
-		Levels:  BuildPyramid(img.Frames[0].Pix, 0),
-		Frames:  img.Frames,
-		Loop:    img.Loop,
-		Preview: info.Preview,
-	}
-	l.cache.Put(d)
-	l.publish(j, StateReady, d.Info, d, nil)
 }

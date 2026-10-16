@@ -5,6 +5,7 @@ import (
 	"image"
 	"sync/atomic"
 
+	"github.com/oops1/PixGo/internal/par"
 	"github.com/oops1/PixGo/internal/render"
 )
 
@@ -49,14 +50,14 @@ func halve(src, dst *image.NRGBA) bool {
 	sb := src.Bounds()
 	w, h := sb.Dx(), sb.Dy()
 	nw, nh := dst.Rect.Dx(), dst.Rect.Dy()
-	workers := workerCount()
+	workers := par.Count()
 	if nw*nh < pyramidSmallPx {
 		workers = 1
 	}
 	chunk := max(pyramidRowsChunk, (nh+workers*3-1)/(workers*3))
 	tasks := (nh + chunk - 1) / chunk
 	var translucent atomic.Bool
-	parallel(tasks, workers, func(t int) {
+	par.Parallel(tasks, workers, func(t int) {
 		y0, y1 := t*chunk, min(nh, (t+1)*chunk)
 		if !halveRows(src, dst, w, h, nw, y0, y1) {
 			translucent.Store(true)

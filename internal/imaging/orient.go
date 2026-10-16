@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"github.com/oops1/PixGo/internal/codec"
+	"github.com/oops1/PixGo/internal/par"
 )
 
 func Orient(src *image.NRGBA, o codec.Orientation) *image.NRGBA {
@@ -24,7 +25,7 @@ func Orient(src *image.NRGBA, o codec.Orientation) *image.NRGBA {
 	dxv, dyv := int(math.Round(xv-x0)), int(math.Round(yv-y0))
 	const rowsPerTask = 32
 	tasks := (dh + rowsPerTask - 1) / rowsPerTask
-	parallel(tasks, workerCount(), func(task int) {
+	par.Parallel(tasks, par.Count(), func(task int) {
 		from := task * rowsPerTask
 		to := min(dh, from+rowsPerTask)
 		for v := from; v < to; v++ {

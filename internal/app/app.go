@@ -53,7 +53,7 @@ type App struct {
 	wasMaximized           bool
 	ops                    window.WindowOps
 	info                   *infopanel.Panel
-	menu                   *widget.PopupMenu
+	menu                   *contextMenu
 	infoKey                string
 	upd                    updateHooks
 	page                   window.Page
@@ -61,6 +61,7 @@ type App struct {
 	set                    *settingsState
 	saveDlg                *saveopts.Dialog
 	modalOpen              atomic.Bool
+	modals                 modalTracker
 }
 
 func New(eng *engine.Engine, opt Options) *App {
@@ -76,6 +77,9 @@ func New(eng *engine.Engine, opt Options) *App {
 		},
 		Invalidate: eng.Invalidate,
 	}, a.Canvas)
+	if w, h := eng.PhysicalSize(); w > 0 && h > 0 {
+		a.Ctl.SetViewportHint(w, h)
+	}
 	a.Root = window.New(a, eng, window.WindowOps{})
 	a.Root.After = func(d time.Duration, fn func()) func() {
 		t := eng.After(d, fn)
@@ -93,11 +97,14 @@ func New(eng *engine.Engine, opt Options) *App {
 		a.Root.Refresh()
 		a.refreshInfo()
 	}
+	a.trackModals()
 	a.initUpdates()
 	a.loadLists()
 	a.Ctl.OnLists = a.saveLists
 	a.registerCommands()
-	a.menu = widget.NewPopupMenu()
+	a.registerKeyboardCommands()
+	a.Canvas.SetDescription(func() string { return a.Ctl.Title() })
+	a.menu = newContextMenu(eng.SetFocus)
 	a.Root.OnMore = a.showMoreMenu
 	a.initSlideshow()
 	a.Canvas.OnContextMenu = a.showMenuAt
@@ -171,6 +178,11 @@ func (a *App) Content() widget.Widget {
 
 func (a *App) Preview() bool { return a.Canvas.Preview() }
 
+func (a *App) Reduced() bool {
+	d := a.Ctl.Shown()
+	return d != nil && d.Reduced
+}
+
 func (a *App) AutoHide() bool { return a.Settings.Get().AutoHidePanels }
 
 func (a *App) Fullscreen() bool { return a.fullscreen }
@@ -189,6 +201,7 @@ func (a *App) ApplySettings() {
 		n.SetLoop(st.LoopFolder)
 	}
 	a.Canvas.Smooth = st.SmoothZoom && !a.reduceMotion()
+	a.Ctl.ApplyThreads()
 	a.Ctl.ApplyCache()
 	a.applyTheme()
 }

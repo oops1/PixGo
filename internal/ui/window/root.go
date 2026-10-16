@@ -56,6 +56,11 @@ type Root struct {
 
 	lastChord    commands.Chord
 	chordFromKey bool
+
+	focus       ZoneKind
+	kbd         bool
+	menuSeen    bool
+	stopLoading func()
 }
 
 func New(host Host, eng Engine, ops WindowOps) *Root {
@@ -161,6 +166,8 @@ func (r *Root) SetBounds(b image.Rectangle) {
 
 func (r *Root) Refresh() {
 	r.placeContent(r.Layout())
+	r.validateFocus()
+	r.syncLoading()
 	r.eng.Invalidate()
 }
 
@@ -255,7 +262,7 @@ func (r *Root) hideNow() {
 	if !r.autoHide() || !r.shown {
 		return
 	}
-	if overlayZone(r.hover) || r.pressing || r.menuOpen() {
+	if overlayZone(r.hover) || r.pressing || r.menuOpen() || r.kbdOverlay() {
 		r.armHide()
 		return
 	}
@@ -322,7 +329,9 @@ func (r *Root) Draw(c widget.DrawContext) {
 	gfx.DrawChildren(c, r)
 	r.drawState(c, l)
 	r.drawPreviewBadge(c, l)
+	r.drawLoading(c, l)
 	r.drawOverlay(c, l)
+	r.drawFocus(c, l)
 	r.drawToast(c, l)
 	r.drawTip(c)
 	r.drawFrame(c, l)

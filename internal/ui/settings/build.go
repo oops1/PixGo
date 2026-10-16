@@ -443,7 +443,8 @@ func (b *builder) performanceSection() {
 	b.skip(float64(dim.headingToRows))
 	b.slider("maxPixels", i18n.T("settings.maxPixels"), cfg.MaxPixels, 4, 1000, 4, unitText("unit.megapixels"),
 		func(v int) func(*data.Settings) { return func(s *data.Settings) { s.MaxPixels = v } })
-	b.skip(dim.groupGap)
+	b.note(i18n.T("settings.maxPixels.desc"), 0)
+	b.skip(dim.groupGap - 4*dim.k)
 	b.heading(i18n.T("settings.decodeThreads"))
 	b.skip(float64(dim.headingToRows))
 	threads := func(v int) string {
@@ -454,7 +455,7 @@ func (b *builder) performanceSection() {
 	}
 	b.slider("decodeThreads", i18n.T("settings.decodeThreads"), cfg.DecodeThreads, 0, 64, 1, threads,
 		func(v int) func(*data.Settings) { return func(s *data.Settings) { s.DecodeThreads = v } })
-	b.note(i18n.T("settings.restartNote"), 0)
+	b.note(i18n.T("settings.decodeThreads.desc"), 0)
 	b.skip(dim.groupGap - 4*dim.k)
 	b.heading(i18n.T("settings.animationFPS"))
 	b.skip(float64(dim.headingToRows))

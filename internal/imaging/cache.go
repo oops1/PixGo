@@ -23,12 +23,18 @@ type cacheItem struct {
 }
 
 type Cache struct {
-	mu     sync.Mutex
-	budget int64
-	used   int64
-	order  *list.List
-	items  map[cacheKey]*list.Element
-	pinned map[cacheKey]int
+	mu      sync.Mutex
+	budget  int64
+	used    int64
+	order   *list.List
+	items   map[cacheKey]*list.Element
+	pinned  map[cacheKey]int
+	dropped []*Decoded
+	onEvict func(*Decoded)
+
+	reserved int64
+	waiters  []*waiter
+	waitSeq  uint64
 }
 
 func NewCache(budget int64) *Cache {
@@ -38,6 +44,12 @@ func NewCache(budget int64) *Cache {
 		items:  map[cacheKey]*list.Element{},
 		pinned: map[cacheKey]int{},
 	}
+}
+
+func (c *Cache) SetOnEvict(fn func(*Decoded)) {
+	c.mu.Lock()
+	c.onEvict = fn
+	c.mu.Unlock()
 }
 
 func (c *Cache) Get(k Key) (*Decoded, bool) {
@@ -59,7 +71,6 @@ func (c *Cache) Put(d *Decoded) {
 	ck := makeCacheKey(d.Key)
 	bytes := d.Bytes()
 	c.mu.Lock()
-	defer c.mu.Unlock()
 	for e := c.order.Front(); e != nil; {
 		next := e.Next()
 		it := e.Value.(*cacheItem)
@@ -72,11 +83,11 @@ func (c *Cache) Put(d *Decoded) {
 	c.items[ck] = e
 	c.used += bytes
 	c.evictLocked(e)
+	c.unlockAndRelease(d)
 }
 
 func (c *Cache) Remove(path string) {
 	c.mu.Lock()
-	defer c.mu.Unlock()
 	for e := c.order.Front(); e != nil; {
 		next := e.Next()
 		if it := e.Value.(*cacheItem); it.key.path == path {
@@ -89,13 +100,25 @@ func (c *Cache) Remove(path string) {
 			delete(c.pinned, k)
 		}
 	}
+	c.unlockAndRelease(nil)
+}
+
+func (c *Cache) Clear() {
+	c.mu.Lock()
+	for e := c.order.Front(); e != nil; {
+		next := e.Next()
+		c.removeLocked(e, true)
+		e = next
+	}
+	clear(c.pinned)
+	c.unlockAndRelease(nil)
 }
 
 func (c *Cache) SetBudget(budget int64) {
 	c.mu.Lock()
-	defer c.mu.Unlock()
 	c.budget = budget
 	c.evictLocked(nil)
+	c.unlockAndRelease(nil)
 }
 
 func (c *Cache) Pin(k Key) {
@@ -107,13 +130,13 @@ func (c *Cache) Pin(k Key) {
 func (c *Cache) Unpin(k Key) {
 	ck := makeCacheKey(k)
 	c.mu.Lock()
-	defer c.mu.Unlock()
 	if n := c.pinned[ck]; n > 1 {
 		c.pinned[ck] = n - 1
 	} else {
 		delete(c.pinned, ck)
 	}
 	c.evictLocked(nil)
+	c.unlockAndRelease(nil)
 }
 
 func (c *Cache) Used() int64 {
@@ -136,6 +159,7 @@ func (c *Cache) removeLocked(e *list.Element, dropPin bool) {
 	if dropPin {
 		delete(c.pinned, it.key)
 	}
+	c.dropped = append(c.dropped, it.img)
 }
 
 func (c *Cache) evictLocked(keep *list.Element) {
@@ -146,5 +170,26 @@ func (c *Cache) evictLocked(keep *list.Element) {
 			c.removeLocked(e, false)
 		}
 		e = prev
+	}
+}
+
+func (c *Cache) unlockAndRelease(survivor *Decoded) {
+	c.wakeLocked()
+	c.unlockAndDrop(survivor)
+}
+
+func (c *Cache) unlockAndDrop(survivor *Decoded) {
+	dropped := c.dropped
+	c.dropped = nil
+	fn := c.onEvict
+	c.mu.Unlock()
+	for _, d := range dropped {
+		if d == survivor {
+			continue
+		}
+		d.Release()
+		if fn != nil {
+			fn(d)
+		}
 	}
 }

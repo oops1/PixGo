@@ -29,7 +29,7 @@ func (p *Page) HandleKey(e widget.KeyEvent) bool {
 	}
 	ctrl, alt := e.Mod&widget.ModCtrl != 0, e.Mod&widget.ModAlt != 0
 	if e.Code == widget.KeyUnknown {
-		return !ctrl && !alt && p.typeAhead(e.Rune)
+		return !ctrl && !alt && p.focus == stopGrid && p.typeAhead(e.Rune)
 	}
 	switch {
 	case alt && !ctrl:
@@ -39,7 +39,18 @@ func (p *Page) HandleKey(e widget.KeyEvent) bool {
 	case ctrl || alt:
 		return false
 	}
+	if e.Code == widget.KeyTab {
+		p.moveFocus(tabDirection(e))
+		return true
+	}
 	return p.plainKey(e)
+}
+
+func tabDirection(e widget.KeyEvent) int {
+	if e.Mod&widget.ModShift != 0 {
+		return -1
+	}
+	return 1
 }
 
 func (p *Page) editKey(e widget.KeyEvent) bool {
@@ -50,6 +61,12 @@ func (p *Page) editKey(e widget.KeyEvent) bool {
 	case widget.KeyEnter:
 		p.commitEdit()
 		return true
+	case widget.KeyTab:
+		if e.Mod&(widget.ModCtrl|widget.ModAlt) == 0 {
+			p.endEdit()
+			p.moveFocus(tabDirection(e))
+			return true
+		}
 	}
 	return false
 }
@@ -88,18 +105,15 @@ func (p *Page) ctrlKey(e widget.KeyEvent) bool {
 }
 
 func (p *Page) plainKey(e widget.KeyEvent) bool {
-	a := p.deps.Actions
-	if nav, ok := navKeys[e.Code]; ok {
-		p.moveSelection(nav)
+	if p.focus == stopGrid {
+		if p.gridKey(e) {
+			return true
+		}
+	} else if p.controlKey(e) {
 		return true
 	}
+	a := p.deps.Actions
 	switch e.Code {
-	case widget.KeyEnter:
-		if i := p.Selected(); i >= 0 && !e.Repeat {
-			p.openIndex(i)
-		}
-	case widget.KeyDelete:
-		p.deleteSelected(e.Repeat)
 	case widget.KeyBackspace:
 		p.act(a.Up, p.snap.canUp)
 	case widget.KeyF5:
@@ -112,6 +126,24 @@ func (p *Page) plainKey(e widget.KeyEvent) bool {
 		if a.Close != nil && !e.Repeat {
 			a.Close()
 		}
+	default:
+		return false
+	}
+	return true
+}
+
+func (p *Page) gridKey(e widget.KeyEvent) bool {
+	if nav, ok := navKeys[e.Code]; ok {
+		p.moveSelection(nav)
+		return true
+	}
+	switch e.Code {
+	case widget.KeyEnter:
+		if i := p.Selected(); i >= 0 && !e.Repeat {
+			p.openIndex(i)
+		}
+	case widget.KeyDelete:
+		p.deleteSelected(e.Repeat)
 	case widget.KeyMenu:
 		p.menuFromKeyboard()
 	default:

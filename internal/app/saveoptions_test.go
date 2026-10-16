@@ -4,10 +4,12 @@ import (
 	"image"
 	"image/color"
 	"image/jpeg"
+	"image/png"
 	"io"
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/oops1/headless-gui/v3/widget"
@@ -63,13 +65,11 @@ func (r *recordingEncoder) last() encodeCall {
 
 type fakeSaveDialog struct {
 	path  string
-	asked int
-	got   platform.SaveOptions
+	asked atomic.Int32
 }
 
 func (f *fakeSaveDialog) Save(o platform.SaveOptions) (string, bool, error) {
-	f.asked++
-	f.got = o
+	f.asked.Add(1)
 	return f.path, f.path != "", nil
 }
 
@@ -84,7 +84,35 @@ type saveRig struct {
 	src    string
 }
 
+func writeBigPNG(t *testing.T, path string) {
+	t.Helper()
+	img := image.NewNRGBA(image.Rect(0, 0, 600, 400))
+	for y := 0; y < 400; y++ {
+		for x := 0; x < 600; x++ {
+			img.SetNRGBA(x, y, color.NRGBA{uint8(x * 255 / 600), uint8(y * 255 / 400), 140, 255})
+		}
+	}
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	if err := png.Encode(f, img); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func newSaveRig(t *testing.T, mutate func(*settings.Settings), withWebP bool) *saveRig {
+	t.Helper()
+	return buildSaveRig(t, mutate, withWebP, "photo.png", writeBigPNG)
+}
+
+func newJPEGSourceRig(t *testing.T, mutate func(*settings.Settings)) *saveRig {
+	t.Helper()
+	return buildSaveRig(t, mutate, false, "photo.jpg", writeBigJPEG)
+}
+
+func buildSaveRig(t *testing.T, mutate func(*settings.Settings), withWebP bool, name string, write func(*testing.T, string)) *saveRig {
 	t.Helper()
 	reg := codec.NewRegistry()
 	reg.RegisterDecoder(jpegcodec.Decoder{})
@@ -103,10 +131,10 @@ func newSaveRig(t *testing.T, mutate func(*settings.Settings), withWebP bool) *s
 	}
 	r.app = formatsApp(t, reg, mutate)
 	r.dir = t.TempDir()
-	r.src = filepath.Join(r.dir, "photo.jpg")
-	writeBigJPEG(t, r.src)
+	r.src = filepath.Join(r.dir, name)
+	write(t, r.src)
 	r.app.OpenFiles([]string{r.src})
-	waitName(t, r.app, "photo.jpg")
+	waitName(t, r.app, name)
 	r.dialog = &fakeSaveDialog{}
 	r.app.Platform = &platform.Platform{SaveDialog: r.dialog}
 	return r
@@ -159,8 +187,8 @@ func TestJPEGAsksForTheQualityAfterThePathIsChosen(t *testing.T) {
 	if r.jpeg.count() != 0 {
 		t.Fatal("nothing may be written before the user confirms")
 	}
-	if r.dialog.asked != 1 {
-		t.Fatalf("the file dialog was asked %d times", r.dialog.asked)
+	if got := r.dialog.asked.Load(); got != 1 {
+		t.Fatalf("the file dialog was asked %d times", got)
 	}
 }
 
@@ -421,7 +449,7 @@ func TestShortcutsAreHeldBackWhileTheOptionsDialogIsOpen(t *testing.T) {
 	if swallowedArrow || swallowedEscape {
 		t.Fatalf("the viewer swallowed keys meant for the dialog: arrow %v escape %v", swallowedArrow, swallowedEscape)
 	}
-	if r.app.Ctl.Name() != "photo.jpg" {
+	if r.app.Ctl.Name() != "photo.png" {
 		t.Fatalf("the viewer moved to %s behind the dialog", r.app.Ctl.Name())
 	}
 	r.app.Eng.SendKeyEvent(escape)
@@ -456,8 +484,8 @@ func TestASecondSaveWhileTheDialogIsOpenIsIgnored(t *testing.T) {
 	r.app.saveAs()
 	r.settle()
 
-	if r.app.saveDlg != first || r.dialog.asked != 1 {
-		t.Fatalf("a second dialog or file chooser appeared (asked %d)", r.dialog.asked)
+	if r.app.saveDlg != first || r.dialog.asked.Load() != 1 {
+		t.Fatalf("a second dialog or file chooser appeared (asked %d)", r.dialog.asked.Load())
 	}
 }
 
@@ -512,10 +540,10 @@ func TestDialogTextFollowsTheInterfaceLanguage(t *testing.T) {
 	}
 }
 
-type unsupportedSaveDialog struct{ asked int }
+type unsupportedSaveDialog struct{ asked atomic.Int32 }
 
 func (u *unsupportedSaveDialog) Save(platform.SaveOptions) (string, bool, error) {
-	u.asked++
+	u.asked.Add(1)
 	return "", false, platform.ErrUnsupported
 }
 
@@ -525,7 +553,7 @@ func TestPlatformWithoutANativeSaveDialogFallsBackToTheEngineOne(t *testing.T) {
 	r.app.Platform = &platform.Platform{SaveDialog: native}
 
 	r.app.saveAs()
-	eventually(t, r.app, "the native dialog was asked", func() bool { return native.asked == 1 })
+	eventually(t, r.app, "the native dialog was asked", func() bool { return native.asked.Load() == 1 })
 	r.settle()
 
 	if r.app.saveDlg != nil || r.jpeg.count() != 0 || r.png.count() != 0 {
@@ -541,8 +569,8 @@ func TestNothingHappensWithoutAnImageOrWithoutEncoders(t *testing.T) {
 	r.app.saveAs()
 	r.settle()
 
-	if r.dialog.asked != 0 || r.app.saveDlg != nil {
-		t.Fatalf("saved with no image: asked %d", r.dialog.asked)
+	if r.dialog.asked.Load() != 0 || r.app.saveDlg != nil {
+		t.Fatalf("saved with no image: asked %d", r.dialog.asked.Load())
 	}
 
 	bare := formatsApp(t, formatsRegistry(), nil)
@@ -554,7 +582,7 @@ func TestNothingHappensWithoutAnImageOrWithoutEncoders(t *testing.T) {
 	bare.saveAs()
 	bare.Eng.Flush()
 
-	if r.dialog.asked != 0 {
+	if r.dialog.asked.Load() != 0 {
 		t.Fatal("a build without encoders must not offer saving")
 	}
 }
