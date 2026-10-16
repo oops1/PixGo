@@ -198,6 +198,17 @@ func TestGalleryKeepsWindowLevelShortcuts(t *testing.T) {
 	}
 }
 
+func TestGalleryRunsTheSettingsShortcut(t *testing.T) {
+	r := galleryRig(t, &keyContent{})
+	r.host.reg.Add(commands.Command{ID: "app.settings", Keys: []commands.Chord{commands.C(commands.Ctrl, commands.KeyComma)}, Run: func() { r.host.ran = append(r.host.ran, "app.settings") }})
+
+	handled := r.root.HandleKey(widget.KeyEvent{Code: widget.KeyOemComma, Mod: widget.ModCtrl, Pressed: true})
+
+	if !handled || len(r.host.ran) != 1 || r.host.ran[0] != "app.settings" {
+		t.Fatalf("handled = %v, ran = %v", handled, r.host.ran)
+	}
+}
+
 func TestGalleryLeavesSideButtonsToThePage(t *testing.T) {
 	r := galleryRig(t, nil)
 

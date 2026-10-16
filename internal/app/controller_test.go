@@ -105,6 +105,13 @@ func (h *harness) pump(until func() bool) {
 	h.t.Fatalf("condition not reached; status=%d err=%v path=%s", h.c.Status(), h.c.Err(), h.c.Path())
 }
 
+func (h *harness) open(path string) error {
+	h.t.Helper()
+	err := h.c.Open(path)
+	h.pump(func() bool { return !h.c.Scanning() })
+	return err
+}
+
 func (h *harness) advance(d time.Duration) {
 	h.now = h.now.Add(d)
 	for _, tm := range append([]*fakeTimer(nil), h.timers...) {
@@ -156,7 +163,7 @@ func makeFolder(t *testing.T, n int) (string, []string) {
 func TestOpenShowsImageAndTitle(t *testing.T) {
 	h := newHarness(t, nil)
 	_, paths := makeFolder(t, 3)
-	if err := h.c.Open(paths[1]); err != nil {
+	if err := h.open(paths[1]); err != nil {
 		t.Fatal(err)
 	}
 	if i, n := h.c.Position(); i != 2 || n != 3 {

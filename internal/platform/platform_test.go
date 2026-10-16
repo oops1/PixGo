@@ -285,3 +285,20 @@ func TestNewBundlesEverything(t *testing.T) {
 		t.Fatal("no volumes")
 	}
 }
+
+func TestDesktopIDFollowsTheAppIDAndTheEnvironmentWins(t *testing.T) {
+	t.Setenv("PIXGO_DESKTOP_ID", "")
+	SetDesktopID("")
+	if got := DesktopID(); got != DefaultDesktopID {
+		t.Fatalf("default: %q", got)
+	}
+	SetDesktopID("other-name.desktop")
+	t.Cleanup(func() { SetDesktopID("") })
+	if got := DesktopID(); got != "other-name.desktop" {
+		t.Fatalf("set: %q", got)
+	}
+	t.Setenv("PIXGO_DESKTOP_ID", "env.desktop")
+	if got := DesktopID(); got != "env.desktop" {
+		t.Fatalf("environment: %q", got)
+	}
+}

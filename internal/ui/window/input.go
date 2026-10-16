@@ -228,6 +228,7 @@ var galleryCommands = map[commands.ID]bool{
 	"app.escape":   true,
 	"view.gallery": true,
 	"file.open":    true,
+	"app.settings": true,
 }
 
 func (r *Root) handleGalleryKey(e widget.KeyEvent) bool {

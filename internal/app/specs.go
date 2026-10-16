@@ -14,6 +14,7 @@ const (
 	CmdZoomWidth       commands.ID = "view.zoomWidth"
 	CmdRotateRight     commands.ID = "view.rotateRight"
 	CmdRotateLeft      commands.ID = "view.rotateLeft"
+	CmdRotate180       commands.ID = "view.rotate180"
 	CmdFlipH           commands.ID = "view.flipH"
 	CmdFlipV           commands.ID = "view.flipV"
 	CmdFullscreen      commands.ID = "view.fullscreen"
@@ -50,13 +51,14 @@ var Specs = []Spec{
 	{CmdNext, "cmd.next", "chevron-right", []commands.Chord{commands.C(0, commands.KeyRight), commands.C(0, commands.KeyPageDown)}},
 	{CmdFirst, "cmd.first", "", []commands.Chord{commands.C(0, commands.KeyHome)}},
 	{CmdLast, "cmd.last", "", []commands.Chord{commands.C(0, commands.KeyEnd)}},
-	{CmdZoomIn, "cmd.zoomIn", "zoom-in", []commands.Chord{commands.C(0, commands.KeyPlus), commands.C(commands.Ctrl, commands.KeyPlus)}},
+	{CmdZoomIn, "cmd.zoomIn", "zoom-in", []commands.Chord{commands.C(0, commands.KeyPlus), commands.C(commands.Ctrl, commands.KeyPlus), commands.C(commands.Shift, commands.KeyPlus), commands.C(commands.Ctrl|commands.Shift, commands.KeyPlus)}},
 	{CmdZoomOut, "cmd.zoomOut", "zoom-out", []commands.Chord{commands.C(0, commands.KeyMinus), commands.C(commands.Ctrl, commands.KeyMinus)}},
 	{CmdZoomActual, "cmd.zoomActual", "", []commands.Chord{commands.C(0, '0'), commands.C(commands.Ctrl, '0')}},
 	{CmdZoomFit, "cmd.zoomFit", "", []commands.Chord{commands.C(0, '1')}},
 	{CmdZoomWidth, "cmd.zoomWidth", "", []commands.Chord{commands.C(0, '2')}},
 	{CmdRotateRight, "cmd.rotateRight", "rotate-right", []commands.Chord{commands.C(0, 'R')}},
 	{CmdRotateLeft, "cmd.rotateLeft", "rotate-left", []commands.Chord{commands.C(commands.Shift, 'R')}},
+	{CmdRotate180, "cmd.rotate180", "", nil},
 	{CmdFlipH, "cmd.flipH", "", []commands.Chord{commands.C(0, 'H')}},
 	{CmdFlipV, "cmd.flipV", "", []commands.Chord{commands.C(0, 'V')}},
 	{CmdFullscreen, "cmd.fullscreen", "fullscreen", []commands.Chord{commands.C(0, commands.KeyF11), commands.C(commands.Alt, commands.KeyEnter)}},

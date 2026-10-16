@@ -196,6 +196,8 @@ func (v *View) Rotate(f Frame, cw bool) {
 	v.reorient(f, v.User.RotateCCW())
 }
 
+func (v *View) Rotate180(f Frame) { v.reorient(f, v.User.Rotate180()) }
+
 func (v *View) FlipH(f Frame) { v.reorient(f, v.User.FlipH()) }
 
 func (v *View) FlipV(f Frame) { v.reorient(f, v.User.FlipV()) }

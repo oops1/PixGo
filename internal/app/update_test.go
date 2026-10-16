@@ -304,3 +304,35 @@ func TestDefaultHooksAreWired(t *testing.T) {
 	h.ask(i18n.T("update.title"), "x", func() {})
 	a.Eng.Flush()
 }
+
+func TestEnvironmentSwitchesTheStartupCheckOff(t *testing.T) {
+	t.Setenv(settings.EnvNoUpdateCheck, "1")
+	r := newUpdateRig(t, "0.2.1", nil)
+	r.release = updates.Release{Tag: "v9.9.9"}
+
+	r.app.ScheduleUpdateCheck()
+	time.Sleep(60 * time.Millisecond)
+	r.app.Eng.Flush()
+
+	if r.lookups.Load() != 0 || len(r.asked) != 0 {
+		t.Fatalf("lookups %d, asked %q", r.lookups.Load(), r.asked)
+	}
+}
+
+func TestEnvironmentSwitchesTheManualCheckOffWithANotice(t *testing.T) {
+	t.Setenv(settings.EnvNoUpdateCheck, "1")
+	r := newUpdateRig(t, "0.2.1", nil)
+	r.release = updates.Release{Tag: "v9.9.9"}
+
+	r.app.CheckForUpdates()
+	time.Sleep(60 * time.Millisecond)
+	r.app.Eng.Flush()
+
+	want := i18n.T("update.title") + "|" + i18n.T("update.disabled")
+	if len(r.notified) != 1 || r.notified[0] != want {
+		t.Fatalf("notified = %q, want %q", r.notified, want)
+	}
+	if r.lookups.Load() != 0 || len(r.asked) != 0 {
+		t.Fatalf("lookups %d, asked %q", r.lookups.Load(), r.asked)
+	}
+}

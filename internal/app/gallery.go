@@ -401,8 +401,9 @@ func (g *galleryState) actions() uigallery.Actions {
 			g.navigate(addr.Loc, "")
 			return nil
 		},
-		Refresh: g.reload,
-		Close:   a.CloseGallery,
+		Refresh:  g.reload,
+		Settings: a.OpenSettings,
+		Close:    a.CloseGallery,
 		Visible: func(first, last int) {
 			last = min(last, len(g.items))
 			if first < 0 || first >= last {

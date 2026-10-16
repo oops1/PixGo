@@ -154,10 +154,12 @@ func (p *Page) gridKey(e widget.KeyEvent) bool {
 
 func (p *Page) menuFromKeyboard() {
 	i := p.Selected()
+	p.ensureLayout()
 	if i < 0 {
+		g := p.geo.grid
+		p.showPageMenu(g.Min.X+menuKeyInset, g.Min.Y+menuKeyInset)
 		return
 	}
-	p.ensureLayout()
 	cell := p.tileRect(i)
 	p.showItemMenu(i, cell.Min.X+cell.Dx()/2, cell.Min.Y+cell.Dy()/2)
 }

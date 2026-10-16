@@ -7,6 +7,8 @@ import (
 	"github.com/oops1/PixGo/internal/thumbs"
 )
 
+const menuKeyInset = 16
+
 func (p *Page) showMenu(items []widget.MenuItem, x, y int) {
 	if f := p.deps.Actions.ShowMenu; f != nil && len(items) > 0 {
 		f(items, x, y)
@@ -110,5 +112,20 @@ func (p *Page) showItemMenu(i, x, y int) {
 			}
 		}},
 	)
+	p.showMenu(items, x, y)
+}
+
+func (p *Page) showPageMenu(x, y int) {
+	a := p.deps.Actions
+	var items []widget.MenuItem
+	if a.Refresh != nil {
+		items = append(items, widget.MenuItem{Text: i18n.T("access.refresh"), Shortcut: "F5", OnClick: func() { a.Refresh() }})
+	}
+	if a.Settings != nil {
+		if len(items) > 0 {
+			items = append(items, widget.MenuItem{Separator: true})
+		}
+		items = append(items, widget.MenuItem{Text: i18n.T("cmd.settings"), Shortcut: "Ctrl+,", OnClick: func() { a.Settings() }})
+	}
 	p.showMenu(items, x, y)
 }

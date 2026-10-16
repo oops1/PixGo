@@ -272,6 +272,7 @@ func (a *App) OpenFiles(paths []string) {
 	if len(paths) == 0 {
 		return
 	}
+	a.CloseSettings()
 	a.CloseGallery()
 	a.Ctl.Open(paths[0])
 	a.Root.Refresh()

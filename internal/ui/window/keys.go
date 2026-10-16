@@ -56,6 +56,10 @@ func ChordOf(e widget.KeyEvent) (commands.Chord, bool) {
 			k = commands.KeyMinus
 		case commands.Key(widget.KeyNumpad0):
 			k = '0'
+		case commands.Key(widget.KeyNumpad1):
+			k = '1'
+		case commands.Key(widget.KeyNumpad2):
+			k = '2'
 		}
 		return commands.Chord{Key: k, Mod: mod}, true
 	}

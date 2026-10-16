@@ -28,7 +28,7 @@ func newSlideRig(t *testing.T, files int, mutate func(*settings.Settings)) *slid
 		}
 	})
 	_, paths := makeFolder(t, files)
-	if err := h.c.Open(paths[0]); err != nil {
+	if err := h.open(paths[0]); err != nil {
 		t.Fatal(err)
 	}
 	h.pump(func() bool { return h.c.Status() == StatusReady })
@@ -439,7 +439,7 @@ func TestSlideshowOpeningAnotherFolderRestartsAndReshuffles(t *testing.T) {
 	r.c.Slides().Start()
 	r.advance(1500 * time.Millisecond)
 	_, other := makeFolder(t, 9)
-	if err := r.c.Open(other[3]); err != nil {
+	if err := r.open(other[3]); err != nil {
 		t.Fatal(err)
 	}
 	r.settle()

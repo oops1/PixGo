@@ -343,3 +343,18 @@ func TestTouchOutsideImageNotClaimed(t *testing.T) {
 		t.Error("touch on chrome claimed by the canvas")
 	}
 }
+
+func TestRotate180KeepsTheFittedExtent(t *testing.T) {
+	r := newRig(t)
+	r.c.SetImage(source(600, 200), codec.OrientNormal, viewer.ZoomFit)
+	r.frame()
+	before := r.c.ImageRectLogical()
+	r.c.Rotate180()
+	r.frame()
+	if r.c.Orientation() != codec.OrientRotate180 {
+		t.Fatalf("orientation %d", r.c.Orientation())
+	}
+	if rect := r.c.ImageRectLogical(); rect != before {
+		t.Errorf("rect after a half turn %v, want %v", rect, before)
+	}
+}

@@ -38,9 +38,6 @@ const (
 	SortDate = "date"
 	SortSize = "size"
 
-	TransitionNone = "none"
-	TransitionFade = "fade"
-
 	GalleryGrid = "grid"
 	GalleryList = "list"
 )
@@ -59,10 +56,9 @@ type Format struct {
 }
 
 type Slideshow struct {
-	Interval   int    `json:"interval"`
-	Loop       bool   `json:"loop"`
-	Shuffle    bool   `json:"shuffle"`
-	Transition string `json:"transition"`
+	Interval int  `json:"interval"`
+	Loop     bool `json:"loop"`
+	Shuffle  bool `json:"shuffle"`
 }
 
 type Updates struct {
@@ -134,7 +130,7 @@ func Defaults() Settings {
 		SaveWebPQuality: DefaultSaveWebPQuality, SaveWebPLossless: false,
 
 		Formats:   formats,
-		Slideshow: Slideshow{Interval: 5, Loop: true, Shuffle: false, Transition: TransitionNone},
+		Slideshow: Slideshow{Interval: 5, Loop: true, Shuffle: false},
 		Updates:   Updates{Check: true},
 
 		CacheMB: DefaultCacheMB(), MaxPixels: 100, DecodeThreads: 0,
@@ -173,7 +169,6 @@ func (s *Settings) Normalize() {
 	oneOf(&s.Wheel, d.Wheel, WheelZoom, WheelNavigate)
 	oneOf(&s.Sort, d.Sort, SortName, SortDate, SortSize)
 	oneOf(&s.GalleryView, d.GalleryView, GalleryGrid, GalleryList)
-	oneOf(&s.Slideshow.Transition, d.Slideshow.Transition, TransitionNone, TransitionFade)
 	clamp(&s.Preload, 0, 2, d.Preload)
 	clamp(&s.GalleryThumbSize, 96, 384, d.GalleryThumbSize)
 	clamp(&s.SaveJPEGQuality, MinSaveQuality, MaxSaveQuality, d.SaveJPEGQuality)

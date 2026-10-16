@@ -255,8 +255,8 @@ func TestMenuKeyOpensTheContextMenuOfTheSelection(t *testing.T) {
 	src.selected = -1
 	r2 := newRig(t, src, mockW, mockH)
 	r2.key(widget.KeyMenu, 0)
-	if r2.rec.has("menu") {
-		t.Fatal("no menu without a selection")
+	if !r2.rec.has("menu") || len(r2.rec.menuItems) != 3 {
+		t.Fatalf("without a selection the menu key offers the page menu: %q", menuTexts(r2.rec.menuItems))
 	}
 }
 

@@ -64,6 +64,10 @@ type Controller struct {
 	shuffle bool
 	rnd     *rand.Rand
 
+	lastScan time.Time
+	scanGen  uint64
+	scanning bool
+
 	unsub    func()
 	OnChange func()
 	OnLists  func()
@@ -74,7 +78,7 @@ func NewController(env Env, canvas *view.Canvas) *Controller {
 		env.Now = time.Now
 	}
 	st := env.Settings.Get()
-	par.Set(st.DecodeThreads)
+	par.Set(threadSetting(st.DecodeThreads))
 	c := &Controller{
 		env:       env,
 		canvas:    canvas,
@@ -211,10 +215,37 @@ func (c *Controller) Open(path string) error {
 	if err != nil {
 		return err
 	}
-	if _, err := os.Stat(abs); err != nil {
+	c.cancelScan()
+	info, err := os.Stat(abs)
+	if err != nil {
 		c.fail(abs, err)
 		return err
 	}
+	if info.IsDir() {
+		return c.openDir(abs)
+	}
+	return c.openFile(abs)
+}
+
+func (c *Controller) openFile(abs string) error {
+	st := c.env.Settings.Get()
+	folder, ok := viewer.SingleFolder(abs, c.env.Registry.Supports, c.sortMode(), st.SortDesc)
+	if !ok {
+		c.fail(abs, os.ErrNotExist)
+		return os.ErrNotExist
+	}
+	c.folder = folder
+	c.nav = viewer.NewNavigator(folder, 0)
+	c.nav.SetLoop(st.LoopFolder)
+	c.applyOrder()
+	c.Recent.Add(abs)
+	c.listsChanged()
+	c.show(false)
+	c.RescanAsync()
+	return nil
+}
+
+func (c *Controller) openDir(abs string) error {
 	st := c.env.Settings.Get()
 	folder, idx, err := viewer.OpenFolder(abs, c.env.Registry.Supports, c.sortMode(), st.SortDesc)
 	if err != nil {
@@ -460,16 +491,41 @@ func (c *Controller) listsChanged() {
 	}
 }
 
-func (c *Controller) SetActive(active bool) { c.anim.setActive(active) }
+const (
+	scanKey        = "scan"
+	rescanInterval = 2 * time.Second
+)
+
+func (c *Controller) SetActive(active bool) {
+	c.anim.setActive(active)
+	if active && c.env.Now().Sub(c.lastScan) >= rescanInterval {
+		c.RescanAsync()
+	}
+}
+
+func (c *Controller) Scanning() bool { return c.scanning }
+
+func (c *Controller) cancelScan() {
+	c.runner.Cancel(scanKey)
+	c.scanning = false
+}
 
 func (c *Controller) RescanAsync() {
 	if c.folder == nil || c.nav == nil {
 		return
 	}
+	c.lastScan = c.env.Now()
+	c.scanGen++
+	gen := c.scanGen
+	c.scanning = true
 	folder := c.folder
-	c.runner.Go("scan", 0, func(ctx contextT) (any, error) {
+	c.runner.Go(scanKey, 0, func(ctx contextT) (any, error) {
 		return folder.Scan()
 	}, func(v any, err error) {
+		if gen != c.scanGen {
+			return
+		}
+		c.scanning = false
 		if err != nil || folder != c.folder {
 			return
 		}
@@ -547,7 +603,7 @@ func (c *Controller) Registry() *codec.Registry { return c.env.Registry }
 func (c *Controller) Supports(path string) bool { return c.env.Registry.Supports(path) }
 
 func (c *Controller) ApplyThreads() {
-	par.Set(c.env.Settings.Get().DecodeThreads)
+	par.Set(threadSetting(c.env.Settings.Get().DecodeThreads))
 	c.loader.SetWorkers(0)
 }
 
@@ -555,4 +611,11 @@ func (c *Controller) ApplyCache() {
 	bytes := int64(c.env.Settings.Get().CacheMB) << 20
 	c.cache.SetBudget(bytes)
 	c.loader.SetTileBudget(tileBudgetFor(bytes))
+}
+
+func threadSetting(configured int) int {
+	if configured > 0 {
+		return configured
+	}
+	return settings.ThreadsFromEnv()
 }

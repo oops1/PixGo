@@ -1,6 +1,9 @@
 package platform
 
-import "os"
+import (
+	"os"
+	"sync/atomic"
+)
 
 var ImageMimeTypes = []string{
 	"image/jpeg",
@@ -35,8 +38,15 @@ var ImageMimeTypes = []string{
 
 const DefaultDesktopID = "pixgo.desktop"
 
+var desktopID atomic.Value
+
+func SetDesktopID(id string) { desktopID.Store(id) }
+
 func DesktopID() string {
 	if id := os.Getenv("PIXGO_DESKTOP_ID"); id != "" {
+		return id
+	}
+	if id, ok := desktopID.Load().(string); ok && id != "" {
 		return id
 	}
 	return DefaultDesktopID

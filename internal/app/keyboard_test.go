@@ -264,3 +264,32 @@ func TestEscapeLeavesFullscreenBeforeAnythingElse(t *testing.T) {
 		t.Error("the same escape also closed the panel")
 	}
 }
+
+func TestTypedPlusAndNumpadDigitsDriveTheZoom(t *testing.T) {
+	a := viewerWithImage(t)
+	k := newTypist(t, a)
+
+	k.press(widget.KeyOemPlus, widget.ModShift)
+	if a.Canvas.Mode() != viewer.ZoomCustom {
+		t.Fatalf("Shift+= left the mode at %v", a.Canvas.Mode())
+	}
+	k.press(widget.KeyNumpad1, 0)
+	if a.Canvas.Mode() != viewer.ZoomFit {
+		t.Fatalf("numpad 1 gave mode %v", a.Canvas.Mode())
+	}
+	k.press(widget.KeyNumpad2, 0)
+	if a.Canvas.Mode() != viewer.ZoomFitWidth {
+		t.Fatalf("numpad 2 gave mode %v", a.Canvas.Mode())
+	}
+	k.press(widget.KeyNumpad0, 0)
+	if a.Canvas.Mode() != viewer.ZoomActual {
+		t.Fatalf("numpad 0 gave mode %v", a.Canvas.Mode())
+	}
+	before := a.Canvas.ZoomPercent()
+	k.press(widget.KeyOemPlus, widget.ModCtrl|widget.ModShift)
+	if a.Canvas.ZoomPercent() <= before {
+		t.Fatalf("Ctrl+Shift+= did not zoom in: %d -> %d", before, a.Canvas.ZoomPercent())
+	}
+	k.press(widget.KeySubtract, 0)
+	k.press(widget.KeyAdd, 0)
+}

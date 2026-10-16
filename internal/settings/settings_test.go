@@ -21,7 +21,7 @@ func TestDefaultsMatchSpec(t *testing.T) {
 		!d.ApplyExifOrientation || d.KeepZoomOnNavigate || d.LoopFolder || d.Sort != "name" || d.SortDesc {
 		t.Fatalf("view defaults: %+v", d)
 	}
-	if d.Slideshow != (Slideshow{Interval: 5, Loop: true, Shuffle: false, Transition: "none"}) {
+	if d.Slideshow != (Slideshow{Interval: 5, Loop: true, Shuffle: false}) {
 		t.Fatalf("slideshow defaults: %+v", d.Slideshow)
 	}
 	if d.MaxPixels != 100 || d.DecodeThreads != 0 || d.ThumbCacheMB != 256 || d.CacheMB < 256 || d.CacheMB > 1024 {
@@ -138,7 +138,7 @@ func TestNormalize(t *testing.T) {
 		s.InitialZoom != d.InitialZoom || s.Wheel != d.Wheel || s.Preload != d.Preload || s.Sort != d.Sort ||
 		s.CacheMB != d.CacheMB || s.MaxPixels != d.MaxPixels || s.DecodeThreads != d.DecodeThreads ||
 		s.AnimationFPS != d.AnimationFPS || s.ThumbCacheMB != d.ThumbCacheMB ||
-		s.Slideshow.Interval != d.Slideshow.Interval || s.Slideshow.Transition != d.Slideshow.Transition {
+		s.Slideshow.Interval != d.Slideshow.Interval {
 		t.Fatalf("not normalized: %+v", s)
 	}
 	s, _ = Decode([]byte(`{"language":"de","preload":0,"slideshow":{"interval":60,"loop":false}}`))
@@ -385,7 +385,7 @@ func TestWindowStateRoundTrip(t *testing.T) {
 	if err != nil || w != DefaultWindowState() || w.HasBounds() {
 		t.Fatalf("missing file: %+v %v", w, err)
 	}
-	in := WindowState{X: -1920, Y: 40, W: 1100, H: 700, Maximized: true, LastFile: `D:\Фото\a b.jpg`, InfoPanelWidth: 360}
+	in := WindowState{X: -1920, Y: 40, W: 1100, H: 700, Maximized: true, LastFile: `D:\Фото\a b.jpg`}
 	if err := in.SaveTo(path); err != nil {
 		t.Fatal(err)
 	}
@@ -397,7 +397,7 @@ func TestWindowStateRoundTrip(t *testing.T) {
 
 func TestWindowStateNormalizeAndBroken(t *testing.T) {
 	w, err := DecodeWindowState([]byte(`{"x":5,"y":6,"w":-3,"h":400,"infoPanelWidth":5000}`))
-	if err != nil || w.HasBounds() || w.X != 0 || w.Y != 0 || w.InfoPanelWidth != DefaultInfoPanelWidth {
+	if err != nil || w.HasBounds() || w.X != 0 || w.Y != 0 {
 		t.Fatalf("%+v %v", w, err)
 	}
 	path := filepath.Join(t.TempDir(), "window.json")
@@ -417,7 +417,7 @@ func TestWindowStatePathUsesStateDir(t *testing.T) {
 	if WindowStatePath() != filepath.Join(dir, "window.json") {
 		t.Fatal(WindowStatePath())
 	}
-	in := WindowState{W: 800, H: 600, InfoPanelWidth: 300}
+	in := WindowState{W: 800, H: 600}
 	if err := in.Save(); err != nil {
 		t.Fatal(err)
 	}
@@ -453,5 +453,34 @@ func TestGallerySettingsAreNormalized(t *testing.T) {
 		if s.GalleryView != want.view || s.GalleryThumbSize != want.size {
 			t.Errorf("%s: view %q size %d, want %q %d", in, s.GalleryView, s.GalleryThumbSize, want.view, want.size)
 		}
+	}
+}
+
+func TestWindowStateIgnoresTheRetiredInfoPanelWidth(t *testing.T) {
+	w, err := DecodeWindowState([]byte(`{"x":10,"y":20,"w":900,"h":600,"maximized":true,"lastFile":"a.jpg","infoPanelWidth":360}`))
+
+	want := WindowState{X: 10, Y: 20, W: 900, H: 600, Maximized: true, LastFile: "a.jpg"}
+	if err != nil || w != want {
+		t.Fatalf("got %+v %v, want %+v", w, err, want)
+	}
+	path := filepath.Join(t.TempDir(), "window.json")
+	if err := w.SaveTo(path); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil || strings.Contains(string(raw), "infoPanelWidth") {
+		t.Fatalf("the saved file still carries the retired field: %s %v", raw, err)
+	}
+}
+
+func TestRetiredSlideshowTransitionInOldFilesIsIgnored(t *testing.T) {
+	s, err := Decode([]byte(`{"theme":"light","futureKey":7,"slideshow":{"interval":9,"loop":false,"shuffle":true,"transition":"fade"}}`))
+
+	if err != nil || s.Theme != "light" || s.Slideshow != (Slideshow{Interval: 9, Loop: false, Shuffle: true}) {
+		t.Fatalf("%+v %v", s, err)
+	}
+	b, err := s.Encode()
+	if err != nil || strings.Contains(string(b), `"transition"`) || !strings.Contains(string(b), `"futureKey"`) {
+		t.Fatalf("re-encoded: %s %v", b, err)
 	}
 }

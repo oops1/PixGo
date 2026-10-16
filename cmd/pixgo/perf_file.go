@@ -153,7 +153,7 @@ func (p *perfRun) settleBackground(d perfDriver) {
 	deadline := time.Now().Add(perfBackgroundLimit)
 	for time.Now().Before(deadline) {
 		d.eng.Flush()
-		if d.a.Ctl.LoaderPending() == 0 {
+		if d.a.Ctl.LoaderPending() == 0 && !d.a.Ctl.Scanning() {
 			break
 		}
 		time.Sleep(perfPollInterval)

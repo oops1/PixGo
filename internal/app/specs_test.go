@@ -74,3 +74,29 @@ func TestSpecsCoverArchitectureShortcuts(t *testing.T) {
 		}
 	}
 }
+
+func TestZoomShortcutsCoverTypedPlusAndTheNumpad(t *testing.T) {
+	reg := commands.NewRegistry()
+	for _, s := range Specs {
+		reg.Add(commands.Command{ID: s.ID, Keys: s.Keys, Run: func() {}})
+	}
+	for _, c := range []struct {
+		chord commands.Chord
+		id    commands.ID
+	}{
+		{commands.C(commands.Shift, commands.KeyPlus), CmdZoomIn},
+		{commands.C(commands.Ctrl|commands.Shift, commands.KeyPlus), CmdZoomIn},
+		{commands.C(commands.Ctrl, commands.KeyPlus), CmdZoomIn},
+		{commands.C(0, commands.KeyPlus), CmdZoomIn},
+		{commands.C(0, commands.KeyMinus), CmdZoomOut},
+		{commands.C(commands.Ctrl, commands.KeyMinus), CmdZoomOut},
+		{commands.C(0, '0'), CmdZoomActual},
+		{commands.C(0, '1'), CmdZoomFit},
+		{commands.C(0, '2'), CmdZoomWidth},
+	} {
+		cmd := reg.ForChord(c.chord)
+		if cmd == nil || cmd.ID != c.id {
+			t.Errorf("chord %s: got %v want %s", c.chord, cmd, c.id)
+		}
+	}
+}

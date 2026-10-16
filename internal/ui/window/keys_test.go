@@ -22,6 +22,13 @@ func TestChordOfCodes(t *testing.T) {
 		{widget.KeyEvent{Code: widget.KeyEnter, Mod: widget.ModAlt, Pressed: true}, commands.C(commands.Alt, commands.KeyEnter)},
 		{widget.KeyEvent{Code: widget.KeyOemComma, Mod: widget.ModCtrl, Pressed: true}, commands.C(commands.Ctrl, commands.KeyComma)},
 		{widget.KeyEvent{Code: widget.KeyNumpad0, Pressed: true}, commands.C(0, '0')},
+		{widget.KeyEvent{Code: widget.KeyNumpad1, Pressed: true}, commands.C(0, '1')},
+		{widget.KeyEvent{Code: widget.KeyNumpad2, Pressed: true}, commands.C(0, '2')},
+		{widget.KeyEvent{Code: widget.KeyNumpad1, Mod: widget.ModCtrl, Pressed: true}, commands.C(commands.Ctrl, '1')},
+		{widget.KeyEvent{Code: widget.KeyOemPlus, Mod: widget.ModShift, Pressed: true}, commands.C(commands.Shift, commands.KeyPlus)},
+		{widget.KeyEvent{Code: widget.KeyOemPlus, Mod: widget.ModCtrl | widget.ModShift, Pressed: true}, commands.C(commands.Ctrl|commands.Shift, commands.KeyPlus)},
+		{widget.KeyEvent{Code: widget.KeyAdd, Mod: widget.ModCtrl, Pressed: true}, commands.C(commands.Ctrl, commands.KeyPlus)},
+		{widget.KeyEvent{Code: widget.KeySubtract, Mod: widget.ModCtrl, Pressed: true}, commands.C(commands.Ctrl, commands.KeyMinus)},
 	}
 	for _, c := range cases {
 		got, ok := ChordOf(c.e)

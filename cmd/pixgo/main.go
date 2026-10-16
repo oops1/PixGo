@@ -31,7 +31,6 @@ import (
 )
 
 const (
-	appID         = "pixgo"
 	defaultWidth  = 1100
 	defaultHeight = 700
 	minWidth      = 420
@@ -40,7 +39,10 @@ const (
 	updateCheckDelay = 4 * time.Second
 )
 
+var appID = "pixgo"
+
 func main() {
+	platform.SetDesktopID(appID + ".desktop")
 	activationToken := window.TakeActivationToken()
 	screenshot := flag.String("screenshot", "", "render one PNG without a window and exit")
 	width := flag.Int("width", 0, "window width")
@@ -115,10 +117,12 @@ func main() {
 	}
 
 	ws, _ := settings.LoadWindowState()
-	w, h := defaultWidth, defaultHeight
-	if st.RememberWindow && ws.HasBounds() && perf == nil {
-		w, h = ws.W, ws.H
+	var screens []screen
+	if *screenshot == "" && perf == nil {
+		screens = screensOf(window.Monitors())
 	}
+	plan := planWindow(st.RememberWindow && perf == nil, ws, screens)
+	w, h := plan.W, plan.H
 	if *width > 0 {
 		w = *width
 	}
@@ -220,11 +224,9 @@ func main() {
 		case len(paths) > 0:
 			a.OpenFiles(paths)
 			opened = true
-		case st.RestoreLastImage && ws.LastFile != "":
-			if _, err := os.Stat(ws.LastFile); err == nil {
-				a.OpenFiles([]string{ws.LastFile})
-				opened = true
-			}
+		case lastFileToRestore(st.RestoreLastImage, ws, fileExists) != "":
+			a.OpenFiles([]string{ws.LastFile})
+			opened = true
 		}
 		switch {
 		case *galleryDir != "":
@@ -292,34 +294,44 @@ func windowOps(eng *engine.Engine, win *window.Window, a *app.App) uiwin.WindowO
 }
 
 func saveWindowState(eng *engine.Engine, win *window.Window, a *app.App) {
-	if !a.Settings.Get().RememberWindow {
+	st := a.Settings.Get()
+	old, _ := settings.LoadWindowState()
+	ws := nextWindowState(old, snapshotWindow(eng, win), st.RememberWindow, st.RestoreLastImage, a.Ctl.Path())
+	if ws == old {
 		return
 	}
-	n := win.Native()
-	if n == nil {
-		return
-	}
-	ws := settings.DefaultWindowState()
-	ws.Maximized = n.IsMaximized()
-	if !ws.Maximized {
-		w, h := n.GetSize()
-		ws.W, ws.H = logicalSize(w, h, eng.Scale())
-		ws.X, ws.Y = n.GetPosition()
-	} else if old, err := settings.LoadWindowState(); err == nil {
-		ws = old
-		ws.Maximized = true
-	}
-	ws.LastFile = a.Ctl.Path()
 	if err := ws.Save(); err != nil {
 		slog.Warn("window state", "err", err)
 	}
+}
+
+func snapshotWindow(eng *engine.Engine, win *window.Window) windowSnapshot {
+	n := win.Native()
+	if n == nil || win.IsFullscreen() {
+		return windowSnapshot{}
+	}
+	s := windowSnapshot{Maximized: n.IsMaximized(), Valid: true}
+	if !s.Maximized {
+		w, h := n.GetSize()
+		s.W, s.H = logicalSize(w, h, eng.Scale())
+		s.X, s.Y = n.GetPosition()
+	}
+	return s
+}
+
+func screensOf(list []window.Monitor) []screen {
+	out := make([]screen, 0, len(list))
+	for _, m := range list {
+		out = append(out, screen{Bounds: m.Bounds, Work: m.Work, Scale: m.Scale})
+	}
+	return out
 }
 
 func waitForImage(eng *engine.Engine, a *app.App) {
 	deadline := time.Now().Add(10 * time.Second)
 	for time.Now().Before(deadline) {
 		eng.Flush()
-		if s := a.Ctl.Status(); s != app.StatusLoading && !a.GalleryBusy() {
+		if s := a.Ctl.Status(); s != app.StatusLoading && !a.Ctl.Scanning() && !a.GalleryBusy() {
 			break
 		}
 		time.Sleep(5 * time.Millisecond)

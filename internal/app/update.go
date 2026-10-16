@@ -46,13 +46,19 @@ func (a *App) CheckForUpdates() { a.checkUpdates(true) }
 
 func (a *App) ScheduleUpdateCheck() {
 	st := a.Settings.Get().Updates
-	if !st.Check || !updates.Comparable(buildinfo.Version) || !updates.Due(st.LastCheck, a.upd.now()) {
+	if settings.UpdateCheckDisabled() || !st.Check || !updates.Comparable(buildinfo.Version) || !updates.Due(st.LastCheck, a.upd.now()) {
 		return
 	}
 	a.checkUpdates(false)
 }
 
 func (a *App) checkUpdates(manual bool) {
+	if settings.UpdateCheckDisabled() {
+		if manual {
+			a.upd.notify(i18n.T("update.title"), i18n.T("update.disabled"))
+		}
+		return
+	}
 	current := buildinfo.String()
 	a.Ctl.Async("updates", func(ctx contextT) (any, error) {
 		ctx, cancel := context.WithTimeout(ctx, updates.Timeout)

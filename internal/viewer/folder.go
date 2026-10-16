@@ -50,6 +50,18 @@ func OpenFolder(path string, supports func(string) bool, mode SortMode, desc boo
 	return f, indexOfPath(entries, abs), nil
 }
 
+func SingleFolder(path string, supports func(string) bool, mode SortMode, desc bool) (*Folder, bool) {
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return nil, false
+	}
+	entry, ok := statEntry(abs)
+	if !ok {
+		return nil, false
+	}
+	return &Folder{dir: filepath.Dir(abs), supports: supports, mode: mode, desc: desc, pinned: abs, entries: []Entry{entry}}, true
+}
+
 func scanWithPinned(dir string, supports func(string) bool, mode SortMode, desc bool, pinned string) ([]Entry, error) {
 	entries, err := ScanDir(dir, supports, mode, desc)
 	if err != nil {

@@ -263,9 +263,10 @@ func newRig(t testing.TB, src *fakeSource, w, h int) *rig {
 			rec.logf("address")
 			return rec.addrErr
 		},
-		Refresh: func() { rec.logf("refresh") },
-		Close:   func() { rec.logf("close") },
-		Visible: func(first, last int) { rec.visible = append(rec.visible, [2]int{first, last}) },
+		Refresh:  func() { rec.logf("refresh") },
+		Settings: func() { rec.logf("settings") },
+		Close:    func() { rec.logf("close") },
+		Visible:  func(first, last int) { rec.visible = append(rec.visible, [2]int{first, last}) },
 		ShowMenu: func(items []widget.MenuItem, x, y int) {
 			rec.menuItems = items
 			rec.menuAt = [2]int{x, y}

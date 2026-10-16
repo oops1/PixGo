@@ -246,6 +246,7 @@ func (c *Canvas) ToggleFitActual() {
 
 func (c *Canvas) RotateRight() { c.apply(func(f viewer.Frame) { c.view.Rotate(f, true) }) }
 func (c *Canvas) RotateLeft()  { c.apply(func(f viewer.Frame) { c.view.Rotate(f, false) }) }
+func (c *Canvas) Rotate180()   { c.apply(func(f viewer.Frame) { c.view.Rotate180(f) }) }
 func (c *Canvas) FlipH()       { c.apply(func(f viewer.Frame) { c.view.FlipH(f) }) }
 func (c *Canvas) FlipV()       { c.apply(func(f viewer.Frame) { c.view.FlipV(f) }) }
 

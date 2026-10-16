@@ -59,3 +59,17 @@ func TestControllerExposesLimitsAndRegistry(t *testing.T) {
 		t.Fatalf("pending %d", a.Ctl.LoaderPending())
 	}
 }
+
+func TestThreadSettingFallsBackToTheEnvironment(t *testing.T) {
+	t.Setenv(settings.EnvThreads, "3")
+	if got := threadSetting(0); got != 3 {
+		t.Fatalf("automatic with PIXGO_THREADS=3: %d", got)
+	}
+	if got := threadSetting(5); got != 5 {
+		t.Fatalf("an explicit setting must win: %d", got)
+	}
+	t.Setenv(settings.EnvThreads, "")
+	if got := threadSetting(0); got != 0 {
+		t.Fatalf("no setting and no variable: %d", got)
+	}
+}

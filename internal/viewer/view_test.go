@@ -1094,3 +1094,24 @@ func TestViewIsComparable(t *testing.T) {
 		t.Fatal("different views must differ")
 	}
 }
+
+func TestRotate180TurnsTheOrientationHalfWay(t *testing.T) {
+	f := fr(3000, 2000, 1, 1000, 800)
+	var v View
+	v.Reset(ZoomFit)
+	v.Rotate180(f)
+	if v.Orient(f) != codec.OrientRotate180 {
+		t.Fatalf("orient %d", v.Orient(f))
+	}
+	if w, h := v.OrientedSize(f); w != 3000 || h != 2000 {
+		t.Fatalf("size %dx%d", w, h)
+	}
+	v.Rotate(f, true)
+	if v.Orient(f) != codec.OrientRotate270 {
+		t.Fatalf("orient after a further turn %d", v.Orient(f))
+	}
+	v.Rotate180(f)
+	if v.Orient(f) != codec.OrientRotate90 {
+		t.Fatalf("orient after the second half turn %d", v.Orient(f))
+	}
+}

@@ -356,6 +356,9 @@ func (p *Page) rightButton(e widget.MouseEvent) bool {
 	p.ensureLayout()
 	h := p.hitAt(e.X, e.Y)
 	if h.kind != hitTile {
+		if p.onPageSurface(h, e.X, e.Y) {
+			p.showPageMenu(e.X, e.Y)
+		}
 		return true
 	}
 	if h.index != p.Selected() {
@@ -400,4 +403,12 @@ func (p *Page) resync() {
 	p.seekNav()
 	p.setScrollRaw(p.scroll)
 	p.syncVisible()
+}
+
+func (p *Page) onPageSurface(h hit, x, y int) bool {
+	switch h.kind {
+	case hitBlank, hitNav, hitNone:
+		return in(p.Bounds(), x, y) && y >= headerHeight
+	}
+	return false
 }

@@ -109,6 +109,7 @@ var en = map[string]string{
 	"dialog.dontAsk":                 "Don't ask again",
 
 	"update.title":       "Updates",
+	"update.disabled":    "Update checks are switched off on this computer.",
 	"update.available":   "PixGo %s is available, you have %s. Open the download page?",
 	"update.upToDate":    "You have the latest version of PixGo (%s).",
 	"update.failed":      "Could not check for updates. Check the connection and try again.",

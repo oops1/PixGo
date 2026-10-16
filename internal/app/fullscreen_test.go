@@ -7,7 +7,9 @@ import (
 
 	"github.com/oops1/headless-gui/v3/widget"
 
+	"github.com/oops1/PixGo/internal/codec"
 	"github.com/oops1/PixGo/internal/commands"
+	"github.com/oops1/PixGo/internal/i18n"
 	"github.com/oops1/PixGo/internal/settings"
 	"github.com/oops1/PixGo/internal/ui/window"
 )
@@ -145,10 +147,32 @@ func TestEveryImplementedSpecIsEnabledWhenItShould(t *testing.T) {
 	writePNG(t, p, 30, 20, color.NRGBA{1, 2, 3, 255})
 	a.Ctl.Open(p)
 	waitReady(t, a)
-	for _, id := range []commands.ID{CmdZoomIn, CmdZoomOut, CmdZoomActual, CmdZoomFit, CmdZoomWidth, CmdRotateLeft, CmdRotateRight, CmdFlipH, CmdFlipV,
+	for _, id := range []commands.ID{CmdZoomIn, CmdZoomOut, CmdZoomActual, CmdZoomFit, CmdZoomWidth, CmdRotateLeft, CmdRotateRight, CmdRotate180, CmdFlipH, CmdFlipV,
 		CmdFavorite, CmdFullscreen, CmdDelete, CmdCopy, CmdCopyPath, CmdCopyImage, CmdReveal, CmdSaveAs, CmdOpen, CmdGallery} {
 		if c := a.Commands.Get(id); c == nil || !c.IsEnabled() {
 			t.Errorf("command %s is not enabled with an image open", id)
 		}
+	}
+}
+
+func TestRotate180IsInTheMenuAndTurnsThePicture(t *testing.T) {
+	a, _ := goldenApp(t, 770, 504, nil)
+	p := filepath.Join(t.TempDir(), "x.png")
+	writePNG(t, p, 30, 20, color.NRGBA{1, 2, 3, 255})
+	a.Ctl.Open(p)
+	waitReady(t, a)
+	found := false
+	for _, it := range a.menuItems() {
+		if it.Text == i18n.T("cmd.rotate180") && !it.Disabled {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("the menu has no enabled Rotate 180 entry")
+	}
+	a.Eng.RenderOnce()
+	a.Commands.Run(CmdRotate180)
+	if got := a.Canvas.Orientation(); got != codec.OrientRotate180 {
+		t.Fatalf("orientation %d after the command", got)
 	}
 }

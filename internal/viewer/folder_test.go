@@ -285,3 +285,55 @@ func TestFolderConcurrentUse(t *testing.T) {
 	}
 	wg.Wait()
 }
+
+func TestSingleFolderHoldsOnlyTheRequestedFileUntilRescanned(t *testing.T) {
+	dir := t.TempDir()
+	for _, n := range []string{"a.jpg", "b.jpg", "c.jpg"} {
+		writeFile(t, dir, n, 1, time.Time{})
+	}
+	odd := writeFile(t, dir, "scan.dat", 1, time.Time{})
+
+	f, ok := SingleFolder(odd, byExt(".jpg"), SortName, false)
+
+	if !ok || f.Len() != 1 || f.At(0).Name != "scan.dat" || f.Dir() != dir {
+		t.Fatalf("ok %v, len %d, dir %q", ok, f.Len(), f.Dir())
+	}
+	if _, ok := NewNavigator(f, 0).Current(); !ok {
+		t.Fatal("the single entry must be current")
+	}
+	changed, err := f.Rescan()
+	if err != nil || !changed {
+		t.Fatalf("rescan changed=%v err=%v", changed, err)
+	}
+	if want := []string{"a.jpg", "b.jpg", "c.jpg", "scan.dat"}; !slices.Equal(names(f.Entries()), want) {
+		t.Fatalf("got %v", names(f.Entries()))
+	}
+	if f.IndexOf(odd) != 3 {
+		t.Fatalf("the requested file moved to %d", f.IndexOf(odd))
+	}
+}
+
+func TestSingleFolderRejectsMissingFilesAndDirectories(t *testing.T) {
+	dir := t.TempDir()
+	if _, ok := SingleFolder(filepath.Join(dir, "none.jpg"), byExt(".jpg"), SortName, false); ok {
+		t.Fatal("a missing file has no folder")
+	}
+	if _, ok := SingleFolder(dir, byExt(".jpg"), SortName, false); ok {
+		t.Fatal("a directory is not a single file")
+	}
+}
+
+func TestSingleFolderScanDropsAFileDeletedMeanwhile(t *testing.T) {
+	dir := t.TempDir()
+	p := writeFile(t, dir, "a.jpg", 1, time.Time{})
+	f, _ := SingleFolder(p, byExt(".jpg"), SortName, false)
+	if err := os.Remove(p); err != nil {
+		t.Fatal(err)
+	}
+
+	entries, err := f.Scan()
+
+	if err != nil || len(entries) != 0 {
+		t.Fatalf("entries %v err %v", entries, err)
+	}
+}

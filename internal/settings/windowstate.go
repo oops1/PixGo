@@ -10,24 +10,17 @@ import (
 	"github.com/oops1/PixGo/internal/fsutil"
 )
 
-const (
-	DefaultInfoPanelWidth = 320
-	MinInfoPanelWidth     = 240
-	MaxInfoPanelWidth     = 640
-)
-
 type WindowState struct {
-	X              int    `json:"x"`
-	Y              int    `json:"y"`
-	W              int    `json:"w"`
-	H              int    `json:"h"`
-	Maximized      bool   `json:"maximized"`
-	LastFile       string `json:"lastFile"`
-	InfoPanelWidth int    `json:"infoPanelWidth"`
+	X         int    `json:"x"`
+	Y         int    `json:"y"`
+	W         int    `json:"w"`
+	H         int    `json:"h"`
+	Maximized bool   `json:"maximized"`
+	LastFile  string `json:"lastFile"`
 }
 
 func DefaultWindowState() WindowState {
-	return WindowState{InfoPanelWidth: DefaultInfoPanelWidth}
+	return WindowState{}
 }
 
 func WindowStatePath() string { return filepath.Join(fsutil.StateDir(), "window.json") }
@@ -43,9 +36,6 @@ func (w *WindowState) Normalize() {
 	}
 	if w.X < -20000 || w.X > 40000 || w.Y < -20000 || w.Y > 40000 {
 		w.X, w.Y = 0, 0
-	}
-	if w.InfoPanelWidth < MinInfoPanelWidth || w.InfoPanelWidth > MaxInfoPanelWidth {
-		w.InfoPanelWidth = DefaultInfoPanelWidth
 	}
 }
 

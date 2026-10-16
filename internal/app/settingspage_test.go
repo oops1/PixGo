@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/oops1/headless-gui/v3/widget"
+
 	"github.com/oops1/PixGo/internal/i18n"
 	"github.com/oops1/PixGo/internal/settings"
 	uiwindow "github.com/oops1/PixGo/internal/ui/window"
@@ -211,4 +213,85 @@ func TestDefaultAppsActionWorksWithoutPlatformSupport(t *testing.T) {
 	t.Cleanup(a.Shutdown)
 
 	a.ensureSettings().actions().OpenDefaultApps()
+}
+
+func TestSettingsShortcutWorksOnTheGalleryPage(t *testing.T) {
+	r := newGalleryRig(t, nil)
+	r.open(t)
+
+	handled := r.app.Root.HandleKey(widget.KeyEvent{Code: widget.KeyOemComma, Mod: widget.ModCtrl, Pressed: true})
+
+	if !handled || !r.app.SettingsOpen() {
+		t.Fatalf("handled = %v, settings open = %v", handled, r.app.SettingsOpen())
+	}
+	r.app.CloseSettings()
+	if !r.app.GalleryOpen() {
+		t.Fatal("the gallery must be back after the settings page")
+	}
+}
+
+func TestGalleryActionsOpenTheSettingsPage(t *testing.T) {
+	r := newGalleryRig(t, nil)
+	r.open(t)
+
+	r.app.gal.actions().Settings()
+
+	if !r.app.SettingsOpen() {
+		t.Fatal("the gallery settings action did not open the page")
+	}
+}
+
+func TestOpeningAFileClosesTheSettingsPage(t *testing.T) {
+	a, _ := goldenApp(t, 770, 504, nil)
+	t.Cleanup(a.Shutdown)
+	first, _ := twoImages(t)
+	a.OpenSettings()
+
+	a.OpenFiles([]string{first})
+	waitName(t, a, "a.jpg")
+
+	if a.SettingsOpen() || a.Page() != uiwindow.PageViewer || a.Content() != a.Canvas {
+		t.Fatalf("page = %v, the picture must be shown instead of the settings", a.Page())
+	}
+}
+
+func TestOpeningAFileFromSettingsOpenedOverTheGalleryShowsTheViewer(t *testing.T) {
+	r := newGalleryRig(t, nil)
+	r.open(t)
+	r.app.OpenSettings()
+
+	r.app.OpenFiles([]string{r.b})
+	waitName(t, r.app, "b.jpg")
+
+	if r.app.SettingsOpen() || r.app.GalleryOpen() || r.app.Content() != r.app.Canvas {
+		t.Fatalf("page = %v, want the viewer", r.app.Page())
+	}
+}
+
+func TestHandoffClosesTheSettingsPageAndRaisesTheWindow(t *testing.T) {
+	a, _ := goldenApp(t, 770, 504, nil)
+	t.Cleanup(a.Shutdown)
+	first, _ := twoImages(t)
+	raised := 0
+	a.SetOps(uiwindow.WindowOps{Raise: func(string) { raised++ }})
+	a.OpenSettings()
+
+	a.Handoff(EncodeHandoff("tok", []string{first}))
+	waitName(t, a, "a.jpg")
+
+	if a.SettingsOpen() || a.Page() != uiwindow.PageViewer || raised != 1 {
+		t.Fatalf("page = %v, raised = %d", a.Page(), raised)
+	}
+}
+
+func TestHandoffWithoutFilesKeepsTheSettingsPage(t *testing.T) {
+	a, _ := goldenApp(t, 770, 504, nil)
+	t.Cleanup(a.Shutdown)
+	a.OpenSettings()
+
+	a.Handoff(nil)
+
+	if !a.SettingsOpen() {
+		t.Fatal("a second launch without files must not close the settings")
+	}
 }

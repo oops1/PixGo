@@ -53,6 +53,7 @@ type Actions struct {
 	SetThumbSize   func(px int)
 	Address        func(text string) error
 	Refresh        func()
+	Settings       func()
 	Close          func()
 	Visible        func(first, last int)
 	ShowMenu       func(items []widget.MenuItem, x, y int)

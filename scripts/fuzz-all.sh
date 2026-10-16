@@ -17,6 +17,8 @@ targets=(
     "internal/codec/raw FuzzProbe"
     "internal/codec/raw FuzzSniff"
     "internal/codec/bmp FuzzDecode"
+    "internal/codec/png FuzzDecode"
+    "internal/codec/svg FuzzDecode"
     "internal/codec/gif FuzzDecode"
     "internal/codec/ico FuzzDecode"
     "internal/codec/webp FuzzDecode"

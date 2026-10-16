@@ -394,13 +394,46 @@ func TestFolderMenuOnlyOffersOpen(t *testing.T) {
 	}
 }
 
-func TestRightClickOnBlankSpaceShowsNoMenu(t *testing.T) {
+func TestRightClickOnBlankSpaceShowsTheRefreshAndSettingsMenu(t *testing.T) {
 	r := newRig(t, mockSource(), mockW, mockH)
 
 	r.rightClick(400, 375)
 
+	if !r.rec.has("menu") {
+		t.Fatalf("calls = %v", r.rec.calls)
+	}
+	items := r.rec.menuItems
+	if len(items) != 3 || items[0].Text != "Обновить" || !items[1].Separator || items[2].Text != "Настройки" {
+		t.Fatalf("menu = %q", menuTexts(items))
+	}
+	if r.rec.menuAt != [2]int{400, 375} {
+		t.Fatalf("menu at %v", r.rec.menuAt)
+	}
+	items[2].OnClick()
+	items[0].OnClick()
+	if !r.rec.has("settings") || !r.rec.has("refresh") {
+		t.Fatalf("calls = %v", r.rec.calls)
+	}
+}
+
+func TestRightClickOnTheHeaderShowsNoPageMenu(t *testing.T) {
+	r := newRig(t, mockSource(), mockW, mockH)
+
+	r.rightClick(60, 20)
+
 	if r.rec.has("menu") {
 		t.Fatalf("calls = %v", r.rec.calls)
+	}
+}
+
+func TestPageMenuOmitsEntriesWithoutActions(t *testing.T) {
+	r := newRig(t, mockSource(), mockW, mockH)
+	r.page.deps.Actions.Settings = nil
+
+	r.rightClick(400, 375)
+
+	if got := menuTexts(r.rec.menuItems); !equalStrings(got, []string{"Обновить"}) {
+		t.Fatalf("menu = %q", got)
 	}
 }
 
