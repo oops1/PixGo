@@ -25,6 +25,7 @@ func (p *paintProbe) Draw(c widget.DrawContext) {
 func paint(t *testing.T, k float64, draw func(c widget.DrawContext)) *image.RGBA {
 	t.Helper()
 	eng := testutil.NewEngineScaled(64, 64, k)
+	t.Cleanup(eng.Stop)
 	eng.SetRootFullCanvas(&paintProbe{draw: draw})
 	eng.Flush()
 	return eng.RenderOnce()

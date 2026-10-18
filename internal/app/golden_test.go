@@ -47,6 +47,7 @@ func goldenApp(t *testing.T, w, h int, mutate func(*settings.Settings)) (*App, *
 		mutate(&st)
 	}
 	eng := testutil.NewEngine(w, h)
+	t.Cleanup(eng.Stop)
 	reg := codec.NewRegistry()
 	codecall.Register(reg)
 	a := New(eng, Options{Settings: settings.NewMemory(st), Registry: reg})
@@ -104,6 +105,7 @@ func goldenAppSharingState(t *testing.T, prev *App) (*App, *harness) {
 	t.Helper()
 	cfg, state, cache := os.Getenv("PIXGO_CONFIG_DIR"), os.Getenv("PIXGO_STATE_DIR"), os.Getenv("PIXGO_CACHE_DIR")
 	eng := testutil.NewEngine(770, 504)
+	t.Cleanup(eng.Stop)
 	reg := codec.NewRegistry()
 	codecall.Register(reg)
 	t.Setenv("PIXGO_CONFIG_DIR", cfg)

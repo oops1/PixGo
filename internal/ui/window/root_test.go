@@ -175,6 +175,7 @@ func newSizedRig(t *testing.T, w, hgt int, mutate func(*fakeHost)) *rig {
 		mutate(h)
 	}
 	eng := testutil.NewEngine(w, hgt)
+	t.Cleanup(eng.Stop)
 	rec := &recordingEngine{Engine: eng}
 	r := &rig{t: t, eng: eng, rec: rec, host: h, ts: &timers{}, now: time.Unix(100, 0)}
 	r.root = New(h, rec, WindowOps{

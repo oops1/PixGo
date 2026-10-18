@@ -32,6 +32,7 @@ func checkerImage(w, h int) *image.NRGBA {
 func scaledRig(t *testing.T, k float64) (*engine.Engine, *Canvas) {
 	t.Helper()
 	eng := testutil.NewEngineScaled(areaW, areaH, k)
+	t.Cleanup(eng.Stop)
 	c := New(eng)
 	c.Background = render.Background{Canvas: color.RGBA{10, 20, 30, 255}, Kind: render.BgSolid, Fill: color.RGBA{10, 20, 30, 255}}
 	eng.SetRootFullCanvas(c)

@@ -25,6 +25,7 @@ func newRig(t testing.TB, w, h int, cfg Config) *rig {
 	t.Helper()
 	i18n.SetLang("en")
 	eng := testutil.NewEngine(w, h)
+	t.Cleanup(eng.Stop)
 	eng.SetTheme(widget.ThemeByName("Win11 Dark"))
 	backdrop := widget.NewPanel(color.RGBA{R: 32, G: 32, B: 32, A: 255})
 	backdrop.SetBounds(image.Rect(0, 0, w, h))

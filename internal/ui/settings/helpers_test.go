@@ -181,6 +181,7 @@ func newRigWith(t testing.TB, src *fakeSource, w, h int) *rig {
 	t.Helper()
 	i18n.SetLang("ru")
 	eng := testutil.NewEngine(w, h)
+	t.Cleanup(eng.Stop)
 	r := &rig{t: t, eng: eng, src: src, rec: &recorder{}, th: theme.Dark(), tm: &timers{}}
 	rec := r.rec
 	a := Actions{

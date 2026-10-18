@@ -50,6 +50,7 @@ func newPerfApp(t *testing.T, w, h int) (*engine.Engine, *app.App) {
 	t.Setenv("PIXGO_CACHE_DIR", t.TempDir())
 	t.Cleanup(func() { par.Set(0) })
 	eng := testutil.NewEngine(w, h)
+	t.Cleanup(eng.Stop)
 	reg := codec.NewRegistry()
 	codecall.Register(reg)
 	a := app.New(eng, app.Options{Settings: settings.NewMemory(settings.Defaults()), Registry: reg})

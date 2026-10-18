@@ -51,6 +51,7 @@ func newGoldenRig(t testing.TB, w, h int, photo *image.RGBA, mutate func(*fakeHo
 		mutate(host)
 	}
 	eng := testutil.NewEngine(w, h)
+	t.Cleanup(eng.Stop)
 	root := New(host, eng, WindowOps{})
 	root.Theme = theme.Dark()
 	eng.SetRootFullCanvas(root)

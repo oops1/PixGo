@@ -27,6 +27,8 @@ jobs:
       - name: build
         run: go build ./...
       - name: test
+        env:
+          GOMEMLIMIT: 3GiB
         shell: bash
         run: |
           set +e

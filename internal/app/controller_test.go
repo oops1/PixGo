@@ -54,6 +54,7 @@ func newHarnessWith(t *testing.T, mutate func(*settings.Settings), extra ...code
 	}
 	h := &harness{t: t, now: time.Unix(5000, 0)}
 	eng := engine.New(400, 300, 30)
+	t.Cleanup(eng.Stop)
 	h.eng = eng
 	h.canvas = view.New(eng)
 	eng.SetRootFullCanvas(h.canvas)

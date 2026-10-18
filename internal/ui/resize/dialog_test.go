@@ -50,6 +50,7 @@ func newRig(t testing.TB, w, h int, dark bool) *rig {
 func newRigWith(t testing.TB, w, h int, dark bool, orig, initial image.Point) *rig {
 	t.Helper()
 	eng := testutil.NewEngine(w, h)
+	t.Cleanup(eng.Stop)
 	name := "Win11 Light"
 	if dark {
 		name = "Win11 Dark"

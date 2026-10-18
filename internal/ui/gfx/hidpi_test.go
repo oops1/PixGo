@@ -31,6 +31,7 @@ func (p *probe) Draw(c widget.DrawContext) {
 func render(t *testing.T, w, h int, k float64, draw func(c widget.DrawContext)) *image.RGBA {
 	t.Helper()
 	eng := testutil.NewEngineScaled(w, h, k)
+	t.Cleanup(eng.Stop)
 	eng.SetRootFullCanvas(&probe{draw: draw})
 	eng.Flush()
 	return eng.RenderOnce()

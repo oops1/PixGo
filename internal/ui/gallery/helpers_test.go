@@ -241,6 +241,7 @@ func newRig(t testing.TB, src *fakeSource, w, h int) *rig {
 	t.Helper()
 	i18n.SetLang(testLang)
 	eng := testutil.NewEngine(w, h)
+	t.Cleanup(eng.Stop)
 	th := theme.Dark()
 	r := &rig{t: t, eng: eng, src: src, rec: &recorder{}, th: th, now: time.Date(2026, 10, 12, 12, 0, 0, 0, time.UTC), tm: &timers{}}
 	rec := r.rec

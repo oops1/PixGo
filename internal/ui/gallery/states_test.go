@@ -188,6 +188,7 @@ func TestFramedBoundsRenderLikeTheFullWindow(t *testing.T) {
 
 func TestPageDoesNotReadTheSourceBeforeItIsShown(t *testing.T) {
 	eng := testutil.NewEngine(mockW, mockH)
+	t.Cleanup(eng.Stop)
 	src := &explodingSource{fakeSource: mockSource()}
 
 	page := New(eng, Deps{Source: src})

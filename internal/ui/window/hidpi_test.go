@@ -19,6 +19,7 @@ func newScaledRig(t *testing.T, k float64) *rig {
 	h := newHost()
 	h.reg = accessRegistry(h)
 	eng := testutil.NewEngineScaled(770, 504, k)
+	t.Cleanup(eng.Stop)
 	rec := &recordingEngine{Engine: eng}
 	r := &rig{t: t, eng: eng, rec: rec, host: h, ts: &timers{}, now: time.Unix(100, 0)}
 	r.root = New(h, rec, WindowOps{Close: func() { r.ops = append(r.ops, "close") }})

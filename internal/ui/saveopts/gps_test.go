@@ -77,6 +77,7 @@ func TestGPSCheckBoxSpaceTogglesAndTabReachesIt(t *testing.T) {
 
 func TestLosslessWatchReportsTheSwitch(t *testing.T) {
 	eng := testutil.NewEngine(760, 420)
+	t.Cleanup(eng.Stop)
 	backdrop := widget.NewPanel(color.RGBA{R: 32, G: 32, B: 32, A: 255})
 	backdrop.SetBounds(image.Rect(0, 0, 760, 420))
 	eng.SetRoot(backdrop)

@@ -44,6 +44,7 @@ type rig struct {
 func newRig(t *testing.T) *rig {
 	t.Helper()
 	eng := engine.New(areaW, areaH, 30)
+	t.Cleanup(eng.Stop)
 	c := New(eng)
 	r := &rig{eng: eng, c: c, t: t, now: time.Unix(1000, 0)}
 	c.Now = func() time.Time { return r.now }
@@ -241,6 +242,7 @@ func TestEmptyDrawsBackgroundOnly(t *testing.T) {
 func TestHiDPIRendersExactPhysicalTile(t *testing.T) {
 	for _, k := range []float64{1.25, 1.5, 2} {
 		eng := engine.New(areaW, areaH, 30)
+		t.Cleanup(eng.Stop)
 		eng.SetScale(k)
 		c := New(eng)
 		c.Background = render.Background{Canvas: color.RGBA{10, 20, 30, 255}, Kind: render.BgSolid, Fill: color.RGBA{10, 20, 30, 255}}

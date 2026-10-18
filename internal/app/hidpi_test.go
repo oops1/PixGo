@@ -68,6 +68,7 @@ func newShotRig(t *testing.T, k float64, themeName string, lang string) *shotRig
 	st.Theme = themeName
 	st.AutoHidePanels = false
 	eng := testutil.NewEngineScaled(shotW, shotH, k)
+	t.Cleanup(eng.Stop)
 	reg := codec.NewRegistry()
 	codecall.Register(reg)
 	a := New(eng, Options{Settings: settings.NewMemory(st), Registry: reg})

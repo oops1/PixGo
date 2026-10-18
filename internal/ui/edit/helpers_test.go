@@ -56,6 +56,7 @@ func newRigThemed(t testing.TB, w, h, iw, ih int, th *theme.Theme) *rig {
 	t.Helper()
 	i18n.SetLang("en")
 	eng := testutil.NewEngine(w, h)
+	t.Cleanup(eng.Stop)
 	canvas := view.New(eng)
 	canvas.Background = render.Background{Canvas: th.Canvas, Kind: render.BgSolid, Fill: th.Canvas}
 	canvas.SetImage(source(iw, ih), codec.OrientNormal, viewer.ZoomFit)

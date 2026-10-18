@@ -74,6 +74,7 @@ func formatsApp(t *testing.T, reg *codec.Registry, mutate func(*settings.Setting
 		mutate(&st)
 	}
 	eng := testutil.NewEngine(770, 504)
+	t.Cleanup(eng.Stop)
 	a := New(eng, Options{Settings: settings.NewMemory(st), Registry: reg})
 	eng.SetRootFullCanvas(a.Root)
 	t.Cleanup(a.Shutdown)

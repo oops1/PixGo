@@ -61,6 +61,7 @@ func renderPanel(t *testing.T, m Model) (*image.RGBA, *Panel) {
 	t.Helper()
 	i18n.SetLang("ru")
 	eng := testutil.NewEngine(716, 506)
+	t.Cleanup(eng.Stop)
 	p := New(eng, theme.Dark())
 	host := &frameHost{child: p}
 	eng.SetRootFullCanvas(host)

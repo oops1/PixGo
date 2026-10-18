@@ -73,6 +73,7 @@ func noteModel() Model {
 func newPanelAt(t *testing.T, m Model, w, h int) (*image.RGBA, *Panel) {
 	t.Helper()
 	eng := testutil.NewEngine(w, h)
+	t.Cleanup(eng.Stop)
 	p := New(eng, theme.Dark())
 	host := &frameHost{child: p}
 	eng.SetRootFullCanvas(host)
