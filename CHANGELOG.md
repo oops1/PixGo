@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.1] - 2026-10-18
+
+### Fixed
+- When two pictures did not fit into the memory budget together (for example two very large neighbors), they could be decoded again and again, each one pushing the other out of memory before it reached the screen, and keep the processor busy. A finished picture now stays in memory until it has been handed over.
+
 ## [1.3.0] - 2026-10-18
 
 ### Added
