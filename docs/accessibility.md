@@ -25,6 +25,7 @@ Every function that the mouse reaches is reachable from the keyboard. Disabled c
 | Ctrl+, | Settings |
 | Ctrl+E | Edit: crop, resize, rotate and flip (see below) |
 | Ctrl+Shift+S | Save as |
+| Ctrl+P | Print (**Export to PDF** is in the menu) |
 | Ctrl+C, Ctrl+Shift+C, Ctrl+Shift+R | Copy the file, copy the path, show in the folder |
 | Del, Shift+Del | Move to the recycle bin, delete permanently |
 | F11, Alt+Enter | Full screen |
@@ -56,6 +57,22 @@ Ctrl+E (the pencil in the toolbar, **Crop** and **Resize** in the menu) switches
 The arrow of **Save a copy** opens a menu with **Save** (replaces the original after a confirmation) and **Save as**. The aspect ratio list (Free, Original, Square, 4:3, 3:2, 16:9) and the arrow menu are ordinary menus: Up, Down, Enter, Esc.
 
 The **Resize** dialog has two fields (width, height), the units (pixels or percent) and **Keep proportions**. Tab goes through the width, the height, the two units, the check box, **Apply** and **Cancel**; Up and Down in a field change the number by 1 (Shift: 10); Enter applies, Esc cancels. The confirmation of replacing the original has **Replace**, **Cancel** and **Don't ask again**.
+
+### Print and Export to PDF
+
+Ctrl+P (or **Print** and **Export to PDF** in the menu) opens one dialog drawn by PixGo, the same on Windows and Linux. In the edit mode it prints the edited result.
+
+| Key | Action |
+|---|---|
+| Tab, Shift+Tab | Walk the controls: printer, **System dialog…** (Windows), copies, paper, orientation, placement, width and height (custom size only), centimetres, inches, **Keep proportions**, margins, **Print** (**Save as PDF…**), **Cancel**; disabled controls are skipped |
+| Left, Right, Up, Down | On a list: choose the previous or next entry without opening it; Home and End choose the first and the last |
+| Space, F4, Alt+Down | Open the list of a drop-down; there Up, Down, PgUp, PgDn, Home and End move, Enter or Space chooses, Tab and F4 close it, Esc closes the list first and the dialog on the second press |
+| Digits, Up, Down | In **Copies** (1 to 99) and in the size fields (a point or a comma for the decimals; Up and Down change by 0.1, Shift by 1) |
+| Space | Press the focused button, switch the unit or the check box |
+| Enter | Print or save (the focused button when it is **Cancel** or **System dialog…**) |
+| Esc | Cancel |
+
+On a small window the controls scroll (mouse wheel, or Tab to a control out of view); **Print** and **Cancel** stay at the bottom. A screen reader finds every control by name, can focus, press, toggle and expand them, and reads the size and the resolution of the page under **Page preview**.
 
 ### Menus
 
@@ -169,6 +186,6 @@ Screen readers receive the names, values and descriptions in the chosen language
 
 ## For developers
 
-- The semantics are in the files `access.go` of the packages `ui/window`, `ui/gallery`, `ui/infopanel`, `ui/settings`, `ui/saveopts`, `ui/view`, `ui/edit`, `ui/resize` and `ui/confirm`, and in `app/access_menu.go` (the menu is the engine's `PopupMenu`, which publishes its own items). They implement the engine interfaces `widget.Accessible` and `widget.AccessChildrenProvider`; the actions are in `access_actions.go` next to them (`widget.AccessActionHandler`, identifiers in `AccessInfo.ID`). The tests build the tree with the engine, call `Engine.AccessAction` on the nodes and compare the effect with a real click (`testutil.AccessDo`, `testutil.RequireActionIDs`). They also check that every interactive node has a name, that no name is a bare translation key and that the names follow the language.
+- The semantics are in the files `access.go` of the packages `ui/window`, `ui/gallery`, `ui/infopanel`, `ui/settings`, `ui/saveopts`, `ui/view`, `ui/edit`, `ui/resize`, `ui/printdlg` and `ui/confirm`, and in `app/access_menu.go` (the menu is the engine's `PopupMenu`, which publishes its own items). They implement the engine interfaces `widget.Accessible` and `widget.AccessChildrenProvider`; the actions are in `access_actions.go` next to them (`widget.AccessActionHandler`, identifiers in `AccessInfo.ID`). The tests build the tree with the engine, call `Engine.AccessAction` on the nodes and compare the effect with a real click (`testutil.AccessDo`, `testutil.RequireActionIDs`). They also check that every interactive node has a name, that no name is a bare translation key and that the names follow the language.
 - The focus ring is `gfx.Ring`; the colors come from the theme (`Focus`, and `Canvas` for the inner line of the high-contrast theme).
 - `PIXGO_SNAPSHOTS=<dir> go test ./internal/app -run TestEveryStateRendersAtEveryScale` writes a picture of every page, dialog, menu and the focus ring at 1.0, 1.25, 1.5 and 2.0 in both themes. `PIXGO_SNAPSHOT_LANG=de` selects the language (any of the 12 codes).

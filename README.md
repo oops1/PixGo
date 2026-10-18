@@ -52,6 +52,7 @@ The photos in the screenshots are public domain (CC0), see [docs/screenshots/CRE
 - Full screen with a compact bar and a slideshow (F5): interval, looping, shuffling.
 - Settings page (Ctrl+,) with live changes: theme, language, wheel, order of files, caches, default viewer.
 - Rotation and flips, EXIF orientation applied automatically; Save as JPEG, PNG, BMP or WebP with a choice of quality, and lossless rotation of JPEG files.
+- Printing (Ctrl+P) and Export to PDF with one dialog on Windows and Linux: printer, copies, paper, orientation, fit, fill, actual size or a custom size, margins and a live preview of the page; the page is built at 300 dpi from the full-resolution picture.
 - JPEG, PNG, APNG, GIF, BMP, TIFF, WebP (also animated), SVG, ICO and CUR, AVIF, JPEG XL, HEIC and the embedded preview of RAW files; animated files play. Details and limits: [docs/formats.md](docs/formats.md).
 - Formats are detected by signature, not by extension.
 - Information panel with EXIF, color profile and GPS.
@@ -99,6 +100,7 @@ It writes `~/.config/mimeapps.list`; no extra tools are needed. `install.sh --se
 | See the details | **Ctrl+I** or the information button in the title bar: file, camera, color profile, location |
 | Go full screen or start a slideshow | **F11** (**Alt+Enter**) for full screen, **F5** for the slideshow, **Esc** to leave |
 | Save, copy, show in the folder, add to favorites | The **⋯** button, a right click, or **Ctrl+Shift+S**, **Ctrl+C**, **Ctrl+Shift+R**, **Ctrl+D** |
+| Print, or save the picture as a PDF | **Ctrl+P**, or **Print** in the **⋯** menu and the right click menu. Choose the printer (or **Save as PDF**), the number of copies, the paper (A4, A5, A3, Letter, Legal, 10 × 15 cm, 13 × 18 cm), the orientation (automatic follows the picture), the placement (fit to the page, fill the page and crop, actual size from the resolution stored in the file, or a custom size in cm or inches), and the margins; the preview shows the page. On Windows **System dialog…** opens the driver options. **Export to PDF** in the same menus asks for a file straight away. An edited picture prints as edited, an animation as its current frame |
 | Change the settings | **Ctrl+,**; changes apply at once |
 
 The whole list of keys, including the gallery and the settings, is in [docs/accessibility.md](docs/accessibility.md). What PixGo does not do is in [docs/limitations.md](docs/limitations.md).
@@ -183,6 +185,7 @@ go test ./...
 | `internal/par` | the shared thread budget |
 | `internal/meta`, `internal/isobmff` | EXIF, GPS, color profile and XMP readers and writers (metadata carried into saved files); the ISO box reader for AVIF and HEIC |
 | `internal/edit` | editing plan: orientation, crop and resize with a Lanczos-3 resampler |
+| `internal/print` | printing model without the engine: papers, fit, fill, actual and custom placement, the picture resolution from EXIF, JFIF, PNG and BMP, the page raster from normal, tiled and vector pictures |
 | `internal/viewer` | folder, navigation, zoom and pan model, slideshow |
 | `internal/gallery` | gallery model: places, history, listing, thumbnail grid math |
 | `internal/thumbs` | thumbnail queue by visibility, memory and disk cache |

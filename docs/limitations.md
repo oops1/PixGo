@@ -1,12 +1,12 @@
 # Known limitations
 
-This page lists what PixGo does not do, or does only in part, as of 1.1.0. Each item says what happens instead. Details of the formats are in [formats.md](formats.md), the numbers of speed and memory in [perf.md](perf.md), the keyboard and screen reader notes in [accessibility.md](accessibility.md).
+This page lists what PixGo does not do, or does only in part, as of 1.3.0. Each item says what happens instead. Details of the formats are in [formats.md](formats.md), the numbers of speed and memory in [perf.md](perf.md), the keyboard and screen reader notes in [accessibility.md](accessibility.md).
 
 ## Color
 
 - Color management applies embedded ICC profiles and CICP descriptions and tone maps PQ and HLG pictures to the SDR display (see [formats.md](formats.md#color)). It is not a calibrated pipeline: highlights above the 203-nit reference white of an HDR picture end at white, the same curve is used for every picture, and the display stays 8-bit SDR.
 - Only sRGB, or the profile of the monitor the window is on (Windows), is the destination. On Linux, and when the monitor profile cannot be read, it is sRGB. A saved copy of a converted picture carries the profile it was converted to: none for sRGB, the monitor profile otherwise (a lossless JPEG copy keeps the original file and its profile).
-- CMYK profiles of CMYK JPEG files are not used; those pictures keep the simple conversion of the decoder. JPEG XL values above 1.0 are clamped. `gAMA` and `cHRM` of PNG are ignored. Only relative colorimetric (with black point compensation) and perceptual intents exist.
+- CMYK JPEG files are converted with their embedded CMYK profile only when it has an `A2B` table and color management is on; otherwise they keep the simple conversion of the decoder. Above the 1/8 level the overview of a huge CMYK JPEG averages ink values before converting. JPEG XL values above 1.0 are kept only for HDR files (PQ, HLG or linear VarDCT, or 32-bit float modular) without animation, embedded profile or spot colors; HLG files get no OOTF, and the decoding library cannot write floating point files, so the 32-bit float path is checked only on synthetic sample arrays. `gAMA` and `cHRM` of PNG are ignored. Only relative colorimetric (with black point compensation) and perceptual intents exist.
 - With **Color management** off, pictures are shown as in 1.1: numbers read as sRGB and reduced to 8 bits.
 - The gain map and the depth map of phone photos are ignored; the base picture is shown.
 
@@ -19,7 +19,7 @@ This page lists what PixGo does not do, or does only in part, as of 1.1.0. Each 
 - Animations of WebP, GIF, APNG, AVIF and JPEG XL play, but are never faster than the frame rate set in Settings → Performance and pause while the window is not active.
 - Save as writes JPEG, PNG, BMP and WebP. AVIF, JPEG XL, HEIC, TIFF and animated files cannot be written.
 - Saving carries the camera data (EXIF), the color profile and the XMP packet into JPEG, PNG and WebP files; BMP has no place for them. A block that does not fit the container (a JPEG segment holds 64 KB) is left out and a notice says so. The thumbnail inside the EXIF is removed, and the orientation is set to normal because the pixels are already turned.
-- SVG is drawn once, up to 1024 pixels on the long side, and then scaled like any other picture, so it becomes soft when zoomed far beyond that. Save as writes that drawing.
+- SVG is drawn once, up to 1024 pixels on the long side, and then scaled like any other picture, so it becomes soft when zoomed far beyond that. Save as writes that drawing. Printing and Export to PDF draw it again at the size of the page.
 
 ## Large pictures
 
@@ -45,7 +45,10 @@ This page lists what PixGo does not do, or does only in part, as of 1.1.0. Each 
 - The portable archive for Windows does not register itself in Default apps; the installer does (its optional step **Associate PixGo with image files**).
 - The list of files in the folder is read when a picture is opened and again when the window becomes active, not continuously.
 - Copy image needs a clipboard that carries pictures. Where it carries only text and lists of files, use Copy file or Copy path.
-- Printing is not provided.
+- Printing sends one page per job: the picture on one sheet, built as a 300 dpi raster from the full-resolution picture (a picture shown in parts is read at the level the page needs, never at more pixels than the page has), then handed to the system. There is no multi-page job, no pages of several pictures, no contact sheet and no text on the page. Transparent areas print as white paper. Colors are the ones shown on the screen (sRGB or the converted result); no profile of the printer is applied.
+- The papers are a fixed list (A4, A5, A3, Letter, Legal, 10 × 15 cm, 13 × 18 cm); the sizes a printer reports itself are not read. The sheet is drawn edge to edge and the margins are the ones of the dialog (none, narrow 6 mm, normal 12 mm); a printer cannot print into its own unprintable edge, so with **None** a thin strip of the picture may be cut off by the printer.
+- Windows prints through GDI; **System dialog…** (the printer driver's options: duplex, tray, quality) exists only there. On Linux the job goes to CUPS over IPP as a PDF (`CUPS_SERVER` is honored); without a running CUPS only **Save as PDF** works, and there is no system dialog and no desktop portal. macOS is not supported. Printing was exercised with fake printers, with the Windows "Microsoft Print to PDF" driver by the engine's own tests, and with a test IPP server; it has not been tried on a real printer.
+- Export to PDF writes one page with the picture as a JPEG (quality 95) in sRGB without an embedded profile, at 300 dpi; text is not searchable because there is no text, and an SVG becomes pixels at that resolution. Actual size uses the resolution stored in the file (EXIF, JFIF, PNG, BMP); when there is none it counts 300 dpi (SVG: 96 dpi). A custom size larger than the sheet is cut off at the margins and the dialog says so. A picture larger than 100 megapixels on the page (for example an SVG at a custom size of more than about 85 by 85 cm at 300 dpi) is refused with a message.
 - The update check reads the public release feed of the project on GitHub and nothing else. It can be turned off in Settings or for every user of a machine with the environment variable `PIXGO_NO_UPDATE_CHECK=1`.
 - macOS is not supported.
 

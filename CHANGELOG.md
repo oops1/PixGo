@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.3.0] - 2026-10-18
+
+### Added
+- **Printing.** **Print…** (Ctrl+P) in the **⋯** menu and the right click menu opens one print dialog on Windows and Linux: the printer or **Save as PDF**, copies, paper (A4, A5, A3, Letter, Legal, 10 × 15 cm, 13 × 18 cm), orientation (automatic follows the picture), placement (fit to the page, fill the page, actual size from the resolution stored in the file, or a custom size in cm or inches), margins, and a live preview of the page with warnings for a low resolution or cut edges. On Windows **System dialog…** opens the printer driver's options. The page is built at 300 dpi from the full-resolution picture; a picture shown in parts is read at the level the page needs. An edited picture prints as edited, an animation as its current frame, and SVG is drawn again at the size of the page. The dialog remembers its last choices.
+- **Export to PDF…** in the same menus saves the picture as a one-page PDF with the same layout.
+- **CMYK JPEG files are color managed.** A CMYK or YCCK JPEG with an embedded CMYK profile is converted with that profile, also in the first reduced picture, the thumbnails and the parts of huge files.
+- **JPEG XL highlights above white.** HDR JPEG XL files (PQ, HLG or linear, and 32-bit floating point) are read without clipping, so their highlights are tone mapped like those of other HDR pictures instead of ending at white.
+
+### Fixed
+- PQ and HLG JPEG XL files coded in XYB were taken as already PQ or HLG coded while the decoding library returns linear light, so they were shown too dark.
+
+### Notes
+- Printing was exercised with fake printers and PDF output; it has not been tried on a real printer. On Linux it needs CUPS; without it only **Save as PDF** works. The papers are a fixed list; the sizes a printer reports itself are not read.
+- Animated HDR JPEG XL files and files with spot colors keep the clipped result of the decoding library.
+
 ## [1.2.0] - 2026-10-18
 
 ### Added
