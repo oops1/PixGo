@@ -80,7 +80,7 @@ func wrap(f gfx.Font, text string, width int) []string {
 	var lines []string
 	for _, para := range strings.Split(text, "\n") {
 		cur := ""
-		for _, word := range strings.Fields(para) {
+		for _, word := range i18n.Words(para) {
 			switch {
 			case cur == "":
 				cur = word

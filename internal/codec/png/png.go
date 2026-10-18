@@ -13,6 +13,7 @@ import (
 	"github.com/oops1/PixGo/internal/codec/internal/convert"
 	"github.com/oops1/PixGo/internal/codec/internal/guard"
 	"github.com/oops1/PixGo/internal/codec/internal/splice"
+	"github.com/oops1/PixGo/internal/meta"
 	"github.com/oops1/PixGo/internal/meta/exif"
 )
 
@@ -214,8 +215,15 @@ func (d Decoder) Decode(ctx context.Context, r io.ReaderAt, size int64, o codec.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	color := meta.ReadColor(ctx, r, size, codec.PNG)
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if o.Deep && (sixteenBit(decoded) || color.HDR()) {
+		return &codec.Image{Info: info, Color: color, Frames: []codec.Frame{{Deep: convert.Deep(decoded)}}, Scale: 1}, nil
+	}
 	pix := convert.NRGBA(decoded)
-	return &codec.Image{Info: info, Frames: []codec.Frame{{Pix: pix}}, Scale: 1}, nil
+	return &codec.Image{Info: info, Color: color, Frames: []codec.Frame{{Pix: pix}}, Scale: 1}, nil
 }
 
 type Encoder struct{}
@@ -236,4 +244,12 @@ func (Encoder) Encode(w io.Writer, img *image.NRGBA, o codec.EncodeOptions) erro
 		return err
 	}
 	return out.Flush()
+}
+
+func sixteenBit(img image.Image) bool {
+	switch img.(type) {
+	case *image.NRGBA64, *image.RGBA64, *image.Gray16:
+		return true
+	}
+	return false
 }

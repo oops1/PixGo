@@ -3,6 +3,7 @@ package app
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -86,8 +87,17 @@ func TestSourceDescribesLanguagesFormatsAndAbout(t *testing.T) {
 	s := a.ensureSettings()
 
 	langs := s.Languages()
-	if len(langs) < 3 || langs[0].ID != settings.LanguageSystem || langs[1].ID != "ru" && langs[2].ID != "ru" {
+	native := map[string]string{
+		"en": "English", "ru": "Русский", "uk": "Українська", "de": "Deutsch", "fr": "Français", "es": "Español",
+		"it": "Italiano", "pt-BR": "Português (Brasil)", "pl": "Polski", "cs": "Čeština", "nl": "Nederlands", "tr": "Türkçe",
+	}
+	if len(langs) != len(native)+1 || langs[0].ID != settings.LanguageSystem {
 		t.Fatalf("languages = %+v", langs)
+	}
+	for _, l := range langs[1:] {
+		if native[l.ID] == "" || l.Name != native[l.ID] {
+			t.Fatalf("language %q is shown as %q, want %q", l.ID, l.Name, native[l.ID])
+		}
 	}
 	formats := s.Formats()
 	if len(formats) < 8 {
@@ -144,6 +154,29 @@ func TestLanguageChangeSwitchesTheInterfaceAtOnce(t *testing.T) {
 
 	if i18n.Lang() != "en" || i18n.T("cmd.settings") != "Settings" {
 		t.Fatalf("language is %q: %q", i18n.Lang(), i18n.T("cmd.settings"))
+	}
+}
+
+func TestEveryLanguageSwitchesLive(t *testing.T) {
+	a, _ := goldenApp(t, 770, 504, nil)
+	t.Cleanup(a.Shutdown)
+	t.Cleanup(func() { i18n.SetLang("ru") })
+	act := a.ensureSettings().actions()
+	seen := map[string]string{}
+	for _, l := range i18n.Supported() {
+		act.Update(func(s *settings.Settings) { s.Language = l })
+		settleSettings(a)
+		if i18n.Lang() != l {
+			t.Fatalf("asked for %q, got %q", l, i18n.Lang())
+		}
+		word := i18n.T("cmd.settings")
+		if other, dup := seen[word]; dup && word != "Settings" {
+			t.Errorf("%s and %s show the same word %q", l, other, word)
+		}
+		seen[word] = l
+		if got := widget.Language(); got != strings.ToUpper(l) {
+			t.Errorf("engine language is %q after %q", got, l)
+		}
 	}
 }
 

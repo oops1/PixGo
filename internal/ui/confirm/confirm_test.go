@@ -121,7 +121,7 @@ func TestWithoutACheckBox(t *testing.T) {
 }
 
 func TestFitsEveryScale(t *testing.T) {
-	for _, lang := range []string{"en", "ru"} {
+	for _, lang := range i18n.Supported() {
 		for _, k := range []float64{1, 1.33, 1.6} {
 			t.Run(fmt.Sprintf("%s/%.2f", lang, k), func(t *testing.T) {
 				old := fonts.TextScale()

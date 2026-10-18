@@ -90,12 +90,15 @@ func (l *Loader) run(j *job) {
 		return
 	}
 	key := Key{Path: j.path, Size: st.Size(), ModTime: st.ModTime()}
-	if d, ok := l.cache.Get(key); ok && !d.Released() {
+	stamp := l.colorStamp()
+	if d, ok := l.cache.Get(key); ok && !d.Released() && d.ColorStamp == stamp {
 		if d.Detail != nil {
 			l.noteHeavy(j)
 		}
 		l.publish(j, StateReady, d.Info, d, nil)
 		return
+	} else if ok && d.ColorStamp != stamp {
+		l.cache.Remove(j.path)
 	}
 	src, file, err := openSource(j.path)
 	if err != nil {
@@ -130,12 +133,12 @@ func (l *Loader) run(j *job) {
 		l.publish(j, StateFailed, info, nil, err)
 		return
 	}
-	res, ok := l.reserve(j, directEstimate(info, j.vw, j.vh))
+	res, ok := l.reserve(j, directEstimate(info, j.vw, j.vh)+l.deepReserve(info))
 	if !ok {
 		return
 	}
 	defer res.Release()
-	l.decodeDirect(j, dec, src, info, key)
+	l.decodeDirect(j, dec, src, info, key, stamp)
 }
 
 func (l *Loader) runTiled(j *job, td codec.TiledDecoder, src *codec.Source, file *sourceFile, info codec.Info, key Key, lim codec.Limits, oversize bool) (done, adopted bool) {
@@ -144,7 +147,7 @@ func (l *Loader) runTiled(j *job, td codec.TiledDecoder, src *codec.Source, file
 		return true, false
 	}
 	defer res.Release()
-	d, err := l.openTiled(j, td, src, file, info, key, lim)
+	d, err := l.openTiled(j, td, src, file, info, key, lim, l.colorStamp())
 	switch {
 	case err == nil:
 		if d.Detail != nil {
@@ -162,8 +165,8 @@ func (l *Loader) runTiled(j *job, td codec.TiledDecoder, src *codec.Source, file
 	return false, false
 }
 
-func (l *Loader) decodeDirect(j *job, dec codec.Decoder, src *codec.Source, info codec.Info, key Key) {
-	opts := codec.Options{Limits: j.lim, Frames: codec.FirstFrame}
+func (l *Loader) decodeDirect(j *job, dec codec.Decoder, src *codec.Source, info codec.Info, key Key, stamp uint64) {
+	opts := codec.Options{Limits: j.lim, Frames: codec.FirstFrame, Deep: l.wantDeep()}
 	if info.Animated {
 		opts.Frames = codec.AllFrames
 	}
@@ -179,10 +182,10 @@ func (l *Loader) decodeDirect(j *job, dec codec.Decoder, src *codec.Source, info
 		}
 		if err == nil {
 			if img.Scale <= 1 {
-				l.finish(j, key, info, img)
+				l.finish(j, key, info, img, stamp)
 				return
 			}
-			l.publishPreview(j, key, info, img)
+			l.publishPreview(j, key, info, img, stamp)
 			if j.ctx.Err() != nil {
 				return
 			}
@@ -193,11 +196,16 @@ func (l *Loader) decodeDirect(j *job, dec codec.Decoder, src *codec.Source, info
 		l.publish(j, StateFailed, info, nil, err)
 		return
 	}
-	l.finish(j, key, info, img)
+	l.finish(j, key, info, img, stamp)
 }
 
-func (l *Loader) finish(j *job, key Key, info codec.Info, img *codec.Image) {
+func (l *Loader) finish(j *job, key Key, info codec.Info, img *codec.Image, stamp uint64) {
 	if j.ctx.Err() != nil {
+		return
+	}
+	rep, err := l.applyColor(img)
+	if err != nil {
+		l.publish(j, StateFailed, info, nil, err)
 		return
 	}
 	decoded := img.Info
@@ -211,6 +219,9 @@ func (l *Loader) finish(j *job, key Key, info codec.Info, img *codec.Image) {
 		Frames:  img.Frames,
 		Loop:    img.Loop,
 		Preview: info.Preview,
+
+		Color:      rep,
+		ColorStamp: stamp,
 	}
 	l.cache.Put(d)
 	l.publish(j, StateReady, d.Info, d, nil)
@@ -235,9 +246,16 @@ func (l *Loader) previewScale(j *job, info codec.Info) int {
 	return 0
 }
 
-func (l *Loader) publishPreview(j *job, key Key, info codec.Info, img *codec.Image) {
+func (l *Loader) publishPreview(j *job, key Key, info codec.Info, img *codec.Image, stamp uint64) {
+	if img.Scale <= 1 || img.Scale&(img.Scale-1) != 0 {
+		return
+	}
+	rep, err := l.applyColor(img)
+	if err != nil {
+		return
+	}
 	pix := img.First()
-	if pix == nil || img.Scale <= 1 || img.Scale&(img.Scale-1) != 0 {
+	if pix == nil {
 		return
 	}
 	shift := bits.TrailingZeros(uint(img.Scale))
@@ -257,6 +275,9 @@ func (l *Loader) publishPreview(j *job, key Key, info codec.Info, img *codec.Ima
 		Preview: info.Preview,
 		Shift:   shift,
 		Reduced: true,
+
+		Color:      rep,
+		ColorStamp: stamp,
 	}
 	l.publish(j, StatePreview, d.Info, d, nil)
 }
@@ -273,11 +294,12 @@ func overviewShift(w, h, minShift int) int {
 	return n
 }
 
-func (l *Loader) openTiled(j *job, td codec.TiledDecoder, src *codec.Source, file *sourceFile, info codec.Info, key Key, lim codec.Limits) (*Decoded, error) {
+func (l *Loader) openTiled(j *job, td codec.TiledDecoder, src *codec.Source, file *sourceFile, info codec.Info, key Key, lim codec.Limits, stamp uint64) (*Decoded, error) {
 	tr, err := td.OpenTiled(j.ctx, src.R, src.Size, lim)
 	if err != nil {
 		return nil, err
 	}
+	tr, rep := l.wrapTiles(tr)
 	adopted := false
 	defer func() {
 		if !adopted {
@@ -301,12 +323,14 @@ func (l *Loader) openTiled(j *job, td codec.TiledDecoder, src *codec.Source, fil
 	}
 	levels := BuildPyramid(ov, 0)
 	d := &Decoded{
-		Key:     key,
-		Info:    info,
-		Levels:  levels,
-		Frames:  []codec.Frame{{Pix: levels[0]}},
-		Preview: info.Preview,
-		Shift:   shift,
+		Color:      rep,
+		ColorStamp: stamp,
+		Key:        key,
+		Info:       info,
+		Levels:     levels,
+		Frames:     []codec.Frame{{Pix: levels[0]}},
+		Preview:    info.Preview,
+		Shift:      shift,
 	}
 	if shift == 0 {
 		return d, nil

@@ -83,6 +83,7 @@ func TestCheckboxesToggleTheirSetting(t *testing.T) {
 		{SectionView, "keepZoomOnNavigate", func(s *data.Settings) bool { return s.KeepZoomOnNavigate }},
 		{SectionView, "loopFolder", func(s *data.Settings) bool { return s.LoopFolder }},
 		{SectionView, "sortDesc", func(s *data.Settings) bool { return s.SortDesc }},
+		{SectionView, "colorManagement", func(s *data.Settings) bool { return s.ColorManagement }},
 		{SectionSlideshow, "slideshow.loop", func(s *data.Settings) bool { return s.Slideshow.Loop }},
 		{SectionSlideshow, "slideshow.shuffle", func(s *data.Settings) bool { return s.Slideshow.Shuffle }},
 	}
@@ -137,6 +138,8 @@ func TestRadioGroupsPickOneValue(t *testing.T) {
 		{SectionView, "preload:0", func(s *data.Settings) bool { return s.Preload == 0 }, nil},
 		{SectionView, "preload:1", func(s *data.Settings) bool { return s.Preload == 1 }, func(s *data.Settings) { s.Preload = 2 }},
 		{SectionView, "preload:2", func(s *data.Settings) bool { return s.Preload == 2 }, nil},
+		{SectionView, "displayProfile:srgb", func(s *data.Settings) bool { return s.DisplayProfile == data.DisplayProfileSRGB }, nil},
+		{SectionView, "displayProfile:system", func(s *data.Settings) bool { return s.DisplayProfile == data.DisplayProfileSystem }, func(s *data.Settings) { s.DisplayProfile = data.DisplayProfileSRGB }},
 		{SectionLanguage, "language:ru", func(s *data.Settings) bool { return s.Language == "ru" }, nil},
 		{SectionLanguage, "language:en", func(s *data.Settings) bool { return s.Language == "en" }, nil},
 		{SectionLanguage, "language:system", func(s *data.Settings) bool { return s.Language == data.LanguageSystem }, func(s *data.Settings) { s.Language = "en" }},

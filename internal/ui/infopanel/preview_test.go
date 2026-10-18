@@ -56,7 +56,7 @@ func TestPreviewMarkChangesNothingElseInTheModel(t *testing.T) {
 }
 
 func TestPreviewMarkIsKeptWhenTheFormatNameHasToBeShortened(t *testing.T) {
-	for _, lang := range []string{"ru", "en"} {
+	for _, lang := range i18n.Supported() {
 		for _, k := range textScales {
 			for _, name := range []string{"RAW", "Canon CR2", "Nikon NEF", "Sony Alpha ARW (ILCE-7M4)", "Hasselblad 3FR extended"} {
 				t.Run(fmt.Sprintf("%s/k%.2f/%s", lang, k, name), func(t *testing.T) {

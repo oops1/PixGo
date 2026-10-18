@@ -221,7 +221,7 @@ func TestNothingShownStaysSilent(t *testing.T) {
 }
 
 func TestPartialPictureMessagesExistInBothLanguages(t *testing.T) {
-	for _, lang := range []string{"ru", "en"} {
+	for _, lang := range i18n.Supported() {
 		i18n.SetLang(lang)
 		for _, key := range []string{"error.partialSave", "error.partialSaveNone", "error.partialCopy"} {
 			if i18n.T(key) == key || i18n.T(key) == "" {

@@ -218,7 +218,7 @@ func TestSaveOutcomeChoosesTheToast(t *testing.T) {
 	if (saveOutcome{}).toastKey() != "toast.saved" || (saveOutcome{trimmed: true}).toastKey() != "toast.savedTrimmed" {
 		t.Fatal("wrong toast keys")
 	}
-	for _, lang := range []string{"ru", "en"} {
+	for _, lang := range i18n.Supported() {
 		i18n.SetLang(lang)
 		for _, key := range []string{"toast.saved", "toast.savedTrimmed", "save.options.jpegLosslessHint"} {
 			if i18n.T(key) == key {

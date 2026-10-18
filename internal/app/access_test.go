@@ -39,7 +39,7 @@ func appTree(a *App, lang string) *widget.AccessNode {
 
 func TestViewerTreeIsNamedInBothLanguages(t *testing.T) {
 	a := viewerWithImage(t)
-	for _, lang := range []string{"ru", "en"} {
+	for _, lang := range i18n.Supported() {
 		tr := appTree(a, lang)
 		testutil.RequireNamed(t, tr)
 		img := testutil.FindAccess(tr, widget.RoleImage, a.Ctl.Title())
@@ -76,7 +76,7 @@ func TestMoreButtonsLookEnabledAndExposeTheMenu(t *testing.T) {
 
 func TestEmptyViewerAnnouncesItsHint(t *testing.T) {
 	a, _ := goldenApp(t, 770, 504, nil)
-	for _, lang := range []string{"ru", "en"} {
+	for _, lang := range i18n.Supported() {
 		tr := appTree(a, lang)
 		testutil.RequireNamed(t, tr)
 		n := testutil.FindAccess(tr, widget.RoleLabel, i18n.T("empty.title"))
@@ -90,7 +90,7 @@ func TestInfoPanelIsPartOfTheTree(t *testing.T) {
 	a := viewerWithImage(t)
 	a.toggleInfo()
 	a.Eng.Flush()
-	for _, lang := range []string{"ru", "en"} {
+	for _, lang := range i18n.Supported() {
 		tr := appTree(a, lang)
 		testutil.RequireNamed(t, tr)
 		group := testutil.FindAccess(tr, widget.RoleGroup, i18n.T("info.title"))
@@ -112,7 +112,7 @@ func TestFullscreenControlsAreNamed(t *testing.T) {
 	a.SetFullscreen(true)
 	a.Root.Refresh()
 	a.Eng.Flush()
-	for _, lang := range []string{"ru", "en"} {
+	for _, lang := range i18n.Supported() {
 		tr := appTree(a, lang)
 		testutil.RequireNamed(t, tr)
 		if testutil.FindAccess(tr, widget.RoleButton, i18n.T("cmd.fullscreenExit")) == nil {
@@ -127,7 +127,7 @@ func TestFullscreenControlsAreNamed(t *testing.T) {
 func TestGalleryTreeListsTheFolder(t *testing.T) {
 	r := newGalleryRig(t, nil)
 	r.open(t)
-	for _, lang := range []string{"ru", "en"} {
+	for _, lang := range i18n.Supported() {
 		tr := appTree(r.app, lang)
 		testutil.RequireNamed(t, tr)
 		for _, name := range []string{"a.jpg", "b.jpg", "sub"} {
@@ -148,7 +148,7 @@ func TestSettingsTreeIsNamed(t *testing.T) {
 	a, _ := goldenApp(t, 770, 504, nil)
 	a.OpenSettings()
 	a.Eng.Flush()
-	for _, lang := range []string{"ru", "en"} {
+	for _, lang := range i18n.Supported() {
 		tr := appTree(a, lang)
 		testutil.RequireNamed(t, tr)
 		if testutil.FindAccess(tr, widget.RoleGroup, i18n.T("settings.title")) == nil {
@@ -168,7 +168,7 @@ func inside(tr *widget.AccessNode, role widget.AccessRole, name string, area ima
 
 func TestOpenMenuExposesItsItems(t *testing.T) {
 	a := viewerWithImage(t)
-	for _, lang := range []string{"ru", "en"} {
+	for _, lang := range i18n.Supported() {
 		i18n.SetLang(lang)
 		a.menu.Close()
 		a.showMenuFromKeyboard()
@@ -206,7 +206,7 @@ func TestConfirmationDialogButtonsAreNamed(t *testing.T) {
 	a := viewerWithImage(t)
 	a.confirm(i18n.T("dialog.delete.title"), i18n.T("dialog.delete.message", "x.jpg"), func() {})
 	a.Eng.Flush()
-	for _, lang := range []string{"ru", "en"} {
+	for _, lang := range i18n.Supported() {
 		tr := appTree(a, lang)
 		testutil.RequireNamed(t, tr)
 		var modal *widget.AccessNode
@@ -234,7 +234,7 @@ func TestSaveOptionsDialogIsNamed(t *testing.T) {
 	a := viewerWithImage(t)
 	saveopts.Show(a.Eng, saveopts.JPEG, saveopts.Values{Quality: 90}, func(saveopts.Values, bool) {})
 	a.Eng.Flush()
-	for _, lang := range []string{"ru", "en"} {
+	for _, lang := range i18n.Supported() {
 		tr := appTree(a, lang)
 		testutil.RequireNamed(t, tr)
 		if testutil.FindAccess(tr, widget.RoleSlider, i18n.T("save.quality")) == nil {
@@ -273,7 +273,7 @@ func TestPreviewStageShowsAnAnnouncedLoadingIndicator(t *testing.T) {
 	if a.State() != uiwindow.StateLoading || !a.Reduced() {
 		t.Fatalf("state %d reduced %v", a.State(), a.Reduced())
 	}
-	for _, lang := range []string{"ru", "en"} {
+	for _, lang := range i18n.Supported() {
 		tr := appTree(a, lang)
 		testutil.RequireNamed(t, tr)
 		if testutil.FindAccess(tr, widget.RoleProgressBar, i18n.T("access.loadingFull")) == nil {

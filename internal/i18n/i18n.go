@@ -9,9 +9,22 @@ import (
 
 const fallback = "en"
 
-var catalogs = map[string]map[string]string{"ru": ru, "en": en}
+var catalogs = map[string]map[string]string{
+	"en": en, "ru": ru, "uk": uk, "de": de, "fr": fr, "es": es,
+	"it": it, "pt-BR": ptBR, "pl": pl, "cs": cs, "nl": nl, "tr": tr,
+}
 
-var supported = []string{"ru", "en"}
+var supported = []string{"en", "ru", "uk", "de", "fr", "es", "it", "pt-BR", "pl", "cs", "nl", "tr"}
+
+var canonical = func() map[string]string {
+	m := make(map[string]string, len(supported))
+	for _, id := range supported {
+		m[strings.ToLower(id)] = id
+	}
+	return m
+}()
+
+var regionalDefault = map[string]string{"pt": "pt-BR"}
 
 var lang atomic.Value
 
@@ -19,14 +32,16 @@ func init() { lang.Store(Detect()) }
 
 func Supported() []string { return append([]string(nil), supported...) }
 
-func Detect() string { return detectFrom(os.Getenv, systemLanguage) }
+func Detect() string { return detectFrom(os.Getenv, systemLanguages) }
 
-func detectFrom(getenv func(string) string, native func() string) string {
+func detectFrom(getenv func(string) string, native func() []string) string {
 	if v := strings.TrimSpace(getenv("PIXGO_LANG")); v != "" {
 		return Match(v)
 	}
-	if tag := native(); tag != "" {
-		return Match(tag)
+	for _, tag := range native() {
+		if l, ok := lookup(normalizeTag(tag)); ok {
+			return l
+		}
 	}
 	return fallback
 }
@@ -42,13 +57,18 @@ func lookup(tag string) (string, bool) {
 	if tag == "" {
 		return "", false
 	}
-	if _, ok := catalogs[tag]; ok {
-		return tag, true
+	if id, ok := canonical[tag]; ok {
+		return id, true
 	}
+	base := tag
 	if i := strings.IndexByte(tag, '-'); i > 0 {
-		if _, ok := catalogs[tag[:i]]; ok {
-			return tag[:i], true
-		}
+		base = tag[:i]
+	}
+	if id, ok := regionalDefault[base]; ok {
+		return id, true
+	}
+	if id, ok := canonical[base]; ok {
+		return id, true
 	}
 	return "", false
 }
@@ -84,9 +104,14 @@ func regionOf(tag string) string {
 	return ""
 }
 
-func SystemLanguage() string { return systemLanguage() }
+func SystemLanguage() string {
+	if tags := systemLanguages(); len(tags) > 0 {
+		return tags[0]
+	}
+	return ""
+}
 
-func SystemRegion() string { return regionOf(systemLanguage()) }
+func SystemRegion() string { return regionOf(SystemLanguage()) }
 
 func SetLang(l string) {
 	l = strings.TrimSpace(l)
@@ -112,29 +137,6 @@ func T(key string, args ...any) string {
 		return fmt.Sprintf(s, args...)
 	}
 	return s
-}
-
-func Plural(n int, one, few, many string) string {
-	if Lang() == "en" {
-		if n == 1 {
-			return one
-		}
-		return many
-	}
-	if n < 0 {
-		n = -n
-	}
-	n %= 100
-	if n >= 11 && n <= 14 {
-		return many
-	}
-	switch n % 10 {
-	case 1:
-		return one
-	case 2, 3, 4:
-		return few
-	}
-	return many
 }
 
 func Keys(l string) []string {

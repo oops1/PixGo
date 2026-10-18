@@ -35,7 +35,7 @@ func withScale(t *testing.T, k float64, lang string) {
 
 func eachScale(t *testing.T, scales []float64, f func(t *testing.T, k float64, lang string)) {
 	t.Helper()
-	for _, lang := range []string{"ru", "en"} {
+	for _, lang := range i18n.Supported() {
 		for _, k := range scales {
 			t.Run(lang+"/"+ftoa(k), func(t *testing.T) {
 				withScale(t, k, lang)
@@ -122,8 +122,11 @@ func TestSidebarLabelsStayWholeAndInsideThePanel(t *testing.T) {
 				}
 			}
 		}
-		if k == 1 && g.sidebar.Max.X != 151 {
+		if k == 1 && (lang == "ru" || lang == "en") && g.sidebar.Max.X != 151 {
 			t.Errorf("panel width %d at k=1", g.sidebar.Max.X)
+		}
+		if k == 1 && (g.sidebar.Max.X < 151 || g.sidebar.Max.X > 160) {
+			t.Errorf("panel width %d at k=1 is not within 151..160", g.sidebar.Max.X)
 		}
 	})
 }

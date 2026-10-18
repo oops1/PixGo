@@ -229,7 +229,7 @@ func TestPatentAndPreviewNotesAppearOnlyForPresentFormats(t *testing.T) {
 		{"jxl present has no note", []codec.ID{codec.JXL}, "jxl", ""},
 		{"apng present has no note", []codec.ID{codec.APNG}, "apng", ""},
 	}
-	for _, lang := range []string{"ru", "en"} {
+	for _, lang := range i18n.Supported() {
 		for _, tc := range tests {
 			t.Run(lang+"/"+tc.name, func(t *testing.T) {
 				a := formatsApp(t, formatsRegistry(tc.registered...), nil)
@@ -259,7 +259,7 @@ func TestNoteTextsSayWhatTheUserAsked(t *testing.T) {
 	if heic != "HEIC использует видеокодек HEVC, на который заявлены патенты. PixGo только читает такие файлы. Если это важно для вас, отключите формат." {
 		t.Errorf("heic note: %q", heic)
 	}
-	if raw != "Показывается встроенный в файл предварительный просмотр, а не полное проявление снимка." {
+	if raw != "Файлы DNG проявляются из данных сенсора. Остальные форматы RAW показывают встроенный в файл предварительный просмотр." {
 		t.Errorf("raw note: %q", raw)
 	}
 }

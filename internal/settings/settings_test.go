@@ -484,3 +484,27 @@ func TestRetiredSlideshowTransitionInOldFilesIsIgnored(t *testing.T) {
 		t.Fatalf("re-encoded: %s %v", b, err)
 	}
 }
+
+func TestRunOverridesAreNotSaved(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	st, _ := Load(path)
+	st.Update(func(s *Settings) { s.Theme = ThemeLight; s.Language = "ru" })
+	st.Flush()
+	st, _ = Load(path)
+	st.OverrideForRun(ThemeDark, "de")
+	if g := st.Get(); g.Theme != ThemeDark || g.Language != "de" {
+		t.Fatalf("override not applied: %s %s", g.Theme, g.Language)
+	}
+	st.Update(func(s *Settings) { s.CacheMB = 512 })
+	st.Flush()
+	saved, _ := Load(path)
+	if g := saved.Get(); g.Theme != ThemeLight || g.Language != "ru" || g.CacheMB != 512 {
+		t.Fatalf("saved %s %s %d, want the person's own theme and language kept", g.Theme, g.Language, g.CacheMB)
+	}
+	st.Update(func(s *Settings) { s.Language = "fr" })
+	st.Flush()
+	saved, _ = Load(path)
+	if g := saved.Get(); g.Language != "fr" || g.Theme != ThemeLight {
+		t.Fatalf("a choice made in the program must be saved: %s %s", g.Language, g.Theme)
+	}
+}

@@ -248,7 +248,7 @@ func modelNamed(name string) Model {
 }
 
 func TestPanelFitsEveryTextScale(t *testing.T) {
-	for _, lang := range []string{"ru", "en"} {
+	for _, lang := range i18n.Supported() {
 		for _, k := range textScales {
 			for _, name := range []string{"rich", "short", "note"} {
 				t.Run(fmt.Sprintf("%s/k%.2f/%s", lang, k, name), func(t *testing.T) {
@@ -487,7 +487,7 @@ func strayInk(t *testing.T, img *image.RGBA, area image.Rectangle, bg color.RGBA
 }
 
 func TestLastCardIsFullyReachableAtEveryTextScale(t *testing.T) {
-	for _, lang := range []string{"ru", "en"} {
+	for _, lang := range i18n.Supported() {
 		for _, k := range textScales {
 			t.Run(fmt.Sprintf("%s/k%.2f", lang, k), func(t *testing.T) {
 				setLang(t, lang)
@@ -550,7 +550,7 @@ func renderAgain(t *testing.T, p *Panel) *image.RGBA {
 }
 
 func TestClicksFollowTheScaledRects(t *testing.T) {
-	for _, lang := range []string{"ru", "en"} {
+	for _, lang := range i18n.Supported() {
 		for _, k := range textScales {
 			for _, scroll := range []int{0, 90, 1 << 20} {
 				t.Run(fmt.Sprintf("%s/k%.2f/scroll%d", lang, k, scroll), func(t *testing.T) {
@@ -629,7 +629,7 @@ func TestClicksFollowTheScaledRects(t *testing.T) {
 }
 
 func TestHitRectsCoverTheDrawnLinkText(t *testing.T) {
-	for _, lang := range []string{"ru", "en"} {
+	for _, lang := range i18n.Supported() {
 		for _, k := range textScales {
 			t.Run(fmt.Sprintf("%s/k%.2f", lang, k), func(t *testing.T) {
 				setLang(t, lang)
@@ -714,7 +714,7 @@ func TestSnapshotsAtScale(t *testing.T) {
 	if out == "" {
 		t.Skip("PIXGO_SNAPSHOTS is not set")
 	}
-	for _, lang := range []string{"ru", "en"} {
+	for _, lang := range i18n.Supported() {
 		for _, k := range []float64{1.2, 1.6} {
 			setLang(t, lang)
 			setScale(t, k)

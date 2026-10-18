@@ -85,6 +85,8 @@ func New(eng *engine.Engine, opt Options) *App {
 			return t.Stop
 		},
 		Invalidate: eng.Invalidate,
+
+		DisplayProfile: displayProvider(opt.Platform),
 	}, a.Canvas)
 	if w, h := eng.PhysicalSize(); w > 0 && h > 0 {
 		a.Ctl.SetViewportHint(w, h)
@@ -217,6 +219,8 @@ func (a *App) ApplySettings() {
 	a.Canvas.Smooth = st.SmoothZoom && !a.reduceMotion()
 	a.Ctl.ApplyThreads()
 	a.Ctl.ApplyCache()
+	a.applyRawDevelop(st.RawDevelop)
+	a.Ctl.ApplyColor()
 	a.applyTheme()
 }
 

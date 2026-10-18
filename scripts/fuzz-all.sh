@@ -16,6 +16,8 @@ targets=(
     "internal/codec/raw FuzzDecode"
     "internal/codec/raw FuzzProbe"
     "internal/codec/raw FuzzSniff"
+    "internal/codec/raw FuzzDNG"
+    "internal/rawdev FuzzLJ92"
     "internal/codec/bmp FuzzDecode"
     "internal/codec/png FuzzDecode"
     "internal/codec/svg FuzzDecode"
@@ -35,6 +37,7 @@ targets=(
     "internal/meta/exif FuzzDecode"
     "internal/meta FuzzRead"
     "internal/meta FuzzReadBlocks"
+    "internal/meta FuzzReadColor"
     "internal/meta FuzzRewrite"
     "internal/codec/jpeg FuzzDecode"
     "internal/codec/jpeg FuzzTileReader"
@@ -46,6 +49,7 @@ targets=(
     "internal/imaging FuzzTileManager"
     "internal/render FuzzWindowRender"
     "internal/platform FuzzProcInfoParsers"
+    "internal/colorm FuzzParseICC"
 )
 
 if [ -n "${FILTER:-}" ]; then

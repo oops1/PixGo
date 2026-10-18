@@ -4,6 +4,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync/atomic"
 )
 
 const (
@@ -12,7 +13,11 @@ const (
 	maxEnvThreads    = 64
 )
 
-func UpdateCheckDisabled() bool { return envFlag(os.Getenv(EnvNoUpdateCheck)) }
+var updateCheckOff atomic.Bool
+
+func DisableUpdateCheck() { updateCheckOff.Store(true) }
+
+func UpdateCheckDisabled() bool { return updateCheckOff.Load() || envFlag(os.Getenv(EnvNoUpdateCheck)) }
 
 func ThreadsFromEnv() int { return parseThreads(os.Getenv(EnvThreads)) }
 

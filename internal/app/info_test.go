@@ -126,7 +126,7 @@ func TestInfoPanelShowsCameraDataAfterToggle(t *testing.T) {
 	for _, r := range cam.Rows {
 		vals[r.Label] = r.Value
 	}
-	if vals["Производитель"] != "Canon" || vals["Модель"] != "EOS R5" || vals["Выдержка"] != "1/250 с" || vals["Диафрагма"] != "f/4.0" || vals["ISO"] != "100" {
+	if vals["Производитель"] != "Canon" || vals["Модель"] != "EOS R5" || vals["Выдержка"] != "1/250 с" || vals["Диафрагма"] != "f/4,0" || vals["ISO"] != "100" {
 		t.Errorf("camera rows %v", vals)
 	}
 	m := a.info.Model()

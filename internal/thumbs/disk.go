@@ -40,6 +40,10 @@ func (k Key) File() string {
 	b = strconv.AppendInt(b, k.ModTime.UnixNano(), 10)
 	b = append(b, '|')
 	b = strconv.AppendInt(b, int64(k.Side), 10)
+	if k.Color != "" {
+		b = append(b, '|')
+		b = append(b, k.Color...)
+	}
 	h.Write(b)
 	return fmt.Sprintf("%016x%s", h.Sum64(), diskExt)
 }

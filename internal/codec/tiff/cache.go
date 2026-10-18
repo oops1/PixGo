@@ -12,11 +12,27 @@ import (
 
 type bandKey struct {
 	chunk, band int
+	deep        bool
+}
+
+type bandValue struct {
+	pix  *image.NRGBA
+	deep *image.NRGBA64
+}
+
+func (b bandValue) bytes() int64 {
+	switch {
+	case b.pix != nil:
+		return int64(len(b.pix.Pix))
+	case b.deep != nil:
+		return int64(len(b.deep.Pix))
+	}
+	return 0
 }
 
 type cacheItem struct {
 	key   bandKey
-	img   *image.NRGBA
+	img   bandValue
 	err   error
 	ready chan struct{}
 	elem  *list.Element
@@ -39,11 +55,7 @@ func isContextError(err error) bool {
 	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
 }
 
-func imageBytes(img *image.NRGBA) int64 {
-	return int64(len(img.Pix))
-}
-
-func (c *cache) get(ctx context.Context, key bandKey, load func(context.Context) (*image.NRGBA, error)) (*image.NRGBA, error) {
+func (c *cache) get(ctx context.Context, key bandKey, load func(context.Context) (bandValue, error)) (bandValue, error) {
 	if c.budget <= 0 {
 		return load(ctx)
 	}
@@ -61,7 +73,7 @@ func (c *cache) get(ctx context.Context, key bandKey, load func(context.Context)
 			select {
 			case <-item.ready:
 			case <-ctx.Done():
-				return nil, ctx.Err()
+				return bandValue{}, ctx.Err()
 			}
 			if item.err == nil {
 				return item.img, nil
@@ -69,12 +81,12 @@ func (c *cache) get(ctx context.Context, key bandKey, load func(context.Context)
 			if ctx.Err() == nil && isContextError(item.err) {
 				continue
 			}
-			return nil, item.err
+			return bandValue{}, item.err
 		}
 		item := &cacheItem{key: key, ready: make(chan struct{})}
 		c.items[key] = item
 		c.mu.Unlock()
-		var img *image.NRGBA
+		var img bandValue
 		err := shield.Run("tiff", func() (loadErr error) {
 			img, loadErr = load(ctx)
 			return loadErr
@@ -84,13 +96,10 @@ func (c *cache) get(ctx context.Context, key bandKey, load func(context.Context)
 	}
 }
 
-func (c *cache) finish(item *cacheItem, img *image.NRGBA, err error) {
+func (c *cache) finish(item *cacheItem, img bandValue, err error) {
 	c.mu.Lock()
 	item.img, item.err = img, err
-	size := int64(0)
-	if img != nil {
-		size = imageBytes(img)
-	}
+	size := img.bytes()
 	if err != nil || size > c.budget || c.closed {
 		if c.items[item.key] == item {
 			delete(c.items, item.key)
@@ -103,7 +112,7 @@ func (c *cache) finish(item *cacheItem, img *image.NRGBA, err error) {
 			victim := oldest.Value.(*cacheItem)
 			c.recency.Remove(oldest)
 			delete(c.items, victim.key)
-			c.used -= imageBytes(victim.img)
+			c.used -= victim.img.bytes()
 		}
 	}
 	c.mu.Unlock()

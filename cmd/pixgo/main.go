@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -44,8 +45,13 @@ const defaultAppID = "pixgo"
 
 var appID = "pixgo"
 
+var updateCheck = "on"
+
 func main() {
 	platform.SetDesktopID(appID + ".desktop")
+	if updateCheck == "off" {
+		settings.DisableUpdateCheck()
+	}
 	if appID != defaultAppID {
 		platform.SetInstanceName(appID)
 	}
@@ -54,7 +60,7 @@ func main() {
 	width := flag.Int("width", 0, "window width")
 	height := flag.Int("height", 0, "window height")
 	themeName := flag.String("theme", "", "system, light or dark")
-	lang := flag.String("lang", "", "interface language: ru or en")
+	lang := flag.String("lang", "", "interface language: "+strings.Join(i18n.Supported(), ", ")+"; empty follows the system")
 	newWindow := flag.Bool("new-window", false, "do not hand the files to a running window")
 	mockup := flag.Bool("mockup", false, "draw every control enabled")
 	showVersion := flag.Bool("version", false, "print the version and exit")
@@ -97,14 +103,8 @@ func main() {
 	if err != nil {
 		slog.Warn("settings", "err", err)
 	}
-	if *themeName != "" {
-		th := *themeName
-		store.Update(func(s *settings.Settings) { s.Theme = th })
-	}
-	if *lang != "" {
-		l := *lang
-		store.Update(func(s *settings.Settings) { s.Language = l })
-	} else if l := store.Get().Language; l != settings.LanguageSystem && l != "" {
+	store.OverrideForRun(*themeName, *lang)
+	if l := store.Get().Language; *lang == "" && l != settings.LanguageSystem && l != "" {
 		i18n.SetLang(l)
 	}
 	st := store.Get()

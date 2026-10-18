@@ -20,7 +20,7 @@ var textScales = []float64{1, 1.2, 1.33, 1.6}
 
 func forEachScale(t *testing.T, f func(t *testing.T, k float64, lang string)) {
 	t.Helper()
-	for _, lang := range []string{"ru", "en"} {
+	for _, lang := range i18n.Supported() {
 		for _, k := range textScales {
 			t.Run(fmt.Sprintf("%s k=%.2f", lang, k), func(t *testing.T) { f(t, k, lang) })
 		}
@@ -291,8 +291,13 @@ func TestTooltipsStayInsideTheWindowAndOffTheirButton(t *testing.T) {
 			if !insideRect(box, plateText(rect, tipPadX)) {
 				t.Errorf("%s: tooltip text ink %v is not inside the plate %v (%q)", p.name, box, rect, r.root.tip.text)
 			}
-			if width := textWidth(tipFont, r.root.tip.text); width+2*tipPadX <= p.size.X-8 && box.Dx() < width-6 {
-				t.Errorf("%s: tooltip text is cut: ink %v for a text %d wide (%q)", p.name, box, textWidth(tipFont, r.root.tip.text), r.root.tip.text)
+			if width := textWidth(tipFont, r.root.tip.text); width+2*tipPadX <= p.size.X-8 {
+				if rect.Dx() < width+2*tipPadX {
+					t.Errorf("%s: tooltip plate %v is narrower than its text %d (%q)", p.name, rect, width, r.root.tip.text)
+				}
+				if tol := int(math.Ceil(7 * k)); box.Dx() < width-tol {
+					t.Errorf("%s: tooltip text is cut: ink %v for a text %d wide (%q)", p.name, box, width, r.root.tip.text)
+				}
 			}
 		}
 	})

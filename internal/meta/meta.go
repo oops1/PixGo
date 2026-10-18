@@ -145,6 +145,8 @@ type blocks struct {
 	tree          *exif.Tree
 	icc           []byte
 	xmp           []byte
+	cicp          *codec.CICP
+	colorOnly     bool
 }
 
 func (b *blocks) setSize(w, h int64) {

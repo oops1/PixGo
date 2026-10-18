@@ -14,7 +14,7 @@ func TestEditTreeIsNamedInBothLanguagesAndHidesTheViewerToolbar(t *testing.T) {
 	r := newPNGEditRig(t, 640, 480)
 	r.enter()
 	r.cropTo(image.Rect(10, 20, 410, 320))
-	for _, lang := range []string{"ru", "en"} {
+	for _, lang := range i18n.Supported() {
 		tr := appTree(r.app, lang)
 		testutil.RequireNamed(t, tr)
 		for _, key := range []string{"edit.aspect", "edit.swap", "cmd.rotateLeft", "cmd.rotateRight", "cmd.flipH", "cmd.flipV", "edit.resize", "edit.reset", "edit.saveCopy", "edit.saveMenu", "edit.cancel"} {

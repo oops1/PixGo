@@ -507,7 +507,7 @@ func TestSlideshowTextsAreTranslated(t *testing.T) {
 		"slideshow.settings", "slideshow.seconds", "slideshow.counter", "slideshow.repeat", "slideshow.mix",
 		"cmd.fullscreenExit",
 	}
-	for _, lang := range []string{"ru", "en"} {
+	for _, lang := range i18n.Supported() {
 		have := i18n.Keys(lang)
 		for _, k := range keys {
 			if !slices.Contains(have, k) {

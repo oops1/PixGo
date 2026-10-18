@@ -19,6 +19,7 @@ const (
 type piece struct {
 	x, y int
 	img  *image.NRGBA
+	deep *image.NRGBA64
 	done func()
 }
 

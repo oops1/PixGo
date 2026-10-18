@@ -385,6 +385,17 @@ func (b *builder) viewSection() {
 	b.dropdown("sort", i18n.T("settings.sort"), selectedText(sorts), sorts)
 	b.skip(float64(dim.dropdownAfter))
 	b.check("sortDesc", i18n.T("settings.sortDesc"), cfg.SortDesc, func(s *data.Settings, v bool) { s.SortDesc = v })
+	b.skip(dim.groupGap)
+	b.check("colorManagement", i18n.T("settings.colorManagement"), cfg.ColorManagement, func(s *data.Settings, v bool) { s.ColorManagement = v })
+	b.note(i18n.T("settings.colorManagement.desc"), dim.checkLabelX)
+	b.skip(dim.groupGap)
+	b.heading(i18n.T("settings.displayProfile"))
+	b.skip(float64(dim.headingToRows))
+	profile := func(id, key string) choice {
+		return choice{id: id, text: i18n.T(key), on: cfg.DisplayProfile == id, change: func(s *data.Settings) { s.DisplayProfile = id }}
+	}
+	b.radios("displayProfile", []choice{profile(data.DisplayProfileSystem, "settings.displayProfile.system"), profile(data.DisplayProfileSRGB, "settings.displayProfile.srgb")})
+	b.note(i18n.T("settings.displayProfile.desc"), 0)
 }
 
 func selectedText(choices []choice) string {
@@ -403,8 +414,16 @@ func (b *builder) formatsSection() {
 	b.title(i18n.T(sectionKeys[SectionFormats]))
 	b.heading(i18n.T("settings.formats.supported"))
 	b.skip(float64(dim.headingToRows))
+	rawAvailable := false
 	for _, f := range b.p.formats {
 		b.formatRow(f)
+		if f.ID == "raw" && f.Available {
+			rawAvailable = true
+		}
+	}
+	if rawAvailable {
+		b.check("rawDevelop", i18n.T("settings.rawDevelop"), b.p.cfg.RawDevelop, func(s *data.Settings, v bool) { s.RawDevelop = v })
+		b.note(i18n.T("settings.rawDevelop.desc"), dim.checkLabelX)
 	}
 	b.skip(dim.groupGap - float64(dim.formatGap))
 	b.heading(i18n.T("settings.defaultApps"))

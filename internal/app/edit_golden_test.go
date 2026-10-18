@@ -66,7 +66,7 @@ func near(a, b color.RGBA, tol int) bool {
 
 func TestEditModeScreenAtTheReferenceSize(t *testing.T) {
 	for _, name := range []string{settings.ThemeDark, settings.ThemeLight} {
-		for _, lang := range []string{"ru", "en"} {
+		for _, lang := range i18n.Supported() {
 			t.Run(fmt.Sprintf("%s/%s", name, lang), func(t *testing.T) {
 				a, img := editShot(t, lang, name, 1100, 700, image.Rect(100, 60, 500, 340))
 				th := themeOf(name)

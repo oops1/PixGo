@@ -14,6 +14,7 @@ import (
 	"github.com/oops1/PixGo/internal/codec/internal/guard"
 	"github.com/oops1/PixGo/internal/codec/internal/splice"
 	"github.com/oops1/PixGo/internal/jpegdec"
+	"github.com/oops1/PixGo/internal/meta"
 	"github.com/oops1/PixGo/internal/meta/exif"
 )
 
@@ -167,10 +168,11 @@ func (d Decoder) Decode(ctx context.Context, r io.ReaderAt, size int64, o codec.
 	if err != nil {
 		return nil, classify(ctx, err)
 	}
+	color := meta.ReadColor(ctx, r, size, codec.JPEG)
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	return &codec.Image{Info: info, Frames: []codec.Frame{{Pix: pix}}, Scale: scale}, nil
+	return &codec.Image{Info: info, Color: color, Frames: []codec.Frame{{Pix: pix}}, Scale: scale}, nil
 }
 
 func decodeLevel(ctx context.Context, dec *jpegdec.Decoder, shift int, want image.Rectangle, partial bool) (*image.NRGBA, error) {
@@ -202,13 +204,16 @@ func (d Decoder) OpenTiled(ctx context.Context, r io.ReaderAt, size int64, lim c
 		dec.Close()
 		return nil, guard.Corrupt("image has no pixels")
 	}
-	return &tileReader{dec: dec, info: infoOf(header, orientationOf(r, size))}, nil
+	return &tileReader{dec: dec, info: infoOf(header, orientationOf(r, size)), color: meta.ReadColor(ctx, r, size, codec.JPEG)}, nil
 }
 
 type tileReader struct {
-	dec  *jpegdec.Decoder
-	info codec.Info
+	dec   *jpegdec.Decoder
+	info  codec.Info
+	color codec.ColorInfo
 }
+
+func (t *tileReader) Color() codec.ColorInfo { return t.color }
 
 func (t *tileReader) Info() codec.Info { return t.info }
 

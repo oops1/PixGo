@@ -118,6 +118,7 @@ type Platform struct {
 	Instance     Instance
 	Associations Associations
 	Paths        Paths
+	Display      DisplayProfile
 }
 
 func New() *Platform {
@@ -132,6 +133,7 @@ func New() *Platform {
 		Instance:     NewInstance(CurrentInstanceName()),
 		Associations: NewAssociations(),
 		Paths:        NewPaths(),
+		Display:      NewDisplayProfile(),
 	}
 }
 

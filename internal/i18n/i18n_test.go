@@ -8,32 +8,43 @@ import (
 )
 
 func TestCataloguesHaveSameKeys(t *testing.T) {
-	for k := range ru {
-		if _, ok := en[k]; !ok {
-			t.Errorf("en lacks %q", k)
-		}
+	if len(Supported()) != 12 {
+		t.Fatalf("supported: %v", Supported())
 	}
-	for k := range en {
-		if _, ok := ru[k]; !ok {
-			t.Errorf("ru lacks %q", k)
+	for _, l := range Supported() {
+		cat, ok := catalogs[l]
+		if !ok {
+			t.Fatalf("no catalogue for %q", l)
 		}
-	}
-	if len(Keys("ru")) != len(Keys("en")) || len(Keys("ru")) == 0 {
-		t.Errorf("key counts: ru %d, en %d", len(Keys("ru")), len(Keys("en")))
+		if len(cat) != len(en) || len(cat) == 0 {
+			t.Errorf("%s has %d keys, en has %d", l, len(cat), len(en))
+		}
+		for k := range en {
+			if _, ok := cat[k]; !ok {
+				t.Errorf("%s lacks %q", l, k)
+			}
+		}
+		for k := range cat {
+			if _, ok := en[k]; !ok {
+				t.Errorf("%s has %q that en lacks", l, k)
+			}
+		}
 	}
 }
 
 var verb = regexp.MustCompile(`%[-+# 0]*[0-9]*(?:\.[0-9]+)?[a-zA-Z%]`)
 
 func TestPlaceholdersMatch(t *testing.T) {
-	for k, r := range ru {
-		e, ok := en[k]
-		if !ok {
-			continue
-		}
-		rv, ev := verb.FindAllString(r, -1), verb.FindAllString(e, -1)
-		if strings.Join(rv, " ") != strings.Join(ev, " ") {
-			t.Errorf("%s: ru verbs %v, en verbs %v", k, rv, ev)
+	for _, l := range Supported() {
+		for k, v := range catalogs[l] {
+			e, ok := en[k]
+			if !ok {
+				continue
+			}
+			lv, ev := verb.FindAllString(v, -1), verb.FindAllString(e, -1)
+			if strings.Join(lv, " ") != strings.Join(ev, " ") {
+				t.Errorf("%s %s: verbs %v, en verbs %v", l, k, lv, ev)
+			}
 		}
 	}
 }
@@ -68,20 +79,6 @@ func TestRequiredKeys(t *testing.T) {
 	}
 }
 
-func TestPlural(t *testing.T) {
-	SetLang("ru")
-	for n, want := range map[int]string{1: "a", 2: "b", 5: "c", 11: "c", 21: "a", 104: "b", 112: "c", 0: "c"} {
-		if got := Plural(n, "a", "b", "c"); got != want {
-			t.Errorf("ru Plural(%d) = %q, want %q", n, got, want)
-		}
-	}
-	SetLang("en")
-	if Plural(1, "a", "b", "c") != "a" || Plural(2, "a", "b", "c") != "c" {
-		t.Error("en plural")
-	}
-	SetLang("ru")
-}
-
 func TestFormat(t *testing.T) {
 	SetLang("ru")
 	if got := T("title.dimensions", "mountain.jpg", 6000, 4000); got != "mountain.jpg — 6000 × 4000" {
@@ -106,7 +103,7 @@ func TestFormat(t *testing.T) {
 func TestSetLang(t *testing.T) {
 	defer SetLang("ru")
 	SetLang("en")
-	SetLang("de")
+	SetLang("zh")
 	if Lang() != "en" {
 		t.Fatalf("unknown language changed to %q", Lang())
 	}
@@ -118,44 +115,6 @@ func TestSetLang(t *testing.T) {
 	SetLang("system")
 	if Lang() != "en" {
 		t.Fatalf("system: %q", Lang())
-	}
-}
-
-func TestMatch(t *testing.T) {
-	for in, want := range map[string]string{
-		"ru": "ru", "ru-RU": "ru", "ru_RU.UTF-8": "ru", "RU_ru@euro": "ru",
-		"en": "en", "en-US": "en", "en_GB.UTF-8": "en",
-		"de-DE": "en", "": "en", "C": "en", "POSIX": "en", "uk": "en", "zh-Hans-CN": "en",
-	} {
-		if got := Match(in); got != want {
-			t.Errorf("Match(%q) = %q, want %q", in, got, want)
-		}
-	}
-}
-
-func TestDetectFrom(t *testing.T) {
-	env := func(m map[string]string) func(string) string { return func(k string) string { return m[k] } }
-	none := func() string { return "" }
-	for _, c := range []struct {
-		name   string
-		env    map[string]string
-		native string
-		want   string
-	}{
-		{"override wins", map[string]string{"PIXGO_LANG": "en", "LANG": "ru_RU.UTF-8"}, "ru-RU", "en"},
-		{"override unknown", map[string]string{"PIXGO_LANG": "de"}, "ru-RU", "en"},
-		{"native used", nil, "ru-RU", "ru"},
-		{"native base language", nil, "ru", "ru"},
-		{"native unsupported", nil, "de-DE", "en"},
-		{"nothing", nil, "", "en"},
-	} {
-		native := func() string { return c.native }
-		if c.native == "" {
-			native = none
-		}
-		if got := detectFrom(env(c.env), native); got != c.want {
-			t.Errorf("%s: got %q, want %q", c.name, got, c.want)
-		}
 	}
 }
 

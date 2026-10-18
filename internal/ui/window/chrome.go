@@ -3,6 +3,7 @@ package window
 import (
 	"image"
 	"image/color"
+	"strings"
 
 	"github.com/oops1/headless-gui/v3/widget"
 
@@ -12,14 +13,16 @@ import (
 )
 
 const (
-	titleBaseline  = 30
-	zoomBaseline   = 5
-	titleGap       = 14
-	arrowRadius    = 20.5
-	toolbarRadius  = ToolbarRadius
-	hoverRadius    = 4
-	stateTitleGap  = 10
-	stateLineSpace = 8
+	titleBaseline     = 30
+	zoomBaseline      = 5
+	titleGap          = 14
+	arrowRadius       = 20.5
+	toolbarRadius     = ToolbarRadius
+	hoverRadius       = 4
+	stateTitleGap     = 10
+	stateLineSpace    = 8
+	stateBodyMaxLines = 3
+	stateBodyLeading  = 4
 
 	fullArrowRadius   = 19.4
 	fullArrowShiftY   = 0.3
@@ -227,23 +230,52 @@ func (r *Root) drawState(c widget.DrawContext, l Layout) {
 	}
 	cx := (l.View.Min.X + l.View.Max.X) / 2
 	cy := (l.View.Min.Y + l.View.Max.Y) / 2
-	lines := 1
+	w := l.View.Dx() - 48
+	var bodyLines []string
 	if body != "" {
-		lines = 2
+		bodyLines = wrapCentered(stateTextFont, body, w, stateBodyMaxLines)
 	}
+	pitch := stateTextFont.Ascent() + stateBodyLeading
 	total := stateTitleFont.Ascent()
-	if lines == 2 {
-		total += stateLineSpace + stateTextFont.Ascent() + 6
+	if len(bodyLines) > 0 {
+		total += stateLineSpace + stateTextFont.Ascent() + 6 + (len(bodyLines)-1)*pitch
 	}
 	y := cy - total/2 + stateTitleFont.Ascent() - textOpticalRise(stateTitleFont)
-	w := l.View.Dx() - 48
 	tw := stateTitleFont.Measure(c, head)
 	stateTitleFont.DrawFit(c, head, cx-min(tw, w)/2, y, w, t.Text)
-	if body != "" {
-		y += stateLineSpace + stateTextFont.Ascent() + 6
-		bw := stateTextFont.Measure(c, body)
-		stateTextFont.DrawFit(c, body, cx-min(bw, w)/2, y, w, t.SecondaryText)
+	for i, line := range bodyLines {
+		if i == 0 {
+			y += stateLineSpace + stateTextFont.Ascent() + 6
+		} else {
+			y += pitch
+		}
+		bw := stateTextFont.Measure(c, line)
+		stateTextFont.DrawFit(c, line, cx-min(bw, w)/2, y, w, t.SecondaryText)
 	}
+}
+
+func wrapCentered(f gfx.Font, text string, width, maxLines int) []string {
+	words := i18n.Words(text)
+	if len(words) == 0 || width <= 0 {
+		return nil
+	}
+	var lines []string
+	cur := ""
+	for i, word := range words {
+		switch {
+		case cur == "":
+			cur = word
+		case f.Measure(nil, cur+" "+word) <= width:
+			cur += " " + word
+		case len(lines) == maxLines-1:
+			cur += " " + strings.Join(words[i:], " ")
+			return append(lines, f.Fit(nil, cur, width))
+		default:
+			lines = append(lines, cur)
+			cur = word
+		}
+	}
+	return append(lines, f.Fit(nil, cur, width))
 }
 
 func (r *Root) drawOverlay(c widget.DrawContext, l Layout) {

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/oops1/PixGo/internal/codec"
+	"github.com/oops1/PixGo/internal/colorm"
 	"github.com/oops1/PixGo/internal/i18n"
 	"github.com/oops1/PixGo/internal/imaging"
 	"github.com/oops1/PixGo/internal/jobs"
@@ -34,6 +35,8 @@ type Env struct {
 	After      func(d time.Duration, fn func()) (stop func())
 	Invalidate func()
 	Now        func() time.Time
+
+	DisplayProfile colorm.DisplayProvider
 }
 
 type Controller struct {
@@ -41,6 +44,7 @@ type Controller struct {
 	canvas *view.Canvas
 	cache  *imaging.Cache
 	loader *imaging.Loader
+	color  *colorm.Manager
 	runner *jobs.Runner
 
 	folder *viewer.Folder
@@ -89,6 +93,9 @@ func NewController(env Env, canvas *view.Canvas) *Controller {
 		exif:      codec.OrientNormal,
 	}
 	c.loader = imaging.NewLoader(env.Registry, c.cache, env.Post, 0, c.limits)
+	c.color = colorm.NewManager(env.DisplayProfile)
+	c.color.Configure(colorConfig(st))
+	c.loader.SetColor(c.color)
 	c.loader.SetTileBudget(tileBudgetFor(int64(st.CacheMB) << 20))
 	c.unsub = c.loader.Subscribe(c.onLoaderEvent)
 	c.anim.owner = c
@@ -605,6 +612,20 @@ func (c *Controller) Supports(path string) bool { return c.env.Registry.Supports
 func (c *Controller) ApplyThreads() {
 	par.Set(threadSetting(c.env.Settings.Get().DecodeThreads))
 	c.loader.SetWorkers(0)
+}
+
+func colorConfig(st settings.Settings) colorm.Config {
+	return colorm.Config{Enabled: st.ColorManagement, SystemProfile: st.DisplayProfile == settings.DisplayProfileSystem}
+}
+
+func (c *Controller) Color() *colorm.Manager { return c.color }
+
+func (c *Controller) ApplyColor() {
+	before := c.color.Stamp()
+	c.color.Configure(colorConfig(c.env.Settings.Get()))
+	if c.color.Stamp() != before {
+		c.loader.ColorChanged()
+	}
 }
 
 func (c *Controller) ApplyCache() {

@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/oops1/PixGo/internal/i18n"
 )
 
 type addressFixture struct {
@@ -94,7 +96,7 @@ func TestParseAddressRecognizesVirtualPlacesInTheCurrentLanguage(t *testing.T) {
 
 func TestParseAddressRoundTripsDisplay(t *testing.T) {
 	fx := newAddressFixture(t)
-	for _, lang := range []string{"ru", "en"} {
+	for _, lang := range i18n.Supported() {
 		setLang(t, lang)
 		for _, loc := range []Location{Folder(fx.folder), {Kind: KindAll}, {Kind: KindRecent}, {Kind: KindFavorites}} {
 			got, err := ParseAddress(loc.Display(), "")

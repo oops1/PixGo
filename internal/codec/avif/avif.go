@@ -14,6 +14,7 @@ import (
 	"github.com/oops1/PixGo/internal/codec/internal/guard"
 	"github.com/oops1/PixGo/internal/codec/internal/shield"
 	"github.com/oops1/PixGo/internal/isobmff"
+	"github.com/oops1/PixGo/internal/meta"
 )
 
 const formatTag = "avif"
@@ -38,6 +39,7 @@ func (Decoder) Sniff(head []byte) bool {
 }
 
 type inspection struct {
+	icc     []byte
 	picture isobmff.Picture
 	info    codec.Info
 	width   int
@@ -126,7 +128,7 @@ func inspectFile(ctx context.Context, r io.ReaderAt, size int64, lim codec.Limit
 		info.Frames = track.Samples
 		info.Animated = true
 	}
-	return inspection{picture: picture, info: info, width: width, height: height}, nil
+	return inspection{icc: meta.HEIFProfile(file, item), picture: picture, info: info, width: width, height: height}, nil
 }
 
 func inspect(ctx context.Context, r io.ReaderAt, size int64, lim codec.Limits) (inspection, error) {
@@ -151,10 +153,11 @@ func frameSizeLimit(lim codec.Limits) int {
 	return int(min(lim.MaxPixels, math.MaxInt32))
 }
 
-func decodeImages(ctx context.Context, source io.Reader, all bool, lim codec.Limits) (assemble.Source, int, error) {
+func decodeImages(ctx context.Context, source io.Reader, all bool, lim codec.Limits, icc []byte) (assemble.Source, int, codec.ColorInfo, error) {
 	options := avif.Options{FrameSizeLimit: frameSizeLimit(lim)}
 	var out assemble.Source
 	var loopCount int
+	var color codec.ColorInfo
 	err := shield.Run(formatTag, func() error {
 		if all {
 			result, err := avif.DecodeAll(source, options)
@@ -163,19 +166,21 @@ func decodeImages(ctx context.Context, source io.Reader, all bool, lim codec.Lim
 			}
 			out = assemble.Source{Images: result.Image, Delays: result.Delay}
 			loopCount = result.LoopCount
+			color = assemble.Color(icc, result.Color.Primaries, result.Color.Transfer, result.Color.Matrix, result.Color.FullRange)
 			return nil
 		}
-		img, err := avif.Decode(source, options)
+		img, ci, err := avif.DecodeColor(source, options)
 		if err != nil {
 			return err
 		}
 		out = assemble.Source{Images: []image.Image{img}, Delays: []float64{0}}
+		color = assemble.Color(icc, ci.Primaries, ci.Transfer, ci.Matrix, ci.FullRange)
 		return nil
 	})
 	if err != nil {
-		return assemble.Source{}, 0, guard.Classify(ctx, err, isUnsupported)
+		return assemble.Source{}, 0, codec.ColorInfo{}, guard.Classify(ctx, err, isUnsupported)
 	}
-	return out, loopCount, nil
+	return out, loopCount, color, nil
 }
 
 func (Decoder) Decode(ctx context.Context, r io.ReaderAt, size int64, o codec.Options) (*codec.Image, error) {
@@ -191,19 +196,31 @@ func (Decoder) Decode(ctx context.Context, r io.ReaderAt, size int64, o codec.Op
 		}
 	}
 	source := io.NewSectionReader(guard.NewReader(ctx, r, size), 0, size)
-	result, loopCount, err := decodeImages(ctx, source, all, lim)
+	result, loopCount, color, err := decodeImages(ctx, source, all, lim, found.icc)
 	if err != nil {
 		return nil, err
 	}
-	frames, err := assemble.Frames(ctx, formatTag, result, found.picture.Transform.Crop)
+	var frames []codec.Frame
+	var bounds image.Rectangle
+	if o.Deep && assemble.WantsDeep(result, color) {
+		frames, err = assemble.DeepFrames(ctx, formatTag, result, found.picture.Transform.Crop)
+		if err == nil {
+			bounds = frames[0].Deep.Bounds()
+		}
+	} else {
+		frames, err = assemble.Frames(ctx, formatTag, result, found.picture.Transform.Crop)
+		if err == nil {
+			bounds = frames[0].Pix.Bounds()
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
 	info := found.info
-	info.Width, info.Height = frames[0].Pix.Bounds().Dx(), frames[0].Pix.Bounds().Dy()
+	info.Width, info.Height = bounds.Dx(), bounds.Dy()
 	if all {
 		info.Frames = len(frames)
 		info.Animated = len(frames) > 1
 	}
-	return &codec.Image{Info: info, Frames: frames, Loop: isobmff.PlayCount(loopCount), Scale: 1}, nil
+	return &codec.Image{Info: info, Color: color, Frames: frames, Loop: isobmff.PlayCount(loopCount), Scale: 1}, nil
 }

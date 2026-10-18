@@ -1,6 +1,9 @@
 package app
 
 import (
+	"path/filepath"
+	"strings"
+
 	"github.com/oops1/headless-gui/v3/widget"
 
 	"github.com/oops1/PixGo/internal/codec"
@@ -23,6 +26,34 @@ func (a *App) applyFormats(current settings.Settings) bool {
 	return changed
 }
 
+type rawDeveloper interface {
+	SetDevelop(on bool)
+	Develops() bool
+}
+
+func (a *App) applyRawDevelop(on bool) bool {
+	changed := false
+	for _, d := range a.Ctl.env.Registry.Registered() {
+		if rd, ok := d.(rawDeveloper); ok && rd.Develops() != on {
+			rd.SetDevelop(on)
+			changed = true
+		}
+	}
+	return changed
+}
+
+func (a *App) rawDevelopChanged() {
+	if a.gal != nil {
+		a.gal.lister.InvalidateAll()
+		if a.gal.hist != nil && a.galleryBehind() {
+			a.gal.reload()
+		}
+	}
+	if strings.EqualFold(filepath.Ext(a.Ctl.Path()), ".dng") {
+		a.Ctl.Reload()
+	}
+}
+
 func (a *App) formatsChanged() {
 	if a.gal != nil {
 		a.gal.lister.InvalidateAll()
@@ -43,7 +74,11 @@ func (a *App) settingsChanged(old, current settings.Settings) {
 		widget.SetLanguage(i18n.Lang())
 	}
 	formats := a.applyFormats(current)
+	rawChanged := a.applyRawDevelop(current.RawDevelop)
 	a.ApplySettings()
+	if rawChanged {
+		a.rawDevelopChanged()
+	}
 	if a.gal != nil && a.gal.svc != nil && old.DecodeThreads != current.DecodeThreads {
 		a.gal.svc.SetWorkers(0)
 	}

@@ -143,7 +143,7 @@ func TestSpinnerFramesDiffer(t *testing.T) {
 }
 
 func TestLoadingIndicatorHasALocalisedName(t *testing.T) {
-	for _, lang := range []string{"ru", "en"} {
+	for _, lang := range i18n.Supported() {
 		r, rh := newLoadingRig(t, lang, true)
 		tree := accessTree(r)
 		testutil.RequireNamed(t, tree)

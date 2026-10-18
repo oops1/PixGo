@@ -14,6 +14,7 @@ import (
 	"github.com/oops1/PixGo/internal/codec"
 	"github.com/oops1/PixGo/internal/codec/internal/convert"
 	"github.com/oops1/PixGo/internal/codec/internal/guard"
+	"github.com/oops1/PixGo/internal/meta"
 )
 
 const (
@@ -86,6 +87,7 @@ func (Decoder) Decode(ctx context.Context, r io.ReaderAt, size int64, o codec.Op
 			return nil, err
 		}
 	}
+	color := meta.ReadColor(ctx, r, size, codec.WebP)
 	source := io.NewSectionReader(guard.NewReader(ctx, r, size), 0, size)
 	options := vpx.Options{ToRGBA: !found.lossless, Threads: decodeThreads, FrameSizeLimit: pixelLimit(lim)}
 	var frames []codec.Frame
@@ -104,7 +106,7 @@ func (Decoder) Decode(ctx context.Context, r io.ReaderAt, size int64, o codec.Op
 		info.Frames = len(frames)
 		info.Animated = len(frames) > 1
 	}
-	return &codec.Image{Info: info, Frames: frames, Loop: found.loop, Scale: 1}, nil
+	return &codec.Image{Info: info, Color: color, Frames: frames, Loop: found.loop, Scale: 1}, nil
 }
 
 func decodeFirst(source io.Reader, options vpx.Options, delay time.Duration) ([]codec.Frame, error) {

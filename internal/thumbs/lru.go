@@ -7,6 +7,7 @@ type ckey struct {
 	size  int64
 	mtime int64
 	side  int
+	color string
 }
 
 type lruEntry struct {

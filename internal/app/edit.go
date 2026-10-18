@@ -314,6 +314,10 @@ func (a *App) captureEditJob() *saveJob {
 	path := a.Ctl.Path()
 	info := a.Ctl.Info()
 	job := &saveJob{meta: &metaSource{path: path, format: info.Format, swap: plan.Orientation.Transposes()}}
+	if shown := a.Ctl.Shown(); shown != nil {
+		job.meta.converted = shown.Color.Converted
+		job.meta.display = a.Ctl.Color().DisplayICC()
+	}
 	if d := a.Ctl.Decoded(); d != nil && len(d.Levels) > 0 {
 		src := d.Levels[0]
 		job.produce = func(ctx contextT) (*image.NRGBA, error) { return coreedit.Apply(ctx, src, plan) }

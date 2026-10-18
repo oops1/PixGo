@@ -43,7 +43,7 @@ func panelTree(t *testing.T, lang string) (*widget.AccessNode, *Panel) {
 }
 
 func TestPanelAccessTreeIsNamedInBothLanguages(t *testing.T) {
-	for _, lang := range []string{"ru", "en"} {
+	for _, lang := range i18n.Supported() {
 		tr, _ := panelTree(t, lang)
 		testutil.RequireNamed(t, tr)
 		if tr.Role != widget.RoleGroup || tr.Name != i18n.T("info.title") || tr.Value != "mountain.jpg" {

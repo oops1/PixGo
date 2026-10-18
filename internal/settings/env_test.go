@@ -35,3 +35,15 @@ func TestEnvironmentSwitches(t *testing.T) {
 		t.Fatal("environment switches ignored")
 	}
 }
+
+func TestBuildCanSwitchTheUpdateCheckOff(t *testing.T) {
+	t.Setenv(EnvNoUpdateCheck, "")
+	t.Cleanup(func() { updateCheckOff.Store(false) })
+	if UpdateCheckDisabled() {
+		t.Fatal("on by default")
+	}
+	DisableUpdateCheck()
+	if !UpdateCheckDisabled() {
+		t.Fatal("the build switch was ignored")
+	}
+}

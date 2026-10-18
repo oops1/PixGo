@@ -438,8 +438,8 @@ func FuzzDecode(f *testing.F) {
 		ctx := context.Background()
 		Decoder{}.Sniff(data)
 		Decoder{}.Probe(ctx, bytes.NewReader(data), int64(len(data)), lim)
-		img, err := Decoder{}.Decode(ctx, bytes.NewReader(data), int64(len(data)), codec.Options{Limits: lim})
-		if err == nil && (img == nil || img.First() == nil) {
+		img, err := Decoder{}.Decode(ctx, bytes.NewReader(data), int64(len(data)), codec.Options{Limits: lim, Deep: len(data)&1 == 1})
+		if err == nil && (img == nil || len(img.Frames) == 0 || img.Frames[0].Pix == nil && img.Frames[0].Deep == nil) {
 			t.Fatal("success without pixels")
 		}
 		if err != nil {

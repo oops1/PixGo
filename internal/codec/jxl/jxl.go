@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"image"
 	"io"
 	"math"
 
@@ -197,15 +198,29 @@ func (d Decoder) Decode(ctx context.Context, r io.ReaderAt, size int64, o codec.
 	if o.Frames == codec.FirstFrame && len(images) > 1 {
 		images = images[:1]
 	}
-	frames, err := assemble.Frames(ctx, formatTag, assemble.Source{Images: images, Delays: result.Delay}, nil)
+	color := found.header.color(result.Color.ICCP)
+	source2 := assemble.Source{Images: images, Delays: result.Delay}
+	var frames []codec.Frame
+	var bounds image.Rectangle
+	if o.Deep && assemble.WantsDeep(source2, color) {
+		frames, err = assemble.DeepFrames(ctx, formatTag, source2, nil)
+		if err == nil {
+			bounds = frames[0].Deep.Bounds()
+		}
+	} else {
+		frames, err = assemble.Frames(ctx, formatTag, source2, nil)
+		if err == nil {
+			bounds = frames[0].Pix.Bounds()
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
 	info := found.info
-	info.Width, info.Height = frames[0].Pix.Bounds().Dx(), frames[0].Pix.Bounds().Dy()
+	info.Width, info.Height = bounds.Dx(), bounds.Dy()
 	if o.Frames == codec.AllFrames {
 		info.Frames = len(frames)
 		info.Animated = len(frames) > 1
 	}
-	return &codec.Image{Info: info, Frames: frames, Loop: int(result.Loops), Scale: 1}, nil
+	return &codec.Image{Info: info, Color: color, Frames: frames, Loop: int(result.Loops), Scale: 1}, nil
 }

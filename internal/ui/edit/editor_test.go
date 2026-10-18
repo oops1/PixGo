@@ -565,7 +565,7 @@ func TestDrawDimsOutsideTheCrop(t *testing.T) {
 }
 
 func TestBarLayoutFitsEveryWidth(t *testing.T) {
-	for _, lang := range []string{"en", "ru"} {
+	for _, lang := range i18n.Supported() {
 		for _, k := range []float64{1, 1.33, 1.6} {
 			for _, w := range []int{420, 520, 700, 900, 1100, 1600} {
 				t.Run(fmt.Sprintf("%s/%.2f/%d", lang, k, w), func(t *testing.T) {

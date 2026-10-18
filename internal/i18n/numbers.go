@@ -17,22 +17,40 @@ type Locale struct {
 	TimeLayout string
 }
 
-var (
-	Russian = Locale{
-		Name: "ru", Decimal: ",", Group: "\xc2\xa0",
-		ByteUnits:  [5]string{"Б", "КБ", "МБ", "ГБ", "ТБ"},
-		DateLayout: "02.01.2006", TimeLayout: "15:04",
-	}
-	English = Locale{
-		Name: "en", Decimal: ".", Group: ",",
-		ByteUnits:  [5]string{"B", "KB", "MB", "GB", "TB"},
-		DateLayout: "1/2/2006", TimeLayout: "3:04 PM",
-	}
+const (
+	nbsp = " "
+	hour = "15:04"
 )
 
+var (
+	latinBytes = [5]string{"B", "KB", "MB", "GB", "TB"}
+	cyrBytes   = [5]string{"Б", "КБ", "МБ", "ГБ", "ТБ"}
+	frBytes    = [5]string{"o", "Ko", "Mo", "Go", "To"}
+)
+
+var (
+	Russian = Locale{Name: "ru", Decimal: ",", Group: nbsp, ByteUnits: cyrBytes, DateLayout: "02.01.2006", TimeLayout: hour}
+	English = Locale{Name: "en", Decimal: ".", Group: ",", ByteUnits: latinBytes, DateLayout: "1/2/2006", TimeLayout: "3:04 PM"}
+)
+
+var locales = map[string]Locale{
+	"en":    English,
+	"ru":    Russian,
+	"uk":    {Name: "uk", Decimal: ",", Group: nbsp, ByteUnits: cyrBytes, DateLayout: "02.01.2006", TimeLayout: hour},
+	"de":    {Name: "de", Decimal: ",", Group: ".", ByteUnits: latinBytes, DateLayout: "02.01.2006", TimeLayout: hour},
+	"fr":    {Name: "fr", Decimal: ",", Group: nbsp, ByteUnits: frBytes, DateLayout: "02/01/2006", TimeLayout: hour},
+	"es":    {Name: "es", Decimal: ",", Group: ".", ByteUnits: latinBytes, DateLayout: "2/1/2006", TimeLayout: hour},
+	"it":    {Name: "it", Decimal: ",", Group: ".", ByteUnits: latinBytes, DateLayout: "02/01/2006", TimeLayout: hour},
+	"pt-BR": {Name: "pt-BR", Decimal: ",", Group: ".", ByteUnits: latinBytes, DateLayout: "02/01/2006", TimeLayout: hour},
+	"pl":    {Name: "pl", Decimal: ",", Group: nbsp, ByteUnits: latinBytes, DateLayout: "2.01.2006", TimeLayout: hour},
+	"cs":    {Name: "cs", Decimal: ",", Group: nbsp, ByteUnits: latinBytes, DateLayout: "2. 1. 2006", TimeLayout: hour},
+	"nl":    {Name: "nl", Decimal: ",", Group: ".", ByteUnits: latinBytes, DateLayout: "2-1-2006", TimeLayout: hour},
+	"tr":    {Name: "tr", Decimal: ",", Group: ".", ByteUnits: latinBytes, DateLayout: "02.01.2006", TimeLayout: hour},
+}
+
 func LocaleFor(name string) Locale {
-	if Match(name) == "ru" {
-		return Russian
+	if l, ok := locales[Match(name)]; ok {
+		return l
 	}
 	return English
 }
@@ -148,6 +166,15 @@ func (l Locale) DateTime(t time.Time) string {
 	return t.Format(l.DateLayout + " " + l.TimeLayout)
 }
 
+func (l Locale) Decimalize(s string) string {
+	if l.Decimal == "." {
+		return s
+	}
+	return strings.Replace(s, ".", l.Decimal, 1)
+}
+
+func LocalizeDecimal(s string) string { return CurrentLocale().Decimalize(s) }
+
 func FormatInt(n int64) string { return CurrentLocale().Int(n) }
 
 func FormatFloat(f float64, prec int) string { return CurrentLocale().Float(f, prec) }
@@ -210,4 +237,8 @@ func allDigits(s string) bool {
 		}
 	}
 	return true
+}
+
+func Words(s string) []string {
+	return strings.FieldsFunc(s, func(r rune) bool { return r == ' ' || r == '\t' || r == '\n' || r == '\r' })
 }

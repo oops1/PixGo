@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 
 	"github.com/oops1/PixGo/internal/codec"
+	"github.com/oops1/PixGo/internal/colorm"
 	"github.com/oops1/PixGo/internal/par"
 )
 
@@ -78,6 +79,7 @@ type Loader struct {
 	viewH      atomic.Int32
 	tileBudget atomic.Int64
 	explicit   atomic.Int32
+	color      atomic.Pointer[colorm.Manager]
 
 	mu      sync.Mutex
 	cond    *sync.Cond
@@ -243,7 +245,7 @@ func (l *Loader) Entry(path string) (Entry, bool) {
 	if s == nil {
 		return Entry{}, false
 	}
-	if s.entry.State == StateReady && s.entry.Img.Released() {
+	if s.entry.State == StateReady && (s.entry.Img.Released() || s.entry.Img.ColorStamp != l.colorStamp()) {
 		l.requeue(s)
 	}
 	return s.entry, true

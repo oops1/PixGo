@@ -9,7 +9,7 @@ import (
 )
 
 func TestSpecsTitlesTranslated(t *testing.T) {
-	for _, l := range []string{"ru", "en"} {
+	for _, l := range i18n.Supported() {
 		keys := i18n.Keys(l)
 		for _, s := range Specs {
 			if !slices.Contains(keys, s.Title) {

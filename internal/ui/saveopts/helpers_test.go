@@ -17,7 +17,7 @@ import (
 
 var (
 	scales = []float64{1, 1.2, 1.33, 1.6}
-	langs  = []string{"ru", "en"}
+	langs  = i18n.Supported()
 	kinds  = []Kind{JPEG, WebP, JPEGLossless}
 )
 

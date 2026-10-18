@@ -12,6 +12,7 @@ import (
 	"github.com/oops1/PixGo/internal/codec"
 	"github.com/oops1/PixGo/internal/codec/internal/convert"
 	"github.com/oops1/PixGo/internal/codec/internal/guard"
+	"github.com/oops1/PixGo/internal/meta"
 )
 
 const (
@@ -108,6 +109,7 @@ type header struct {
 	palette       [maxPaletteColors][4]uint8
 	paletteLen    int
 	dataOffset    int64
+	color         codec.ColorInfo
 }
 
 func (h *header) indexed() bool { return h.bitCount <= 8 }
@@ -158,6 +160,7 @@ func readHeader(r io.ReaderAt, size int64, lim codec.Limits) (*header, error) {
 	}
 
 	h := &header{}
+	h.color = embeddedProfileColor(r, size, dib)
 	core := dibSize == coreHeaderSize
 	var widthRaw, heightRaw int64
 	var colorsUsed uint32
@@ -615,5 +618,29 @@ func (Decoder) Decode(ctx context.Context, r io.ReaderAt, size int64, o codec.Op
 			info.HasAlpha = alphaSeen != 0
 		}
 	}
-	return &codec.Image{Info: info, Frames: []codec.Frame{{Pix: dst}}, Scale: 1}, nil
+	return &codec.Image{Info: info, Color: h.color, Frames: []codec.Frame{{Pix: dst}}, Scale: 1}, nil
+}
+
+const (
+	v5HeaderSize    = 124
+	v5ColorSpace    = 56
+	v5ProfileData   = 112
+	v5ProfileSize   = 116
+	profileEmbedded = 0x4d424544
+)
+
+func embeddedProfileColor(r io.ReaderAt, size int64, dib []byte) codec.ColorInfo {
+	if len(dib) < v5HeaderSize || binary.LittleEndian.Uint32(dib[v5ColorSpace:]) != profileEmbedded {
+		return codec.ColorInfo{}
+	}
+	offset := int64(binary.LittleEndian.Uint32(dib[v5ProfileData:]))
+	length := int64(binary.LittleEndian.Uint32(dib[v5ProfileSize:]))
+	if length <= 0 || length > meta.MaxICCBytes {
+		return codec.ColorInfo{}
+	}
+	data, err := guard.ReadAt(r, fileHeaderSize+offset, length, size)
+	if err != nil {
+		return codec.ColorInfo{}
+	}
+	return meta.NewColor(data, nil)
 }

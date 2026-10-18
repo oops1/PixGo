@@ -132,6 +132,10 @@ type headerSpec struct {
 	whiteCustom     bool
 	primariesCustom bool
 	gamma           bool
+	whiteEnum       uint32
+	primariesEnum   uint32
+	transferEnum    uint32
+	gammaBits       uint32
 	toneMapping     bool
 	extensions      bool
 	transformData   bool
@@ -195,6 +199,13 @@ func (s headerSpec) writeBitDepth(w *bitWriter, floatSample bool, bits uint32) {
 	w.u32([4]distribution{value(8), value(10), value(12), shifted(6, 1)}, bits)
 }
 
+func cmpOr(v, fallback uint32) uint32 {
+	if v != 0 {
+		return v
+	}
+	return fallback
+}
+
 func (s headerSpec) writeColor(w *bitWriter) {
 	w.flag(s.colorAllDefault)
 	if s.colorAllDefault {
@@ -203,6 +214,9 @@ func (s headerSpec) writeColor(w *bitWriter) {
 	w.flag(s.embeddedProfile)
 	w.enum(s.colorSpace)
 	whitePoint := uint32(1)
+	if s.whiteEnum != 0 {
+		whitePoint = s.whiteEnum
+	}
 	if s.whiteCustom && !s.embeddedProfile && s.colorSpace != colorSpaceXYB {
 		whitePoint = 2
 	}
@@ -215,6 +229,9 @@ func (s headerSpec) writeColor(w *bitWriter) {
 		w.u32(chromaticity, 600000)
 	}
 	primaries := uint32(1)
+	if s.primariesEnum != 0 {
+		primaries = s.primariesEnum
+	}
 	if s.primariesCustom {
 		primaries = 2
 	}
@@ -231,9 +248,9 @@ func (s headerSpec) writeColor(w *bitWriter) {
 		if s.colorSpace != colorSpaceXYB {
 			w.flag(s.gamma)
 			if s.gamma {
-				w.bits(3333333, 24)
+				w.bits(uint64(cmpOr(s.gammaBits, 3333333)), 24)
 			} else {
-				w.enum(13)
+				w.enum(cmpOr(s.transferEnum, 13))
 			}
 		}
 		w.enum(1)

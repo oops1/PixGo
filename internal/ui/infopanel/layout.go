@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/oops1/PixGo/internal/fonts"
+	"github.com/oops1/PixGo/internal/i18n"
 	"github.com/oops1/PixGo/internal/ui/gfx"
 )
 
@@ -123,7 +124,7 @@ func layoutCard(c Card, cw int, k float64) cardPos {
 	want, word := 0, 0
 	if !note {
 		for _, r := range c.Rows {
-			for _, w := range strings.Fields(cleanText(r.Label)) {
+			for _, w := range i18n.Words(cleanText(r.Label)) {
 				word = max(word, labelFont.Measure(nil, w))
 			}
 			f, _, _ := valueSpec(r)

@@ -12,6 +12,7 @@ import (
 	"github.com/oops1/PixGo/internal/codec"
 	"github.com/oops1/PixGo/internal/codec/internal/convert"
 	"github.com/oops1/PixGo/internal/codec/internal/guard"
+	"github.com/oops1/PixGo/internal/meta"
 )
 
 type Decoder struct{}
@@ -73,6 +74,18 @@ func (Decoder) Probe(ctx context.Context, r io.ReaderAt, size int64, lim codec.L
 	return info, err
 }
 
+func (l *layout) decodeFrameDeep(ctx context.Context, r io.ReaderAt, size int64, f frame) (*image.NRGBA64, error) {
+	stream, err := l.frameStream(ctx, r, size, f)
+	if err != nil {
+		return nil, err
+	}
+	decoded, err := stdpng.Decode(bytes.NewReader(stream))
+	if err != nil {
+		return nil, guard.Classify(ctx, err, nil)
+	}
+	return convert.Deep(decoded), nil
+}
+
 func (l *layout) decodeFrame(ctx context.Context, r io.ReaderAt, size int64, f frame) (*image.NRGBA, error) {
 	stream, err := l.frameStream(ctx, r, size, f)
 	if err != nil {
@@ -91,6 +104,14 @@ func (Decoder) Decode(ctx context.Context, r io.ReaderAt, size int64, o codec.Op
 	if err != nil {
 		return nil, err
 	}
+	color := meta.ReadColor(ctx, r, size, codec.APNG)
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	deep := o.Deep && (l.bitDepth == 16 || color.HDR())
+	if deep {
+		lim.MaxFramePixels /= 2
+	}
 	count := 1
 	if o.Frames == codec.AllFrames {
 		count = len(l.frames)
@@ -99,7 +120,13 @@ func (Decoder) Decode(ctx context.Context, r io.ReaderAt, size int64, o codec.Op
 		}
 	}
 	budget := guard.NewFrameBudget(lim)
-	canvas := newCompositor(l.width, l.height)
+	var canvas *compositor
+	var canvas64 *compositor64
+	if deep {
+		canvas64 = newCompositor64(l.width, l.height)
+	} else {
+		canvas = newCompositor(l.width, l.height)
+	}
 	frames := make([]codec.Frame, 0, count)
 	for i := 0; i < count; i++ {
 		if err := ctx.Err(); err != nil {
@@ -107,6 +134,19 @@ func (Decoder) Decode(ctx context.Context, r io.ReaderAt, size int64, o codec.Op
 		}
 		if err := budget.Add(l.width, l.height); err != nil {
 			return nil, err
+		}
+		if deep {
+			pix, err := l.decodeFrameDeep(ctx, r, size, l.frames[i])
+			if err != nil {
+				return nil, err
+			}
+			canvas64.apply(l.frames[i], pix)
+			shown := canvas64.canvas
+			if i < count-1 {
+				shown = canvas64.snapshot()
+			}
+			frames = append(frames, codec.Frame{Deep: shown, Delay: l.frames[i].delay})
+			continue
 		}
 		pix, err := l.decodeFrame(ctx, r, size, l.frames[i])
 		if err != nil {
@@ -121,6 +161,7 @@ func (Decoder) Decode(ctx context.Context, r io.ReaderAt, size int64, o codec.Op
 	}
 	return &codec.Image{
 		Info:   info,
+		Color:  color,
 		Frames: frames,
 		Loop:   int(min(l.numPlays, math.MaxInt32)),
 		Scale:  1,

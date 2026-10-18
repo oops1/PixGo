@@ -79,7 +79,7 @@ func textHeight(f gfx.Font) int {
 func wrap(f gfx.Font, text string, width, maxLines int) []string {
 	var lines []string
 	cur := ""
-	for _, word := range strings.Fields(text) {
+	for _, word := range i18n.Words(text) {
 		switch {
 		case cur == "":
 			cur = word

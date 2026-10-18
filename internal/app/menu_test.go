@@ -54,7 +54,7 @@ func TestMenuLayoutPlacesTheZoomGroupBeforeTheRotateGroup(t *testing.T) {
 
 func TestMenuZoomEntriesAreEnabledAndChangeTheMode(t *testing.T) {
 	a := viewerWithImage(t)
-	for _, lang := range []string{"ru", "en"} {
+	for _, lang := range i18n.Supported() {
 		i18n.SetLang(lang)
 		for _, c := range []struct {
 			id   commands.ID

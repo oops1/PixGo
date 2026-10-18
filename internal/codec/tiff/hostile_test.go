@@ -513,6 +513,14 @@ func exerciseAll(t testing.TB, data []byte) {
 		if err == nil && (img == nil || img.First() == nil) {
 			t.Fatal("Decode succeeded without pixels")
 		}
+		o.Deep = true
+		img, err = d.Decode(ctx, bytes.NewReader(data), int64(len(data)), o)
+		if err != nil && !isTaxonomy(err) {
+			t.Fatalf("Decode deep: %v", err)
+		}
+		if err == nil && (img == nil || len(img.Frames) == 0 || img.Frames[0].Pix == nil && img.Frames[0].Deep == nil) {
+			t.Fatal("deep Decode succeeded without pixels")
+		}
 	}
 	rd, err := d.OpenTiled(ctx, bytes.NewReader(data), int64(len(data)), lim)
 	if err != nil {
@@ -533,6 +541,14 @@ func exerciseAll(t testing.TB, data []byte) {
 		}
 		if _, err := rd.Region(ctx, shift, image.Rect(lw/3, lh/4, lw/3+40, lh/4+30)); err != nil && !isTaxonomy(err) {
 			t.Fatalf("Region(%d): %v", shift, err)
+		}
+		if deep, ok := rd.(codec.DeepTileReader); ok && deep.Deep() {
+			if _, err := deep.OverviewDeep(ctx, shift); err != nil && !isTaxonomy(err) {
+				t.Fatalf("OverviewDeep(%d): %v", shift, err)
+			}
+			if _, err := deep.RegionDeep(ctx, shift, image.Rect(lw/3, lh/4, lw/3+40, lh/4+30)); err != nil && !isTaxonomy(err) {
+				t.Fatalf("RegionDeep(%d): %v", shift, err)
+			}
 		}
 	}
 }

@@ -7,13 +7,14 @@ import (
 
 	"github.com/oops1/headless-gui/v3/widget"
 
+	"github.com/oops1/PixGo/internal/i18n"
 	"github.com/oops1/PixGo/internal/ui/gfx"
 )
 
 func measure(f gfx.Font, s string) int { return f.Measure(nil, s) }
 
 func wrapLines(f gfx.Font, s string, width, maxLines int) []string {
-	words := strings.Fields(s)
+	words := i18n.Words(s)
 	if len(words) == 0 {
 		return []string{""}
 	}

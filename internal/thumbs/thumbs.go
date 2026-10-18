@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/oops1/PixGo/internal/codec"
+	"github.com/oops1/PixGo/internal/colorm"
 	"github.com/oops1/PixGo/internal/fsutil"
 	"github.com/oops1/PixGo/internal/par"
 )
@@ -65,10 +66,11 @@ type Key struct {
 	Size    int64
 	ModTime time.Time
 	Side    int
+	Color   string
 }
 
 func (k Key) ck() ckey {
-	return ckey{path: k.Path, size: k.Size, mtime: k.ModTime.UnixNano(), side: k.Side}
+	return ckey{path: k.Path, size: k.Size, mtime: k.ModTime.UnixNano(), side: k.Side, color: k.Color}
 }
 
 type Thumb struct {
@@ -84,6 +86,7 @@ type Options struct {
 	DiskDir        string
 	DiskLimitBytes int64
 	Limits         func() codec.Limits
+	Color          *colorm.Manager
 
 	now    func() time.Time
 	budget time.Duration
@@ -295,7 +298,7 @@ func (s *Service) Request(path string, side int, visible bool) (Thumb, bool) {
 	if err != nil {
 		return Thumb{Err: err}, true
 	}
-	key := Key{Path: path, Size: st.size, ModTime: st.mtime, Side: side}
+	key := Key{Path: path, Size: st.size, ModTime: st.mtime, Side: side, Color: s.opt.Color.Tag()}
 	ck := key.ck()
 	jk := jobKey{path: path, side: side}
 

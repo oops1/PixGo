@@ -14,6 +14,9 @@ func fuzzSeeds(f *testing.F) {
 	for _, s := range allSamples(f) {
 		f.Add(s.data)
 	}
+	for _, d := range dngSamples(f) {
+		f.Add(d.data)
+	}
 	f.Add(carvedFile(p, 200))
 	f.Add(lastPreviewFile(p))
 	f.Add(rafWithOffsets(0xffffffff, 0xffffffff))
@@ -56,7 +59,7 @@ func FuzzDecode(f *testing.F) {
 	f.Fuzz(func(t *testing.T, data []byte) {
 		Decoder{}.Sniff(head(data))
 		img, err := Decoder{}.Decode(context.Background(), bytes.NewReader(data), int64(len(data)), codec.Options{Limits: testimg.SmallLimits()})
-		if err == nil && (img == nil || img.First() == nil || !img.Info.Preview || img.Info.Format != codec.RAW) {
+		if err == nil && (img == nil || img.First() == nil || (!img.Info.Preview && img.Info.FormatName != "DNG") || img.Info.Format != codec.RAW) {
 			t.Fatal("success without a preview image")
 		}
 		if err != nil {

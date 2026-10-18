@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 
 	"github.com/oops1/PixGo/internal/codec"
+	"github.com/oops1/PixGo/internal/meta"
 	"github.com/oops1/PixGo/internal/meta/exif"
 )
 
@@ -125,7 +126,7 @@ func (s *Service) render(ctx context.Context, j *job) Thumb {
 	tw, th := fitSize(ow, oh, side)
 	sw, sh := storedSize(o, tw, th)
 
-	if p.dec.ID() == codec.JPEG {
+	if p.dec.ID() == codec.JPEG && !s.exifThumbNeedsColor(ctx, src) {
 		if img, ok := s.fromEXIF(src, info, side, sw, sh); ok {
 			return Thumb{Img: orient(img, o), SrcW: info.Width, SrcH: info.Height, Orientation: o}
 		}
@@ -163,6 +164,14 @@ func (s *Service) render(ctx context.Context, j *job) Thumb {
 	}
 	out := orient(resizeArea(pix, sw, sh), o)
 	return Thumb{Img: out, SrcW: info.Width, SrcH: info.Height, Orientation: o}
+}
+
+func (s *Service) exifThumbNeedsColor(ctx context.Context, src *codec.Source) bool {
+	m := s.opt.Color
+	if !m.Enabled() {
+		return false
+	}
+	return m.Resolve(meta.ReadColor(ctx, src.R, src.Size, codec.JPEG)).Needed()
 }
 
 func sameAspect(aw, ah, bw, bh int) bool {

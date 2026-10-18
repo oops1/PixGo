@@ -30,6 +30,7 @@ type reader struct {
 	size   int64
 	lay    *layout
 	cache  *cache
+	color  codec.ColorInfo
 	pools  streamPools
 	closed atomic.Bool
 }
@@ -41,7 +42,7 @@ func newReader(f *file, lay *layout, r io.ReaderAt, size int64, lim codec.Limits
 	if err := f.loadTables(lay); err != nil {
 		return nil, err
 	}
-	return &reader{r: r, size: size, lay: lay, cache: newCache(cacheBytes)}, nil
+	return &reader{r: r, size: size, lay: lay, cache: newCache(cacheBytes), color: f.colorInfo()}, nil
 }
 
 func (rd *reader) Info() codec.Info { return rd.lay.info }
@@ -154,13 +155,14 @@ func (rd *reader) emitCached(ctx context.Context, chunk, first, last, rows, x0, 
 		if rd.closed.Load() {
 			return errClosed
 		}
-		img, err := rd.cache.get(ctx, bandKey{chunk: chunk, band: band}, func(ctx context.Context) (*image.NRGBA, error) {
-			return rd.decodeBand(ctx, chunk, band, rows)
+		got, err := rd.cache.get(ctx, bandKey{chunk: chunk, band: band}, func(ctx context.Context) (bandValue, error) {
+			img, err := rd.decodeBand(ctx, chunk, band, rows)
+			return bandValue{pix: img}, err
 		})
 		if err != nil {
 			return err
 		}
-		if err := emit(piece{x: x0, y: y0 + band*rows, img: img}); err != nil {
+		if err := emit(piece{x: x0, y: y0 + band*rows, img: got.pix}); err != nil {
 			return err
 		}
 	}

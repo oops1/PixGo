@@ -41,7 +41,7 @@ func requireClassified(t *testing.T, err error) {
 func FuzzDecode(f *testing.F) {
 	fuzzSeeds(f)
 	f.Fuzz(func(t *testing.T, data []byte) {
-		img, err := decode(data, codec.Options{Limits: testimg.SmallLimits(), Frames: codec.AllFrames})
+		img, err := decode(data, codec.Options{Limits: testimg.SmallLimits(), Frames: codec.AllFrames, Deep: len(data)&1 == 1})
 		requireClassified(t, err)
 		if err != nil {
 			return
@@ -49,9 +49,11 @@ func FuzzDecode(f *testing.F) {
 		if len(img.Frames) == 0 || img.Info.Frames != len(img.Frames) && img.Info.Frames > 1 {
 			t.Fatalf("%d frames, info %+v", len(img.Frames), img.Info)
 		}
+		first, _ := frameBounds(img.Frames[0])
 		for _, frame := range img.Frames {
-			if frame.Pix == nil || frame.Pix.Bounds() != img.First().Bounds() || frame.Pix.Bounds().Dx() != img.Info.Width || frame.Pix.Bounds().Dy() != img.Info.Height {
-				t.Fatalf("frame %v, info %+v", frame.Pix, img.Info)
+			b, ok := frameBounds(frame)
+			if !ok || b != first || b.Dx() != img.Info.Width || b.Dy() != img.Info.Height {
+				t.Fatalf("frame %v, info %+v", b, img.Info)
 			}
 		}
 	})

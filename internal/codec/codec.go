@@ -62,15 +62,18 @@ type Options struct {
 	Region  *image.Rectangle
 	VectorW int
 	VectorH int
+	Deep    bool
 }
 
 type Frame struct {
 	Pix   *image.NRGBA
+	Deep  *image.NRGBA64
 	Delay time.Duration
 }
 
 type Image struct {
 	Info   Info
+	Color  ColorInfo
 	Frames []Frame
 	Loop   int
 	Scale  int
@@ -187,3 +190,17 @@ func (l Limits) Check(w, h int) error {
 }
 
 const SniffLen = 4096
+
+type CICP struct {
+	Primaries uint8
+	Transfer  uint8
+	Matrix    uint8
+	FullRange bool
+}
+
+type ColorInfo struct {
+	ICC  []byte
+	CICP *CICP
+}
+
+func (c ColorInfo) Empty() bool { return len(c.ICC) == 0 && c.CICP == nil }

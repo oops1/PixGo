@@ -55,7 +55,7 @@ func newAccessRig(t *testing.T, lang string, mutate func(*fakeHost)) *rig {
 func accessTree(r *rig) *widget.AccessNode { return widget.BuildAccessTree(r.root, nil) }
 
 func TestViewerAccessTreeHasLocalisedNames(t *testing.T) {
-	for _, lang := range []string{"ru", "en"} {
+	for _, lang := range i18n.Supported() {
 		r := newAccessRig(t, lang, nil)
 		tree := accessTree(r)
 		testutil.RequireNamed(t, tree)
@@ -190,7 +190,7 @@ func TestToastAndPreviewAreLabels(t *testing.T) {
 }
 
 func TestFullscreenSlideshowControlsAreNamed(t *testing.T) {
-	for _, lang := range []string{"ru", "en"} {
+	for _, lang := range i18n.Supported() {
 		r := newAccessRig(t, lang, func(h *fakeHost) {
 			h.fullscreen = true
 			h.slide = SlideshowView{Active: true, Playing: true, Index: 3, Total: 24, Progress: 0.4}

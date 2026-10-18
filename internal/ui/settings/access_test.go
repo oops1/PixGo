@@ -12,7 +12,7 @@ import (
 
 func sectionTree(t *testing.T, lang string, s Section) (*rig, *widget.AccessNode) {
 	t.Helper()
-	r := newRig(t, 560, 560)
+	r := newRig(t, 560, 820)
 	setLang(lang)
 	r.page.SetSection(s)
 	r.page.Refresh()
@@ -20,7 +20,7 @@ func sectionTree(t *testing.T, lang string, s Section) (*rig, *widget.AccessNode
 }
 
 func TestEverySectionHasNamedControlsInBothLanguages(t *testing.T) {
-	for _, lang := range []string{"ru", "en"} {
+	for _, lang := range i18n.Supported() {
 		for s := Section(0); s < sectionCount; s++ {
 			_, tr := sectionTree(t, lang, s)
 			testutil.RequireNamed(t, tr)

@@ -16,7 +16,16 @@ var (
 
 const localeNameMaxLength = 85
 
-func systemLanguage() string {
+func systemLanguages() []string {
+	var out []string
+	if tag := defaultUILanguage(); tag != "" {
+		out = append(out, tag)
+	}
+	preferred, _ := windows.GetUserPreferredUILanguages(windows.MUI_LANGUAGE_NAME)
+	return appendUnique(out, preferred...)
+}
+
+func defaultUILanguage() string {
 	r, _, _ := procGetUserDefaultUILanguage.Call()
 	id := uint16(r)
 	if id == 0 {

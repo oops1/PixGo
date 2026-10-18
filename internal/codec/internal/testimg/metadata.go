@@ -56,3 +56,19 @@ func SampleICC() []byte {
 func SampleMetadata(width, height int) codec.Metadata {
 	return codec.Metadata{EXIF: SampleEXIF(width, height), ICC: SampleICC(), XMP: []byte(SampleXMP)}
 }
+
+func SampleICCSpace(space string, padding int) []byte {
+	p := make([]byte, 128+4+12+padding)
+	binary.BigEndian.PutUint32(p[0:], uint32(len(p)))
+	p[8], p[9] = 4, 0x30
+	copy(p[12:], "mntr")
+	copy(p[16:], space)
+	copy(p[20:], "XYZ ")
+	copy(p[36:], "acsp")
+	binary.BigEndian.PutUint32(p[128:], 1)
+	copy(p[132:], "wtpt")
+	for i := 0; i < padding; i++ {
+		p[144+i] = byte(i*7 + 3)
+	}
+	return p
+}

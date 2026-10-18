@@ -9,7 +9,7 @@ import (
 func FuzzTiledReader(f *testing.F) {
 	picks := []struct{ kind, variant, compression, predictor int }{
 		{12, 0, 1, 0}, {12, 5, 8, 2}, {12, 2, 5, 2}, {14, 3, 32773, 0}, {3, 7, 1, 0}, {10, 6, 8, 0},
-		{16, 5, 5, 2}, {0, 1, 32773, 0}, {2, 5, 8, 0}, {13, 4, 1, 2}, {8, 0, 5, 0}, {11, 8, 8, 0},
+		{13, 5, 8, 2}, {4, 3, 5, 2}, {17, 6, 1, 0}, {16, 5, 5, 2}, {0, 1, 32773, 0}, {2, 5, 8, 0}, {13, 4, 1, 2}, {8, 0, 5, 0}, {11, 8, 8, 0},
 	}
 	for _, p := range picks {
 		for _, bigTIFF := range []bool{false, true} {

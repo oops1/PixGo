@@ -8,3 +8,22 @@ var primaryLanguages = map[uint16]string{
 }
 
 func langFromLangID(id uint16) string { return primaryLanguages[id&0x3ff] }
+
+func appendUnique(list []string, tags ...string) []string {
+	for _, t := range tags {
+		if t == "" {
+			continue
+		}
+		dup := false
+		for _, have := range list {
+			if have == t {
+				dup = true
+				break
+			}
+		}
+		if !dup {
+			list = append(list, t)
+		}
+	}
+	return list
+}

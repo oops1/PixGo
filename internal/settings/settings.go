@@ -40,6 +40,9 @@ const (
 
 	GalleryGrid = "grid"
 	GalleryList = "list"
+
+	DisplayProfileSystem = "system"
+	DisplayProfileSRGB   = "srgb"
 )
 
 const (
@@ -91,6 +94,8 @@ type Settings struct {
 	SortDesc             bool   `json:"sortDesc"`
 	GalleryView          string `json:"galleryView"`
 	GalleryThumbSize     int    `json:"galleryThumbSize"`
+	ColorManagement      bool   `json:"colorManagement"`
+	DisplayProfile       string `json:"displayProfile"`
 
 	SaveJPEGQuality  int  `json:"saveJpegQuality"`
 	SaveJPEGLossless bool `json:"saveJpegLossless"`
@@ -101,6 +106,8 @@ type Settings struct {
 	Formats   map[string]Format `json:"formats"`
 	Slideshow Slideshow         `json:"slideshow"`
 	Updates   Updates           `json:"updates"`
+
+	RawDevelop bool `json:"rawDevelop"`
 
 	CacheMB       int `json:"cacheMB"`
 	MaxPixels     int `json:"maxPixels"`
@@ -127,6 +134,7 @@ func Defaults() Settings {
 		Preload: 1, ApplyExifOrientation: true, KeepZoomOnNavigate: false, LoopFolder: false,
 		Sort: SortName, SortDesc: false,
 		GalleryView: GalleryGrid, GalleryThumbSize: 128,
+		ColorManagement: true, DisplayProfile: DisplayProfileSystem,
 
 		SaveJPEGQuality: DefaultSaveJPEGQuality, SaveJPEGLossless: true,
 		SaveWebPQuality: DefaultSaveWebPQuality, SaveWebPLossless: false,
@@ -134,6 +142,8 @@ func Defaults() Settings {
 		Formats:   formats,
 		Slideshow: Slideshow{Interval: 5, Loop: true, Shuffle: false},
 		Updates:   Updates{Check: true},
+
+		RawDevelop: true,
 
 		CacheMB: DefaultCacheMB(), MaxPixels: 100, DecodeThreads: 0,
 		AnimationFPS: DefaultAnimationFPS(), ThumbCacheMB: 256,
@@ -171,6 +181,7 @@ func (s *Settings) Normalize() {
 	oneOf(&s.Wheel, d.Wheel, WheelZoom, WheelNavigate)
 	oneOf(&s.Sort, d.Sort, SortName, SortDate, SortSize)
 	oneOf(&s.GalleryView, d.GalleryView, GalleryGrid, GalleryList)
+	oneOf(&s.DisplayProfile, d.DisplayProfile, DisplayProfileSystem, DisplayProfileSRGB)
 	clamp(&s.Preload, 0, 2, d.Preload)
 	clamp(&s.GalleryThumbSize, 96, 384, d.GalleryThumbSize)
 	clamp(&s.SaveJPEGQuality, MinSaveQuality, MaxSaveQuality, d.SaveJPEGQuality)
@@ -286,15 +297,17 @@ func indent(b []byte) ([]byte, error) {
 func Path() string { return filepath.Join(fsutil.ConfigDir(), "settings.json") }
 
 type Store struct {
-	mu      sync.Mutex
-	path    string
-	cur     Settings
-	subs    map[int]func(old, new Settings)
-	nextSub int
-	timer   *time.Timer
-	delay   time.Duration
-	dirty   bool
-	saveErr error
+	mu       sync.Mutex
+	path     string
+	cur      Settings
+	subs     map[int]func(old, new Settings)
+	nextSub  int
+	timer    *time.Timer
+	delay    time.Duration
+	dirty    bool
+	saveErr  error
+	runTheme runField
+	runLang  runField
 }
 
 func Load(path string) (*Store, error) {
@@ -336,6 +349,12 @@ func (st *Store) Update(fn func(*Settings)) {
 	fn(&next)
 	next.extra = old.extra
 	next.Normalize()
+	if next.Theme != old.Theme {
+		st.runTheme.active = false
+	}
+	if next.Language != old.Language {
+		st.runLang.active = false
+	}
 	st.cur = next
 	subs := make([]func(old, new Settings), 0, len(st.subs))
 	for i := 0; i < st.nextSub; i++ {
@@ -379,7 +398,14 @@ func (st *Store) Flush() error {
 	if !st.dirty || st.path == "" {
 		return nil
 	}
-	data, err := st.cur.Encode()
+	disk := st.cur.clone()
+	if st.runTheme.active {
+		disk.Theme = st.runTheme.disk
+	}
+	if st.runLang.active {
+		disk.Language = st.runLang.disk
+	}
+	data, err := disk.Encode()
 	if err == nil {
 		err = fsutil.WriteAtomic(st.path, data, 0o600)
 	}
@@ -397,3 +423,22 @@ func (st *Store) Err() error {
 }
 
 func (st *Store) Path() string { return st.path }
+
+type runField struct {
+	active bool
+	disk   string
+}
+
+func (st *Store) OverrideForRun(theme, language string) {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+	if theme != "" {
+		st.runTheme = runField{active: true, disk: st.cur.Theme}
+		st.cur.Theme = theme
+	}
+	if language != "" {
+		st.runLang = runField{active: true, disk: st.cur.Language}
+		st.cur.Language = language
+	}
+	st.cur.Normalize()
+}

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/oops1/PixGo/internal/codec"
+	"github.com/oops1/PixGo/internal/colorm"
 	"github.com/oops1/PixGo/internal/render"
 )
 
@@ -26,6 +27,9 @@ type Decoded struct {
 	Shift   int
 	Detail  render.Detail
 	Reduced bool
+
+	Color      colorm.Report
+	ColorStamp uint64
 
 	released atomic.Bool
 }

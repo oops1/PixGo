@@ -19,7 +19,7 @@ import (
 
 var scales = []float64{1.2, 1.33, 1.6}
 
-var scaleLangs = []string{"ru", "en"}
+var scaleLangs = i18n.Supported()
 
 func withScale(t testing.TB, k float64) {
 	t.Helper()

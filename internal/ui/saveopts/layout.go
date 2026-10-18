@@ -115,7 +115,7 @@ func wrap(f gfx.Font, text string, width, maxLines int) []string {
 			cur = ""
 		}
 	}
-	for _, word := range strings.Fields(text) {
+	for _, word := range i18n.Words(text) {
 		for f.Measure(nil, word) > width && len([]rune(word)) > 1 {
 			head := []rune(word)
 			cut := len(head) - 1

@@ -6,6 +6,8 @@ import (
 	"context"
 	"encoding/binary"
 	"io"
+
+	"github.com/oops1/PixGo/internal/codec"
 )
 
 var (
@@ -139,6 +141,19 @@ walk:
 					b.setTIFF(dataStart+skip, length-skip)
 				}
 			}
+		case "IDAT":
+			if b.colorOnly {
+				break walk
+			}
+		case "cICP":
+			if b.cicp == nil && length == 4 {
+				data, err := in.read(dataStart, 4)
+				if err != nil {
+					scanErr = err
+					break walk
+				}
+				b.cicp = &codec.CICP{Primaries: data[0], Transfer: data[1], Matrix: data[2], FullRange: data[3] != 0}
+			}
 		case "iCCP":
 			if !haveICC && length > 0 && length <= MaxICCBytes {
 				data, err := in.read(dataStart, int(length))
@@ -152,7 +167,7 @@ walk:
 				}
 			}
 		case "iTXt":
-			if !haveXMP && length > int64(len(pngXMPKey)) && length <= MaxXMPBytes+1024 {
+			if !haveXMP && !b.colorOnly && length > int64(len(pngXMPKey)) && length <= MaxXMPBytes+1024 {
 				prefix, err := in.read(dataStart, len(pngXMPKey))
 				if err != nil {
 					scanErr = err

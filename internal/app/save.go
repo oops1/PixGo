@@ -37,6 +37,9 @@ type metaSource struct {
 	path   string
 	format codec.ID
 	swap   bool
+
+	converted bool
+	display   []byte
 }
 
 type saveJob struct {
@@ -80,6 +83,9 @@ func (j *saveJob) metadata(ctx contextT, w, h int, id codec.ID, strip bool) (cod
 		return codec.Metadata{}, false
 	}
 	out, err := meta.RewriteFor(m, meta.RewriteOptions{Width: w, Height: h, StripGPS: strip, SwapResolution: j.meta.swap}, id)
+	if j.meta.converted {
+		out.ICC = j.meta.display
+	}
 	var dropped *meta.DroppedError
 	return out, errors.As(err, &dropped) && dropped.EXIF
 }
@@ -191,7 +197,7 @@ func (a *App) captureSaveJob() *saveJob {
 	}
 	job := &saveJob{img: a.orientedFrame(), lossless: a.losslessSource()}
 	if path := a.Ctl.Path(); path != "" {
-		job.meta = &metaSource{path: path, format: a.Ctl.Info().Format, swap: a.Canvas.Orientation().Transposes()}
+		job.meta = &metaSource{path: path, format: a.Ctl.Info().Format, swap: a.Canvas.Orientation().Transposes(), converted: shown.Color.Converted, display: a.Ctl.Color().DisplayICC()}
 	}
 	return job
 }

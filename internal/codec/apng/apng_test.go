@@ -1047,8 +1047,8 @@ func FuzzDecode(f *testing.F) {
 		lim := testimg.SmallLimits()
 		ctx := context.Background()
 		Decoder{}.Sniff(data)
-		img, err := Decoder{}.Decode(ctx, bytes.NewReader(data), int64(len(data)), codec.Options{Limits: lim, Frames: codec.AllFrames})
-		if err == nil && (img == nil || img.First() == nil || len(img.Frames) != img.Info.Frames) {
+		img, err := Decoder{}.Decode(ctx, bytes.NewReader(data), int64(len(data)), codec.Options{Limits: lim, Frames: codec.AllFrames, Deep: len(data)&1 == 1})
+		if err == nil && (img == nil || len(img.Frames) == 0 || img.Frames[0].Pix == nil && img.Frames[0].Deep == nil || len(img.Frames) != img.Info.Frames) {
 			t.Fatal("success without pixels")
 		}
 		if err != nil {

@@ -316,7 +316,7 @@ func TestPreviewSnapshots(t *testing.T) {
 		t.Skip("PIXGO_SNAPSHOTS is not set")
 	}
 	for _, k := range []float64{1, 1.2, 1.6} {
-		for _, lang := range []string{"ru", "en"} {
+		for _, lang := range i18n.Supported() {
 			for _, th := range []*theme.Theme{theme.Dark(), theme.Light()} {
 				r := previewRig(t, k, lang, 770, 504, nil)
 				r.root.Theme = th

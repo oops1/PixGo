@@ -38,13 +38,7 @@ func (s *settingsState) Languages() []uisettings.Language {
 }
 
 func systemLanguageName() string {
-	base := strings.ToLower(strings.SplitN(i18n.SystemLanguage(), "-", 2)[0])
-	for _, id := range i18n.Supported() {
-		if id == base {
-			return i18n.T("settings.language." + id)
-		}
-	}
-	return i18n.T("settings.language.en")
+	return i18n.T("settings.language." + i18n.Detect())
 }
 
 type optionalFormat struct {

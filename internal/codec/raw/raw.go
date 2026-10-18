@@ -115,6 +115,11 @@ func (f found) info() codec.Info {
 }
 
 func (Decoder) Probe(ctx context.Context, r io.ReaderAt, size int64, lim codec.Limits) (codec.Info, error) {
+	if develop.Load() {
+		if plan, ok := planDNG(ctx, r, size, lim); ok {
+			return plan.info(), nil
+		}
+	}
 	found, err := discover(ctx, r, size, lim)
 	if err != nil {
 		return codec.Info{}, err
@@ -124,8 +129,24 @@ func (Decoder) Probe(ctx context.Context, r io.ReaderAt, size int64, lim codec.L
 
 func (Decoder) Decode(ctx context.Context, r io.ReaderAt, size int64, o codec.Options) (*codec.Image, error) {
 	lim := guard.Limits(o.Limits)
+	var developErr error
+	if develop.Load() {
+		if plan, ok := planDNG(ctx, r, size, lim); ok {
+			img, err := plan.develop(ctx, r, size, o)
+			if err == nil {
+				return img, nil
+			}
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+			developErr = err
+		}
+	}
 	found, err := discover(ctx, r, size, lim)
 	if err != nil {
+		if developErr != nil {
+			return nil, developErr
+		}
 		return nil, err
 	}
 	span := found.best.span(size)

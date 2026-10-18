@@ -130,7 +130,7 @@ func (d Decoder) Decode(ctx context.Context, r io.ReaderAt, size int64, o codec.
 	case errors.Is(err, codec.ErrTooLarge), ctx.Err() != nil:
 		return nil, err
 	default:
-		return legacyDecode(ctx, r, size, lim, legacyRegion(o.Region, o.Scale))
+		return legacyDecode(ctx, r, size, lim, legacyRegion(o.Region, o.Scale), o.Deep)
 	}
 	pixels := pixelCount(lay)
 	if pixels > lim.MaxTiledPixels {
@@ -140,7 +140,7 @@ func (d Decoder) Decode(ctx context.Context, r io.ReaderAt, size int64, o codec.
 		if pixels > lim.MaxPixels {
 			return nil, guard.Unsupported("tiff: %s", why)
 		}
-		return legacyDecode(ctx, r, size, lim, legacyRegion(o.Region, o.Scale))
+		return legacyDecode(ctx, r, size, lim, legacyRegion(o.Region, o.Scale), o.Deep)
 	}
 	shift := scaleShift(o.Scale)
 	rect, err := outputRect(o.Region, lay.width, lay.height, shift)
@@ -150,14 +150,25 @@ func (d Decoder) Decode(ctx context.Context, r io.ReaderAt, size int64, o codec.
 	if int64(rect.Dx())*int64(rect.Dy()) > lim.MaxPixels {
 		return nil, guard.TooLarge("tiff: %d output pixels", int64(rect.Dx())*int64(rect.Dy()))
 	}
-	pix, err := d.decodeLevel(ctx, f, lay, r, size, lim, shift, rect)
-	if err != nil {
+	color := f.colorInfo()
+	if o.Deep && lay.deepSource() {
+		deep, err := d.decodeLevelDeep(ctx, f, lay, r, size, lim, shift, rect)
+		if err == nil {
+			return &codec.Image{Info: lay.info, Color: color, Frames: []codec.Frame{{Deep: deep}}, Scale: 1 << uint(shift)}, nil
+		}
 		if ctx.Err() == nil && pixels <= lim.MaxPixels && (errors.Is(err, codec.ErrCorrupt) || errors.Is(err, codec.ErrUnsupported)) {
-			return legacyDecode(ctx, r, size, lim, legacyRegion(o.Region, o.Scale))
+			return legacyDecode(ctx, r, size, lim, legacyRegion(o.Region, o.Scale), o.Deep)
 		}
 		return nil, err
 	}
-	return &codec.Image{Info: lay.info, Frames: []codec.Frame{{Pix: pix}}, Scale: 1 << uint(shift)}, nil
+	pix, err := d.decodeLevel(ctx, f, lay, r, size, lim, shift, rect)
+	if err != nil {
+		if ctx.Err() == nil && pixels <= lim.MaxPixels && (errors.Is(err, codec.ErrCorrupt) || errors.Is(err, codec.ErrUnsupported)) {
+			return legacyDecode(ctx, r, size, lim, legacyRegion(o.Region, o.Scale), o.Deep)
+		}
+		return nil, err
+	}
+	return &codec.Image{Info: lay.info, Color: color, Frames: []codec.Frame{{Pix: pix}}, Scale: 1 << uint(shift)}, nil
 }
 
 func (d Decoder) decodeLevel(ctx context.Context, f *file, lay *layout, r io.ReaderAt, size int64, lim codec.Limits, shift int, rect image.Rectangle) (*image.NRGBA, error) {
@@ -167,6 +178,15 @@ func (d Decoder) decodeLevel(ctx context.Context, f *file, lay *layout, r io.Rea
 	}
 	defer rd.Close()
 	return rd.shielded(ctx, shift, rect, false)
+}
+
+func (d Decoder) decodeLevelDeep(ctx context.Context, f *file, lay *layout, r io.ReaderAt, size int64, lim codec.Limits, shift int, rect image.Rectangle) (*image.NRGBA64, error) {
+	rd, err := newReader(f, lay, r, size, lim, 0)
+	if err != nil {
+		return nil, guard.Classify(ctx, err, nil)
+	}
+	defer rd.Close()
+	return rd.shieldedDeep(ctx, shift, rect, false)
 }
 
 func scaleShift(scale int) int {
@@ -261,7 +281,23 @@ func legacyProbe(ctx context.Context, r io.ReaderAt, size int64, lim codec.Limit
 	}, nil
 }
 
-func legacyDecode(ctx context.Context, r io.ReaderAt, size int64, lim codec.Limits, region *image.Rectangle) (*codec.Image, error) {
+func legacyColor(ctx context.Context, r io.ReaderAt, size int64) codec.ColorInfo {
+	f, err := readFile(guard.NewReader(ctx, r, size), size)
+	if err != nil {
+		return codec.ColorInfo{}
+	}
+	return f.colorInfo()
+}
+
+func sixteenBit(img image.Image) bool {
+	switch img.(type) {
+	case *image.NRGBA64, *image.RGBA64, *image.Gray16:
+		return true
+	}
+	return false
+}
+
+func legacyDecode(ctx context.Context, r io.ReaderAt, size int64, lim codec.Limits, region *image.Rectangle, deep bool) (*codec.Image, error) {
 	info, err := legacyProbe(ctx, r, size, lim)
 	if err != nil {
 		return nil, err
@@ -273,6 +309,17 @@ func legacyDecode(ctx context.Context, r io.ReaderAt, size int64, lim codec.Limi
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	color := legacyColor(ctx, r, size)
+	if deep && sixteenBit(decoded) {
+		pix := convert.Deep(decoded)
+		if region != nil {
+			pix = cropDeep(pix, region.Canon())
+			if pix.Rect.Empty() {
+				return nil, guard.Corrupt("tiff: region %v is outside the picture", *region)
+			}
+		}
+		return &codec.Image{Info: info, Color: color, Frames: []codec.Frame{{Deep: pix}}, Scale: 1}, nil
+	}
 	pix := convert.NRGBA(decoded)
 	if region != nil {
 		pix = crop(pix, region.Canon())
@@ -280,7 +327,20 @@ func legacyDecode(ctx context.Context, r io.ReaderAt, size int64, lim codec.Limi
 			return nil, guard.Corrupt("tiff: region %v is outside the picture", *region)
 		}
 	}
-	return &codec.Image{Info: info, Frames: []codec.Frame{{Pix: pix}}, Scale: 1}, nil
+	return &codec.Image{Info: info, Color: color, Frames: []codec.Frame{{Pix: pix}}, Scale: 1}, nil
+}
+
+func cropDeep(src *image.NRGBA64, region image.Rectangle) *image.NRGBA64 {
+	region = region.Intersect(src.Rect)
+	if region.Empty() {
+		return image.NewNRGBA64(image.Rectangle{})
+	}
+	dst := image.NewNRGBA64(image.Rect(0, 0, region.Dx(), region.Dy()))
+	for y := 0; y < region.Dy(); y++ {
+		from := src.PixOffset(region.Min.X, region.Min.Y+y)
+		copy(dst.Pix[y*dst.Stride:y*dst.Stride+region.Dx()*8], src.Pix[from:from+region.Dx()*8])
+	}
+	return dst
 }
 
 func crop(src *image.NRGBA, region image.Rectangle) *image.NRGBA {

@@ -14,6 +14,7 @@ const (
 	colorSpaceUnknown = 3
 	whitePointCustom  = 2
 	primariesCustom   = 2
+	transferSRGB      = 13
 	maxExtraChannels  = 256
 )
 
@@ -43,6 +44,7 @@ type imageHeader struct {
 	xybEncoded      bool
 	colorSpace      uint32
 	embeddedProfile bool
+	encoding        colorEncoding
 	endBit          int
 }
 
@@ -173,28 +175,36 @@ func readChromaticity(b *bitReader) {
 	b.u32(options)
 }
 
-func readColorEncoding(b *bitReader) (colorSpace uint32, embeddedProfile bool) {
+type colorEncoding struct {
+	whitePoint uint32
+	primaries  uint32
+	transfer   uint32
+	haveGamma  bool
+	gamma      uint32
+	intent     uint32
+}
+
+func readColorEncoding(b *bitReader) (colorSpace uint32, embeddedProfile bool, enc colorEncoding) {
+	enc = colorEncoding{whitePoint: 1, primaries: 1, transfer: transferSRGB}
 	if b.flag() {
-		return colorSpaceRGB, false
+		return colorSpaceRGB, false, enc
 	}
 	embeddedProfile = b.flag()
 	colorSpace = b.enum()
 	if colorSpace > colorSpaceUnknown {
 		b.reject()
-		return colorSpace, embeddedProfile
+		return colorSpace, embeddedProfile, enc
 	}
-	whitePoint := uint32(1)
 	if !embeddedProfile && colorSpace != colorSpaceXYB {
-		whitePoint = b.enum()
+		enc.whitePoint = b.enum()
 	}
-	if whitePoint == whitePointCustom {
+	if enc.whitePoint == whitePointCustom {
 		readChromaticity(b)
 	}
-	primaries := uint32(1)
 	if !embeddedProfile && colorSpace != colorSpaceXYB && colorSpace != colorSpaceGray {
-		primaries = b.enum()
+		enc.primaries = b.enum()
 	}
-	if primaries == primariesCustom {
+	if enc.primaries == primariesCustom {
 		readChromaticity(b)
 		readChromaticity(b)
 		readChromaticity(b)
@@ -202,14 +212,15 @@ func readColorEncoding(b *bitReader) (colorSpace uint32, embeddedProfile bool) {
 	if !embeddedProfile {
 		if colorSpace != colorSpaceXYB {
 			if b.flag() {
-				b.skip(24)
+				enc.haveGamma = true
+				enc.gamma = uint32(b.bits(24))
 			} else {
-				b.enum()
+				enc.transfer = b.enum()
 			}
 		}
-		b.enum()
+		enc.intent = b.enum()
 	}
-	return colorSpace, embeddedProfile
+	return colorSpace, embeddedProfile, enc
 }
 
 func readTransformData(b *bitReader, xybEncoded bool) {
@@ -268,7 +279,7 @@ func parseImageHeader(data []byte) (imageHeader, error) {
 			header.extraChannels = append(header.extraChannels, readExtraChannel(b))
 		}
 		header.xybEncoded = b.flag()
-		header.colorSpace, header.embeddedProfile = readColorEncoding(b)
+		header.colorSpace, header.embeddedProfile, header.encoding = readColorEncoding(b)
 		if extraFields && !b.flag() {
 			b.skip(16 + 16 + 1 + 16)
 		}

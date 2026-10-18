@@ -25,7 +25,7 @@ func accessRig(t *testing.T, lang string, mutate func(*fakeSource)) *rig {
 func tree(r *rig) *widget.AccessNode { return widget.BuildAccessTree(r.page, nil) }
 
 func TestGalleryAccessTreeIsNamedInBothLanguages(t *testing.T) {
-	for _, lang := range []string{"ru", "en"} {
+	for _, lang := range i18n.Supported() {
 		r := accessRig(t, lang, nil)
 		tr := tree(r)
 		testutil.RequireNamed(t, tr)

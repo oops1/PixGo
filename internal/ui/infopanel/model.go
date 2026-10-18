@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/oops1/PixGo/internal/codec"
+	"github.com/oops1/PixGo/internal/colorm"
 	"github.com/oops1/PixGo/internal/i18n"
 	"github.com/oops1/PixGo/internal/meta"
 )
@@ -54,6 +55,7 @@ type Input struct {
 	Created    time.Time
 	HasCreated bool
 	Meta       *meta.Metadata
+	Color      colorm.Report
 }
 
 func BuildModel(in Input) Model {
@@ -67,12 +69,14 @@ func BuildModel(in Input) Model {
 		if c, ok := cameraCard(in.Meta); ok {
 			extra = append(extra, c)
 		}
-		if c, ok := colorCard(in.Meta); ok {
+		if c, ok := colorCard(in); ok {
 			extra = append(extra, c)
 		}
 		if c, ok := gpsCard(in.Meta); ok {
 			extra = append(extra, c)
 		}
+	} else if c, ok := colorCard(in); ok {
+		extra = append(extra, c)
 	}
 	if len(extra) == 0 && in.Meta != nil {
 		extra = append(extra, Card{Kind: CardNote, Rows: []Row{{Label: i18n.T("info.noMetadata")}}})
@@ -137,16 +141,16 @@ func cameraCard(md *meta.Metadata) (Card, bool) {
 	add("info.model", e.Model)
 	add("info.lens", e.Lens)
 	if e.Exposure.Valid() {
-		add("info.exposure", i18n.T("format.exposure", e.Exposure.String()))
+		add("info.exposure", i18n.T("format.exposure", i18n.LocalizeDecimal(e.Exposure.String())))
 	}
 	if e.FNumber.Valid() {
-		add("info.aperture", i18n.T("format.aperture", e.FNumber.FNumberString()))
+		add("info.aperture", i18n.T("format.aperture", i18n.LocalizeDecimal(e.FNumber.FNumberString())))
 	}
 	if e.ISO > 0 {
 		add("info.iso", fmt.Sprint(e.ISO))
 	}
 	if e.FocalLength.Valid() {
-		add("info.focalLength", i18n.T("format.focalLength", e.FocalLength.String()))
+		add("info.focalLength", i18n.T("format.focalLength", i18n.LocalizeDecimal(e.FocalLength.String())))
 	}
 	if !e.TakenAt.IsZero() {
 		add("info.taken", i18n.FormatDateTime(e.TakenAt))
@@ -162,19 +166,55 @@ func cameraCard(md *meta.Metadata) (Card, bool) {
 	return c, len(c.Rows) > 0
 }
 
-func colorCard(md *meta.Metadata) (Card, bool) {
-	icc := md.ICC
-	if icc == nil {
-		return Card{}, false
-	}
+func colorCard(in Input) (Card, bool) {
 	c := Card{Kind: CardColor, Title: i18n.T("info.color")}
-	if icc.Description != "" {
-		c.Rows = append(c.Rows, Row{Label: i18n.T("info.profile"), Value: icc.Description})
+	rep := in.Color
+	managedProfile := rep.Managed && rep.Profile != ""
+	if managedProfile {
+		key := "info.profileEmbedded"
+		if rep.Origin == colorm.OriginCICP {
+			key = "info.profileCICP"
+		}
+		c.Rows = append(c.Rows, Row{Label: i18n.T("info.colorProfile"), Value: i18n.T(key, rep.Profile)})
 	}
-	if icc.ColorSpace != "" {
-		c.Rows = append(c.Rows, Row{Label: i18n.T("info.colorSpace"), Value: icc.ColorSpace})
+	if in.Meta != nil && in.Meta.ICC != nil {
+		icc := in.Meta.ICC
+		if icc.Description != "" && !managedProfile {
+			c.Rows = append(c.Rows, Row{Label: i18n.T("info.profile"), Value: icc.Description})
+		}
+		if icc.ColorSpace != "" {
+			c.Rows = append(c.Rows, Row{Label: i18n.T("info.colorSpace"), Value: icc.ColorSpace})
+		}
+	}
+	if rep.Managed {
+		switch rep.HDR {
+		case "PQ":
+			c.Rows = append(c.Rows, Row{Label: i18n.T("info.hdr"), Value: i18n.T("info.hdrPQ")})
+		case "HLG":
+			c.Rows = append(c.Rows, Row{Label: i18n.T("info.hdr"), Value: i18n.T("info.hdrHLG")})
+		}
+		if rep.Deep {
+			c.Rows = append(c.Rows, Row{Label: i18n.T("info.depth"), Value: i18n.T("format.bitDepth", channelDepth(in.Info.BitDepth))})
+		}
+		if rep.Converted && rep.Display != "" {
+			c.Rows = append(c.Rows, Row{Label: i18n.T("settings.displayProfile"), Value: rep.Display})
+		}
 	}
 	return c, len(c.Rows) > 0
+}
+
+func channelDepth(bpp int) int {
+	switch bpp {
+	case 10, 12, 14, 16:
+		return bpp
+	case 30:
+		return 10
+	case 36:
+		return 12
+	case 42:
+		return 14
+	}
+	return 16
 }
 
 func gpsCard(md *meta.Metadata) (Card, bool) {
@@ -185,7 +225,7 @@ func gpsCard(md *meta.Metadata) (Card, bool) {
 	c := Card{Kind: CardGPS, Title: i18n.T("info.gps")}
 	lat, lon, _ := strings.Cut(g.DMS(), ", ")
 	if lat != "" {
-		c.Rows = append(c.Rows, Row{Label: i18n.T("info.latitude"), Value: lat}, Row{Label: i18n.T("info.longitude"), Value: lon})
+		c.Rows = append(c.Rows, Row{Label: i18n.T("info.latitude"), Value: i18n.LocalizeDecimal(lat)}, Row{Label: i18n.T("info.longitude"), Value: i18n.LocalizeDecimal(lon)})
 	}
 	if g.HasAlt {
 		c.Rows = append(c.Rows, Row{Label: i18n.T("info.altitude"), Value: i18n.T("format.altitude", altitudeText(g.Alt))})

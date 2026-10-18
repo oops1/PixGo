@@ -53,6 +53,7 @@ func (a *App) ensureGallery() *galleryState {
 	opts := thumbs.DefaultOptions()
 	opts.DiskLimitBytes = int64(a.Settings.Get().ThumbCacheMB) << 20
 	opts.Limits = a.Ctl.limits
+	opts.Color = a.Ctl.color
 	g.svc = thumbs.New(a.Ctl.env.Registry, a.Eng.Post, opts)
 	g.unsub = g.svc.Subscribe(func(string) {
 		if g.redraw.CompareAndSwap(false, true) {
