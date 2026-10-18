@@ -112,6 +112,18 @@ Window 1100x700, 2.5 s of observation after the picture settled. The tiles are 6
 | slideshow progress bar (JPEG) | 3.6 | 7 936 px (1.03 %) | 33 024 px (4.29 %) |
 | animated GIF 480x320, 12 frames, limited to 10 fps | 10 | 31 949 px (4.15 %) | 49 152 px (6.38 %) |
 
+### 1.1.0 with engine v3.38
+
+The engine draws an opaque picture buffer by copying it instead of blending every pixel, recycles its frame buffers and reads the fallback fonts only when a glyph needs them. PixGo declares its viewer buffer opaque. Same machine and method as above:
+
+| | 1.0.1 | 1.1.0 |
+|---|---|---|
+| engine ready (from process creation, median of 7) | 57 ms | 42 ms |
+| 24 Mpx JPEG, first picture rendered | 125 ms | 105 ms |
+| 24 Mpx JPEG, full resolution ready | 186 ms | 170 ms |
+| 200 Mpx JPEG in a 3840x2160 window, pan frame p50 / p95 / max | 33.2 / 38.1 / 46.0 ms | 10.5 / 13.0 / 14.5 ms |
+| the same, process peak after the pan | 523 MB | 488 MB |
+
 ## Decisions
 
 **One thread budget.** The setting "Decoding and rendering threads" (0 = automatic) now sets `par.Count()`, the number every part of the program asks: the scaling and rendering workers of `render` and `imaging`, the JPEG and TIFF decoders, the loader (`max(2, count/2)` files at a time), the tile workers (`count/2`, at most 3) and the thumbnail pool (`count/4`, at least 1). Automatic is `min(GOMAXPROCS, cores)`, never above 64. A change in Settings applies at once: the pools grow and shrink while the program runs. Before, the setting sized only the loader and needed a restart.
@@ -130,7 +142,7 @@ Window 1100x700, 2.5 s of observation after the picture settled. The tiles are 6
 
 At 24 Mpx the first 34 ms are the operating system and the Go runtime starting the 29 MB program and the initialisation of the packages. 23 ms of that is the initialisation of the JPEG XL library (`github.com/gen2brain/jxl`, tables built at start; found with `GODEBUG=inittrace=1`); it cannot be deferred without a patched copy of the library. The next 21 ms are the engine: `engine.New` reads the system fallback fonts of Windows (about 22 MB for Segoe UI Symbol, Nirmala, Segoe UI Emoji and others) with a growing buffer, which allocates 53 MB of which 22 MB stay in memory. The preview decode starts at the open request and is finished 57 ms later; the loading frame (27 ms with the toolbar and the first glyphs) is drawn on the main thread at the same time, and drawing the picture takes 5 ms.
 
-Pan at 3840x2160 takes 33 ms per frame, 30 frames per second. Of that, about 22 ms is the engine copying the picture buffer into its canvas with `image/draw` in `Over` mode on one core (the buffer is opaque, a plain copy would be several times faster), and about 20 ms of CPU, spread over the cores, is the engine's comparison of the old and new frame and the copy of the changed tiles (33 MB allocated for every frame). These are engine costs; PixGo's own rendering of the 4K frame takes about 13 ms of CPU, spread over the cores. At 1920x1080 the frame takes 8.5 ms.
+Up to 1.0.1, pan at 3840x2160 took 33 ms per frame, 30 frames per second (10.5 ms since 1.1.0, see above). Of that, about 22 ms is the engine copying the picture buffer into its canvas with `image/draw` in `Over` mode on one core (the buffer is opaque, a plain copy would be several times faster), and about 20 ms of CPU, spread over the cores, is the engine's comparison of the old and new frame and the copy of the changed tiles (33 MB allocated for every frame). These are engine costs; PixGo's own rendering of the 4K frame takes about 13 ms of CPU, spread over the cores. At 1920x1080 the frame takes 8.5 ms.
 
 ## Limits of these numbers
 

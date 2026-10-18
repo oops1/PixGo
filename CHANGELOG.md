@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.1.0] - 2026-10-18
+
+### Added
+- **Editing.** **Edit** on the toolbar, Ctrl+E or the menu (**Crop…**, **Resize…**) opens the edit mode: a crop frame with eight handles and rule-of-thirds lines, the aspect ratios Free, Original, Square, 4:3, 3:2 and 16:9 (portrait or landscape), rotation and flips, **Reset**, and the size of the result. Arrows move the frame, Shift moves it faster, Ctrl+arrows change its size, Enter saves a copy, Esc cancels.
+- **Resize** dialog: width and height in pixels or percent, with or without keeping the proportions. Pictures are scaled with a Lanczos filter in premultiplied alpha, so edges of transparent pictures stay clean and shrinking does not alias.
+- **Save copy** writes the edited picture next to the original as `name (2).ext`; **Save as…** chooses another place or format; **Save** replaces the original after a confirmation (it can be turned off) and writes it safely through a temporary file.
+- **Lossless crop of JPEG files.** A crop, a turn and a flip of a baseline JPEG are saved without recompression when **Lossless** is on; the frame then snaps to the 8 or 16 pixel blocks of the file, and the snapped frame is shown while the dialog is open.
+- **Metadata is kept when saving.** Every saved JPEG, PNG and WebP keeps the camera data (EXIF), the color profile and the XMP description of the original; the orientation becomes normal, the stored sizes follow the new size and the small preview inside EXIF is removed. The save dialog has **Remove location data (GPS)**.
+- Screen readers can press, toggle, select and focus every control of the viewer, the gallery, the information panel, the settings and the dialogs, not only read them.
+
+### Changed
+- Graphics engine updated to v3.38.0.
+- The window opens where it was closed, maximized if it was, without a visible jump.
+- Panning large pictures in big windows is several times faster: the picture buffer goes to the screen by the opaque fast path of the engine, and the engine starts faster because it no longer reads every fallback font at start.
+- The context menu is announced to screen readers as a real menu with its items.
+
+### Notes
+- Animated pictures and SVG cannot be edited yet.
+- A picture that is shown in parts can be cropped when the cropped area fits the pixel limit, and resized from a reduced level.
+
 ## [1.0.1] - 2026-10-16
 
 ### Fixed

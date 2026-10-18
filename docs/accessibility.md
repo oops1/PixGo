@@ -23,6 +23,7 @@ Every function that the mouse reaches is reachable from the keyboard. Disabled c
 | Ctrl+D | Add to / remove from favorites |
 | Ctrl+G, Ctrl+O | Gallery |
 | Ctrl+, | Settings |
+| Ctrl+E | Edit: crop, resize, rotate and flip (see below) |
 | Ctrl+Shift+S | Save as |
 | Ctrl+C, Ctrl+Shift+C, Ctrl+Shift+R | Copy the file, copy the path, show in the folder |
 | Del, Shift+Del | Move to the recycle bin, delete permanently |
@@ -37,6 +38,24 @@ The focus visits the controls in this order and wraps around: the buttons of the
 When the information panel is opened from the keyboard with Enter, the focus moves into it: Tab goes through the close button, the copy buttons and the links, Up and Down scroll, Esc closes it and returns to the information button.
 
 The arrows keep their meaning (previous and next image) even when a control has the focus.
+
+### Edit mode
+
+Ctrl+E (the pencil in the toolbar, **Crop** and **Resize** in the menu) switches the viewer to the edit mode. The toolbar and the arrows are replaced by the edit bar; the viewer commands (zoom, previous and next, delete, gallery, full screen) are off until you leave.
+
+| Key | Action |
+|---|---|
+| Arrows, Shift+arrows | Move the crop area by 1 pixel, by 10 pixels |
+| Ctrl+Left, Right, Up, Down | Resize the area from its bottom-right corner by 1 pixel (Ctrl+Shift: 10); with a fixed aspect ratio the other side follows |
+| Tab, Shift+Tab | Walk the crop area and the controls of the edit bar: aspect ratio, swap portrait and landscape, rotate left, rotate right, flip horizontally, flip vertically, **Resize**, **Reset**, **Save a copy**, its arrow, **Cancel**; disabled controls are skipped |
+| Enter, Space | On a control of the bar: press it. On the crop area, Enter saves a copy |
+| R, Shift+R, H, V | Rotate right, rotate left, flip horizontally, flip vertically (the crop area follows) |
+| Ctrl+Shift+S | Save as |
+| Esc | Cancel; asks first when something was changed |
+
+The arrow of **Save a copy** opens a menu with **Save** (replaces the original after a confirmation) and **Save as**. The aspect ratio list (Free, Original, Square, 4:3, 3:2, 16:9) and the arrow menu are ordinary menus: Up, Down, Enter, Esc.
+
+The **Resize** dialog has two fields (width, height), the units (pixels or percent) and **Keep proportions**. Tab goes through the width, the height, the two units, the check box, **Apply** and **Cancel**; Up and Down in a field change the number by 1 (Shift: 10); Enter applies, Esc cancels. The confirmation of replacing the original has **Replace**, **Cancel** and **Don't ask again**.
 
 ### Menus
 
@@ -78,7 +97,7 @@ While a menu is open, Up and Down move through the items, Enter runs the item an
 
 ### Dialogs
 
-Tab and Shift+Tab move between the buttons, Enter presses the default button, Esc cancels. The **Save options** dialog has the quality slider (arrows, Home, End, PgUp, PgDn) and, for formats that offer it, the **Lossless** check box.
+Tab and Shift+Tab move between the buttons, Enter presses the default button, Esc cancels. The **Save options** dialog has the quality slider (arrows, Home, End, PgUp, PgDn), the **Remove location data (GPS)** check box and, for formats that offer it, the **Lossless** check box.
 
 ## Screen readers
 
@@ -100,14 +119,30 @@ PixGo publishes its controls through UI Automation on Windows and AT-SPI on Linu
 | Gallery: status bar | label | |
 | Information panel | group | rows are labels (name and value); the location and the map link are buttons; every copy button is named |
 | Settings | group | sections are radio buttons, options are check boxes, radio buttons, combo boxes and sliders (the value is the shown text) |
-| Popup menu | group | items are buttons, check boxes or radio buttons; the shortcut is the description |
+| Edit mode: crop area | group | named "Crop area"; the value is "x, y, width × height" in pixels of the picture; its description names the keys |
+| Edit mode: edit bar | buttons, combo box | the aspect ratio is a combo box whose value is the chosen ratio; every button is named; Save a copy and its arrow, Reset and the buttons that have nothing to do are disabled |
+| Edit mode: size of the result | label | "width × height" of the file that will be written |
+| Resize dialog | group | width and height are text fields with their value, the units are radio buttons, **Keep proportions** is a check box; the original and the resulting size are labels |
+| Popup menu | menu | items are menu items (check marks and sub-menus are states); the shortcut is the description; the highlighted item is focused |
+
+### Actions
+
+A screen reader can act on the individual controls of every page that PixGo draws itself, not only read them. Each interactive node has a stable identifier and the page carries out the request exactly as it would carry out a click or a key:
+
+| Request | Meaning |
+|---|---|
+| Invoke (press) | The same as a click: the buttons of the title bar, toolbar, arrows and slideshow bar run their command; in the gallery a place goes to the folder, an item is opened (like a double click), the address bar starts editing, the filter and size buttons open their menu; in the information panel the copy buttons and links work; in the settings buttons, links and drop-down lists work; in the save options dialog Save and Cancel work; in the edit mode the buttons of the bar work, the arrow and the aspect ratio open their menu, and the crop area takes Focus; the Resize dialog and the confirmation of replacing the original are driven the same way |
+| Toggle | Switches a check box: information, favorite, the check boxes of the settings and the formats, **Lossless**, **Remove location data (GPS)**, **Keep proportions**, **Don't ask again** |
+| Select | Chooses a radio button or a list row: list and grid view, the places and items of the gallery (selects, does not open), the sections and options of the settings |
+| Focus | Moves the keyboard focus to the control and shows the focus ring, scrolling it into view when needed; in the gallery it selects the item, in the settings it switches to the section |
+| Expand | Opens the list of a drop-down in the settings and the sub-menu of a menu item |
+
+A disabled control, an identifier that no longer exists and a gallery row that has scrolled out of the list refuse the request. The window buttons (minimize, maximize, close) can be pressed but are not tab stops, so they refuse Focus. A slider takes Focus only; change it with the arrow keys.
 
 Known limits:
 
-- A screen reader can read every element but cannot press or focus an individual control on a page that PixGo draws itself (the viewer chrome, the gallery, the settings, the information panel). The engine sends such a request to the page as a whole. Use the keyboard.
 - The window of a dialog that the engine shows (confirmation, errors, file dialogs) has no name and its title is not published; its buttons and text are.
 - UI Automation does not receive the selected state of radio buttons from the engine, so on Windows a selected option is not announced as selected.
-- The item of a menu that is highlighted with the arrows is not announced; the menu is announced as a whole.
 - Items of a menu that does not fit the window are listed completely, but the positions of the hidden ones are only estimates.
 
 ## High contrast
@@ -128,6 +163,6 @@ pixgo -screenshot out.png -width 1000 -height 640 -theme dark -lang en -scale 1.
 
 ## For developers
 
-- The semantics are in the files `access.go` of the packages `ui/window`, `ui/gallery`, `ui/infopanel`, `ui/settings`, `ui/view` and `app` (the menu). They implement the engine interfaces `widget.Accessible` and `widget.AccessChildrenProvider`. The tests build the tree with the engine and check that every interactive node has a name, that no name is a bare translation key and that the names follow the language.
+- The semantics are in the files `access.go` of the packages `ui/window`, `ui/gallery`, `ui/infopanel`, `ui/settings`, `ui/saveopts`, `ui/view`, `ui/edit`, `ui/resize` and `ui/confirm`, and in `app/access_menu.go` (the menu is the engine's `PopupMenu`, which publishes its own items). They implement the engine interfaces `widget.Accessible` and `widget.AccessChildrenProvider`; the actions are in `access_actions.go` next to them (`widget.AccessActionHandler`, identifiers in `AccessInfo.ID`). The tests build the tree with the engine, call `Engine.AccessAction` on the nodes and compare the effect with a real click (`testutil.AccessDo`, `testutil.RequireActionIDs`). They also check that every interactive node has a name, that no name is a bare translation key and that the names follow the language.
 - The focus ring is `gfx.Ring`; the colors come from the theme (`Focus`, and `Canvas` for the inner line of the high-contrast theme).
 - `PIXGO_SNAPSHOTS=<dir> go test ./internal/app -run TestEveryStateRendersAtEveryScale` writes a picture of every page, dialog, menu and the focus ring at 1.0, 1.25, 1.5 and 2.0 in both themes. `PIXGO_SNAPSHOT_LANG=ru` selects the language.

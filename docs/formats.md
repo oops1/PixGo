@@ -4,7 +4,7 @@ PixGo recognizes a file by its signature, not by its extension. The extension on
 
 | Format | Extensions | Read | Write | Animation | Alpha | Build tag to remove it |
 |---|---|---|---|---|---|---|
-| JPEG | `.jpg` `.jpeg` `.jpe` `.jfif` | yes, also in parts above the pixel limit | yes, quality 1–100, or lossless rotation of a JPEG | no | no | – |
+| JPEG | `.jpg` `.jpeg` `.jpe` `.jfif` | yes, also in parts above the pixel limit | yes, quality 1–100, or lossless rotation and crop of a JPEG | no | no | – |
 | PNG | `.png` | yes | yes | no | yes | – |
 | APNG | `.apng`, animated `.png` | yes | no | yes | yes | `noapng` |
 | GIF | `.gif` | yes | no | yes | yes | – |
@@ -50,20 +50,39 @@ The information panel reads the camera data (EXIF), the GPS position, the color 
 - **RAW.** The maker notes are not read, so the lens and the settings that only the maker stores are missing; the lens is shown when the standard EXIF tag has it. The size of the sensor is not read: the size of the file is the size of the preview. The format is told from the first bytes of the file, not from the extension.
 - A block that is cut off or damaged is skipped; what was read before it is still shown.
 
+## Metadata when saving
+
+Pictures that PixGo encodes again (Save as, and every save from the edit mode) keep their metadata. The blocks are taken from the file on disk, not from the decoded picture, and written to the new file in the form that its format uses.
+
+| Target | EXIF | ICC profile | XMP |
+|---|---|---|---|
+| JPEG | `APP1` `Exif` segment | `APP2` `ICC_PROFILE` segments of up to 65 519 bytes each | `APP1` segment with the XMP namespace |
+| PNG | `eXIf` chunk | `iCCP` chunk, zlib-compressed | `iTXt` chunk with the keyword `XML:com.adobe.xmp` |
+| WebP | `EXIF` chunk | `ICCP` chunk | `XMP ` chunk |
+| BMP | no | no | no |
+
+A WebP file with metadata gets the extended header (`VP8X`) with the flags for the alpha channel, the profile, the EXIF block and the XMP packet; a file without metadata is written in the plain form as before. The blocks are placed in the order the format asks for: header, profile, picture, EXIF, XMP.
+
+- **What is kept.** All camera tags, the maker note, the lens, the date, the color profile and the XMP description are copied byte for byte, except the entries listed below. Metadata is read from JPEG, PNG, APNG, WebP, TIFF, HEIC, AVIF, JPEG XL and RAW; for TIFF and RAW only the descriptive tags are taken (make, model, orientation, software, date, artist, copyright, resolution), the Exif and GPS directories, and not the tags that describe the strips and tiles of the sensor data or the maker note.
+- **What is changed.** The orientation is set to 1 (the saved picture is already turned), `ImageWidth`, `ImageLength`, `PixelXDimension` and `PixelYDimension` become the new size, but only the entries that the original had. In the XMP packet `tiff:Orientation`, `tiff:ImageWidth`, `tiff:ImageLength`, `exif:PixelXDimension` and `exif:PixelYDimension` change in the same way. The preview picture inside the EXIF block is removed, because it shows the old picture. The EXIF structure is written again with all offsets recalculated; a maker note that has no header of its own (Canon and others, whose inner offsets count from the start of the EXIF block) stays at the same offset in the block so that its inner references remain valid.
+- **GPS.** The option **Remove location information (GPS)** in the save options removes the GPS directory from the EXIF block and the `exif:GPS*` properties from the XMP packet. Nothing else is touched. For a lossless copy the option works the same way.
+- **What does not fit.** A JPEG segment holds up to 65 533 bytes. When the EXIF block of a picture is larger, the maker note is dropped first; when the block still does not fit, or when it cannot be read, it is left out of the file and PixGo tells you about it after saving. An XMP packet above the limit is left out too (extended XMP is not written); a profile above 16.7 MB is left out. The picture itself is always saved.
+
 ## Orientation
 
 - EXIF orientation is applied by the viewer after decoding (the setting **Apply EXIF orientation** in Settings → View). The decoder only reports it.
 - HEIF and AVIF use their own `irot` and `imir` boxes; the EXIF orientation of the same file is ignored so that a picture is never turned twice.
 - JPEG XL applies its orientation inside the decoder.
 
-## Lossless rotation
+## Lossless rotation and crop
 
-When the picture on the screen comes from a JPEG file and you save it as JPEG, the **Save options** dialog has the switch **Lossless** (on by default). With the switch on, PixGo does not decode and encode the picture again: it takes the stored DCT coefficients of the original file, moves and mirrors the blocks the way you turned the picture (this includes the EXIF orientation that the viewer applied), and writes them out. Every coefficient of the original is kept, so the picture suffers no new compression loss (a decoder may differ from the original in the last digit of a few samples, because its rounding is not symmetric). The quality slider is off in this mode. The choice is remembered in the setting `saveJpegLossless` of `settings.json`.
+When the picture on the screen comes from a JPEG file and you save it as JPEG, the **Save options** dialog has the switch **Lossless** (on by default). With the switch on, PixGo does not decode and encode the picture again: it takes the stored DCT coefficients of the original file, moves and mirrors the blocks the way you turned the picture (this includes the EXIF orientation that the viewer applied), keeps only the blocks of the crop rectangle when there is one, and writes them out. A resize cannot be lossless: with a new size the switch is not offered and the picture is encoded again with the chosen quality. Every coefficient of the original is kept, so the picture suffers no new compression loss (a decoder may differ from the original in the last digit of a few samples, because its rounding is not symmetric). The quality slider is off in this mode. The choice is remembered in the setting `saveJpegLossless` of `settings.json`.
 
 - **What is written.** A baseline file with Huffman tables that are optimized for the new order of the blocks, so the file is usually a little smaller; restart markers are dropped. All APPn markers (JFIF, EXIF, ICC profile, XMP, Adobe) and comments are kept in their order.
-- **What is fixed in the metadata.** EXIF orientation becomes 1, the pixel dimensions (`PixelXDimension`, `PixelYDimension`, `ImageWidth`, `ImageLength`) follow the new size, `XResolution` and `YResolution` swap places when the picture is turned by 90 degrees, and `tiff:Orientation` of the XMP packet becomes 1. The small preview picture inside the EXIF block would show the old position, so it is removed whenever the picture or its orientation changes. The multi-picture block (`MPF`) is removed too, because the extra pictures behind the main one are not copied.
+- **Crop.** The crop rectangle is given in the pixels of the picture as it looks after the turn. Only whole blocks can be cut out, so the top-left corner moves left and up to the nearest unit of the output (8 by 8 pixels, 16 by 16 and so on, the same units as below, with width and height swapped when the picture is turned by 90 degrees), and the bottom-right corner stays where it is, so the result always covers the area you chose and is at most 15 pixels (31 for 4:1:1 and 4:1:0 files) larger on the left and on the top. This is what `jpegtran -crop` does. The edit mode shows the snapped rectangle before you save; the program asks for it with `jpegxform.CropFor`. A rectangle that is partly outside the picture is clipped to it; a rectangle that is completely outside is refused. Cutting out a part of a picture needs no whole units on an edge that is not in the crop: the partial unit at the edge described below only matters when the crop reaches into it.
+- **What is fixed in the metadata.** EXIF orientation becomes 1, the pixel dimensions (`PixelXDimension`, `PixelYDimension`, `ImageWidth`, `ImageLength`) follow the new size (the size of the crop), `XResolution` and `YResolution` swap places when the picture is turned by 90 degrees, and `tiff:Orientation` of the XMP packet becomes 1. The small preview picture inside the EXIF block would show the old picture, so it is removed whenever the picture, its orientation or its size changes (for a crop or for the option that removes the location, the EXIF block and the XMP packet are written again as described in *Metadata when saving*). The multi-picture block (`MPF`) is removed too, because the extra pictures behind the main one are not copied.
 - **Which files.** Baseline and extended sequential JPEG with 8-bit samples: gray, YCbCr with any subsampling, CMYK and YCCK. Progressive, arithmetic-coded, 12-bit, lossless files and files that code the components in several scans are not changed this way: the switch is not offered for them and the picture is saved the usual way, with the chosen quality.
-- **Edges.** A JPEG is coded in blocks of 8 by 8 pixels; with chroma subsampling the units are 16 by 16 pixels (up to 32 by 16). A turn or a mirror can only move whole units. When the size of the picture is not a multiple of the unit on the edge that moves to the other side, that partial unit is cut off, as `jpegtran -trim` does: less than 16 pixels (less than 32 for 4:1:1 and 4:1:0 files), and PixGo tells you in the notice after saving. The rule for each operation:
+- **Edges.** A JPEG is coded in blocks of 8 by 8 pixels; with chroma subsampling the units are 16 by 16 pixels (up to 32 by 16). A turn or a mirror can only move whole units. When the size of the picture is not a multiple of the unit on the edge that moves to the other side, that partial unit is cut off, as `jpegtran -trim` does: less than 16 pixels (less than 32 for 4:1:1 and 4:1:0 files), and PixGo tells you in the notice after saving. With a crop, nothing is cut off when the rectangle stays clear of that partial unit. The rule for each operation:
 
 | Operation | Width must be a multiple of the unit | Height must be a multiple of the unit |
 |---|---|---|

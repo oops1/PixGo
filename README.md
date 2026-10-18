@@ -56,6 +56,8 @@ It writes `~/.config/mimeapps.list`; no extra tools are needed. `install.sh --se
 | Zoom in or out | **+** and **-**, **Ctrl** + wheel, or the buttons of the bar at the bottom; **1** fits the window, **2** fits the width, **0** shows 100 %, a double click switches between fit and 100 % |
 | Move a zoomed picture | Drag it with the mouse, or use **Ctrl** + arrow keys |
 | Rotate or flip | **R** turns right, **Shift+R** left; **H** and **V** flip; Rotate 180° is in the menu |
+| Crop, resize, or bake a rotation into the file | **Ctrl+E** (the pencil in the bar, or **Crop** and **Resize** in the menu). Drag the corners and edges of the frame, choose an aspect ratio (free, original, square, 4:3, 3:2, 16:9), rotate or flip, then **Save a copy** (writes `name (2).jpg` next to the original), or use the arrow for **Save** (replaces the original after a confirmation) and **Save as**. **Esc** cancels. Animations and SVG cannot be edited |
+| Resize | In the edit mode press **Resize**: width and height in pixels or percent, proportions kept |
 | Delete | **Delete** moves the file to the recycle bin after a confirmation |
 | See the details | **Ctrl+I** or the information button in the title bar: file, camera, color profile, location |
 | Go full screen or start a slideshow | **F11** (**Alt+Enter**) for full screen, **F5** for the slideshow, **Esc** to leave |
@@ -142,7 +144,8 @@ go test ./...
 | `internal/render` | viewport renderer |
 | `internal/jpegdec`, `internal/jpegxform` | JPEG decoder with scaling and regions, lossless JPEG transform |
 | `internal/par` | the shared thread budget |
-| `internal/meta`, `internal/isobmff` | EXIF, GPS, color profile and XMP readers; the ISO box reader for AVIF and HEIC |
+| `internal/meta`, `internal/isobmff` | EXIF, GPS, color profile and XMP readers and writers (metadata carried into saved files); the ISO box reader for AVIF and HEIC |
+| `internal/edit` | editing plan: orientation, crop and resize with a Lanczos-3 resampler |
 | `internal/viewer` | folder, navigation, zoom and pan model, slideshow |
 | `internal/gallery` | gallery model: places, history, listing, thumbnail grid math |
 | `internal/thumbs` | thumbnail queue by visibility, memory and disk cache |

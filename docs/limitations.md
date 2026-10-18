@@ -1,6 +1,6 @@
 # Known limitations
 
-This page lists what PixGo does not do, or does only in part, as of 1.0.0. Each item says what happens instead. Details of the formats are in [formats.md](formats.md), the numbers of speed and memory in [perf.md](perf.md), the keyboard and screen reader notes in [accessibility.md](accessibility.md).
+This page lists what PixGo does not do, or does only in part, as of 1.1.0. Each item says what happens instead. Details of the formats are in [formats.md](formats.md), the numbers of speed and memory in [perf.md](perf.md), the keyboard and screen reader notes in [accessibility.md](accessibility.md).
 
 ## Color
 
@@ -16,7 +16,7 @@ This page lists what PixGo does not do, or does only in part, as of 1.0.0. Each 
 - JPEG XL: an animation with an embedded ICC profile or a permuted table of contents is refused; the color profile of a still picture and metadata compressed with Brotli are not read.
 - Animations of WebP, GIF, APNG, AVIF and JPEG XL play, but are never faster than the frame rate set in Settings → Performance and pause while the window is not active.
 - Save as writes JPEG, PNG, BMP and WebP. AVIF, JPEG XL, HEIC, TIFF and animated files cannot be written.
-- Saving a picture in a new encoding does not carry over the camera data (EXIF), the color profile or the XMP packet. Only the lossless JPEG copy keeps them.
+- Saving carries the camera data (EXIF), the color profile and the XMP packet into JPEG, PNG and WebP files; BMP has no place for them. A block that does not fit the container (a JPEG segment holds 64 KB) is left out and a notice says so. The thumbnail inside the EXIF is removed, and the orientation is set to normal because the pixels are already turned.
 - SVG is drawn once, up to 1024 pixels on the long side, and then scaled like any other picture, so it becomes soft when zoomed far beyond that. Save as writes that drawing.
 
 ## Large pictures
@@ -25,12 +25,15 @@ This page lists what PixGo does not do, or does only in part, as of 1.0.0. Each 
 - A progressive JPEG above the limit opens at 1/8 of its size only: reading a region of such a file would need every coefficient in memory.
 - A TIFF that is planar, compressed with CCITT or JPEG, or stored as CMYK, Lab, YCbCr or 32-bit float is refused above the limit; below it the older reader decodes it whole.
 - A picture that is shown in parts, or at reduced size while the full picture is still loading, cannot be saved as a pixel copy or copied as an image. A lossless JPEG copy can still be saved.
-- Panning a 200 Mpx picture in a 3840 by 2160 window runs at about 30 frames per second; most of the time of a frame is spent in the graphics engine.
 
 ## Editing
 
-- PixGo views and converts; it does not crop, resize or change colors.
-- Lossless rotation works for baseline JPEG files only. When the size of the picture is not a multiple of the block (8 to 32 pixels, depending on the chroma subsampling), the partial edge is cut off and a notice says so. Progressive, arithmetic-coded and 12-bit files are saved the usual way, re-encoded with the chosen quality.
+- PixGo crops, resizes, rotates and flips; it does not change colors, retouch or draw.
+- Animated pictures and SVG cannot be edited. A picture that is still loading cannot be edited either.
+- A picture shown in parts (above the decoding limit) can be cropped when the chosen area is not larger than the pixel limit, or when it is resized; the area is read from the file at full detail, and a resize reads the best level that fits. A larger area without a resize is refused with a message; a lossless JPEG crop has no such limit.
+- Formats that PixGo cannot write (AVIF, JPEG XL, HEIC, TIFF, GIF, RAW, ICO) are saved as PNG when you press **Save a copy**; **Save** (replace the original) is off for them.
+- Editing the picture while another picture is opened (for example from the file manager) drops the unsaved changes without asking.
+- Lossless rotation and crop work for baseline JPEG files only. A crop moves its top-left corner to the grid of blocks (up to 15 pixels, 31 for some subsampling), so the lossless result can be slightly larger than the frame; the dashed frame in the editor shows the real one. When the size of the picture is not a multiple of the block (8 to 32 pixels, depending on the chroma subsampling), the partial edge is cut off and a notice says so. Progressive, arithmetic-coded and 12-bit files are saved the usual way, re-encoded with the chosen quality.
 
 ## Windows and Linux
 
@@ -39,7 +42,6 @@ This page lists what PixGo does not do, or does only in part, as of 1.0.0. Each 
 - On Windows only files on drives that have a recycle bin go there. For other places (removable and network drives, very long paths) PixGo asks whether to delete the file permanently.
 - The portable archive for Windows does not register itself in Default apps; the installer does (its optional step **Associate PixGo with image files**).
 - The list of files in the folder is read when a picture is opened and again when the window becomes active, not continuously.
-- The window opens with the size it had last time, but where the system places it: its position and the maximized state are saved and not yet restored, because the window cannot be moved before it is shown without a visible jump.
 - Copy image needs a clipboard that carries pictures. Where it carries only text and lists of files, use Copy file or Copy path.
 - Printing is not provided.
 - The update check reads the public release feed of the project on GitHub and nothing else. It can be turned off in Settings or for every user of a machine with the environment variable `PIXGO_NO_UPDATE_CHECK=1`.
