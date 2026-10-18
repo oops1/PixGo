@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/oops1/headless-gui/v3/engine"
+	"github.com/oops1/headless-gui/v3/printing"
 	"github.com/oops1/headless-gui/v3/widget"
 
 	"github.com/oops1/PixGo/internal/codec"
@@ -21,6 +22,7 @@ import (
 	"github.com/oops1/PixGo/internal/ui/confirm"
 	uiedit "github.com/oops1/PixGo/internal/ui/edit"
 	"github.com/oops1/PixGo/internal/ui/infopanel"
+	"github.com/oops1/PixGo/internal/ui/printdlg"
 	"github.com/oops1/PixGo/internal/ui/resize"
 	"github.com/oops1/PixGo/internal/ui/saveopts"
 	"github.com/oops1/PixGo/internal/ui/theme"
@@ -32,6 +34,7 @@ type Options struct {
 	Settings *settings.Store
 	Platform *platform.Platform
 	Registry *codec.Registry
+	Printing printService
 }
 
 type App struct {
@@ -71,10 +74,18 @@ type App struct {
 	editPath  string
 	resizeDlg *resize.Dialog
 	ovConfirm *confirm.Dialog
+
+	printDlg  *printdlg.Dialog
+	printSvc  printService
+	printBusy bool
+	sysTarget *printing.Target
 }
 
 func New(eng *engine.Engine, opt Options) *App {
-	a := &App{Eng: eng, Settings: opt.Settings, Platform: opt.Platform, Commands: commands.NewRegistry()}
+	a := &App{Eng: eng, Settings: opt.Settings, Platform: opt.Platform, Commands: commands.NewRegistry(), printSvc: opt.Printing}
+	if a.printSvc == nil {
+		a.printSvc = enginePrinting{}
+	}
 	a.Canvas = view.New(eng)
 	a.Ctl = NewController(Env{
 		Registry: opt.Registry,

@@ -44,7 +44,7 @@ func (a *App) initEdit() {
 var editAllowed = map[commands.ID]bool{
 	CmdEscape: true, CmdRotateRight: true, CmdRotateLeft: true, CmdRotate180: true, CmdFlipH: true, CmdFlipV: true,
 	CmdInfo: true, CmdFavorite: true, CmdCopy: true, CmdCopyPath: true, CmdCopyImage: true, CmdReveal: true,
-	CmdSaveAs: true, CmdEditStart: true, CmdCrop: true, CmdResize: true, CmdContextMenu: true,
+	CmdSaveAs: true, CmdPrint: true, CmdExportPDF: true, CmdEditStart: true, CmdCrop: true, CmdResize: true, CmdContextMenu: true,
 }
 
 func (a *App) gateEnabled(id commands.ID, f func() bool) func() bool {

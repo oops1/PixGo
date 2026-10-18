@@ -22,6 +22,8 @@ const (
 	CmdGallery         commands.ID = "view.gallery"
 	CmdOpen            commands.ID = "file.open"
 	CmdSaveAs          commands.ID = "file.saveAs"
+	CmdPrint           commands.ID = "file.print"
+	CmdExportPDF       commands.ID = "file.exportPdf"
 	CmdCopy            commands.ID = "file.copy"
 	CmdCopyImage       commands.ID = "file.copyImage"
 	CmdCopyPath        commands.ID = "file.copyPath"
@@ -69,6 +71,8 @@ var Specs = []Spec{
 	{CmdGallery, "cmd.gallery", "gallery", []commands.Chord{commands.C(commands.Ctrl, 'G')}},
 	{CmdOpen, "cmd.open", "gallery", []commands.Chord{commands.C(commands.Ctrl, 'O')}},
 	{CmdSaveAs, "cmd.saveAs", "", []commands.Chord{commands.C(commands.Ctrl|commands.Shift, 'S')}},
+	{CmdPrint, "cmd.print", "", []commands.Chord{commands.C(commands.Ctrl, 'P')}},
+	{CmdExportPDF, "cmd.exportPdf", "", nil},
 	{CmdCopy, "cmd.copy", "copy", []commands.Chord{commands.C(commands.Ctrl, 'C')}},
 	{CmdCopyImage, "cmd.copyImage", "", nil},
 	{CmdCopyPath, "cmd.copyPath", "", []commands.Chord{commands.C(commands.Ctrl|commands.Shift, 'C')}},

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -43,6 +44,16 @@ const (
 
 	DisplayProfileSystem = "system"
 	DisplayProfileSRGB   = "srgb"
+
+	PrintDestinationPDF = "pdf"
+)
+
+var (
+	PrintPapers       = []string{"a4", "a5", "a3", "letter", "legal", "10x15", "13x18"}
+	PrintOrientations = []string{"auto", "portrait", "landscape"}
+	PrintPlacements   = []string{"fit", "fill", "actual", "custom"}
+	PrintMargins      = []string{"none", "narrow", "normal"}
+	PrintUnits        = []string{"cm", "in"}
 )
 
 const (
@@ -103,6 +114,13 @@ type Settings struct {
 	SaveWebPLossless bool `json:"saveWebpLossless"`
 	SaveStripGPS     bool `json:"saveStripGPS"`
 
+	PrintDestination string `json:"printDestination"`
+	PrintPaper       string `json:"printPaper"`
+	PrintOrientation string `json:"printOrientation"`
+	PrintPlacement   string `json:"printPlacement"`
+	PrintMargins     string `json:"printMargins"`
+	PrintUnit        string `json:"printUnit"`
+
 	Formats   map[string]Format `json:"formats"`
 	Slideshow Slideshow         `json:"slideshow"`
 	Updates   Updates           `json:"updates"`
@@ -138,6 +156,9 @@ func Defaults() Settings {
 
 		SaveJPEGQuality: DefaultSaveJPEGQuality, SaveJPEGLossless: true,
 		SaveWebPQuality: DefaultSaveWebPQuality, SaveWebPLossless: false,
+
+		PrintPaper: PrintPapers[0], PrintOrientation: PrintOrientations[0], PrintPlacement: PrintPlacements[0],
+		PrintMargins: PrintMargins[1], PrintUnit: PrintUnits[0],
 
 		Formats:   formats,
 		Slideshow: Slideshow{Interval: 5, Loop: true, Shuffle: false},
@@ -182,6 +203,14 @@ func (s *Settings) Normalize() {
 	oneOf(&s.Sort, d.Sort, SortName, SortDate, SortSize)
 	oneOf(&s.GalleryView, d.GalleryView, GalleryGrid, GalleryList)
 	oneOf(&s.DisplayProfile, d.DisplayProfile, DisplayProfileSystem, DisplayProfileSRGB)
+	oneOf(&s.PrintPaper, d.PrintPaper, PrintPapers...)
+	oneOf(&s.PrintOrientation, d.PrintOrientation, PrintOrientations...)
+	oneOf(&s.PrintPlacement, d.PrintPlacement, PrintPlacements...)
+	oneOf(&s.PrintMargins, d.PrintMargins, PrintMargins...)
+	oneOf(&s.PrintUnit, d.PrintUnit, PrintUnits...)
+	if len(s.PrintDestination) > 512 || strings.ContainsAny(s.PrintDestination, "\x00\r\n") {
+		s.PrintDestination = ""
+	}
 	clamp(&s.Preload, 0, 2, d.Preload)
 	clamp(&s.GalleryThumbSize, 96, 384, d.GalleryThumbSize)
 	clamp(&s.SaveJPEGQuality, MinSaveQuality, MaxSaveQuality, d.SaveJPEGQuality)
