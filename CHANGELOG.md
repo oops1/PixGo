@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.2.0] - 2026-10-18
+
+### Added
+- **Color management.** Embedded ICC profiles (version 2 and 4, matrix and table based) and the color descriptions of AVIF, HEIC, JPEG XL and PNG (CICP) are applied: Display P3, Adobe RGB, Rec. 2020 and other wide-gamut pictures show their real colors instead of oversaturated or dull ones. On Windows the picture is converted to the profile of the monitor the window is on; on Linux to sRGB. Settings → View has **Color management** and **Display profile** (system or sRGB); turned off, PixGo behaves as before.
+- **HDR pictures** (PQ and HLG in AVIF, HEIC, JPEG XL and PNG) are tone mapped to the screen with the BT.2390 curve, keeping the hue, and colors outside the screen's gamut are compressed softly instead of clipped.
+- **High bit depth.** 16-bit PNG and TIFF and 10 to 16-bit AVIF, HEIC and JPEG XL keep their precision until the final conversion, with a light dither, so gradients stay smooth.
+- **DNG development.** DNG files are developed from the sensor data: lossless JPEG, Deflate and uncompressed data, the four Bayer patterns and linear DNG, black and white levels, linearization, white balance, the color matrices of the camera and the exposure, then a soft highlight curve. A reduced picture appears first, the full development follows (about 50 ms for 24 Mpx on a fast machine). Settings → Formats can switch back to the embedded preview. Other RAW formats still show their embedded preview.
+- **Twelve languages.** English, Russian, Ukrainian, German, French, Spanish, Italian, Portuguese (Brazil), Polish, Czech, Dutch and Turkish, with grammatical plurals and the date, number and file size formats of each language. The language of the system is used by default (on Linux also the language chosen for the desktop session, before the locale); Settings → Language lists every language under its own name.
+- The information panel shows the color profile and where it came from, HDR, the bit depth and the display profile.
+- `-ldflags "-X main.updateCheck=off"` builds a program without the update check, for distributions that update it themselves.
+
+### Changed
+- A saved copy of a converted picture carries the profile it was converted to (none for sRGB).
+- `-theme` and `-lang` on the command line apply to that run only and are no longer written into `settings.json`.
+
+### Notes
+- CMYK JPEG files are still converted without their color profile, and JPEG XL HDR values above the reference white are clipped by the decoder library; both are planned for 1.3.
+- The DNG development was tested with generated files; vendor-specific extras (opcode lists, camera profiles, floating-point data, X-Trans) are not applied, and such files show their preview.
+
 ## [1.1.0] - 2026-10-18
 
 ### Added

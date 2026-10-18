@@ -161,8 +161,14 @@ PixGo follows the scale of the display: 100 %, 125 %, 150 %, 175 %, 200 % and th
 pixgo -screenshot out.png -width 1000 -height 640 -theme dark -lang en -scale 1.5 photo.jpg
 ```
 
+## Languages
+
+The interface is available in 12 languages: English, Russian, Ukrainian, German, French, Spanish, Italian, Brazilian Portuguese (`pt-BR`, also used for European Portuguese), Polish, Czech, Dutch and Turkish. By default PixGo follows the language of the system: on Windows the display language (and then the other preferred display languages, if the first one is not supported), on Linux the language chosen for the desktop session, then `LC_ALL`, `LC_MESSAGES` and `LANG`. A language the system uses but PixGo lacks falls back to English. **Settings > Language** lists "System" and each language under its own name and switches at once; `-lang` and `PIXGO_LANG` override it for a run.
+
+Screen readers receive the names, values and descriptions in the chosen language, with the plural forms, the decimal separator, the grouping of digits, the file size units and the date format of that language. The tests check that every language has every text, that no name is a bare key, and that the layout of the windows, the gallery, the information panel, the editing bar and the dialogs holds at every text size in every language. The text of the standard engine dialogs (confirmation, file dialog) is translated by PixGo for the same languages; the context menu of text boxes belongs to the engine and stays English.
+
 ## For developers
 
 - The semantics are in the files `access.go` of the packages `ui/window`, `ui/gallery`, `ui/infopanel`, `ui/settings`, `ui/saveopts`, `ui/view`, `ui/edit`, `ui/resize` and `ui/confirm`, and in `app/access_menu.go` (the menu is the engine's `PopupMenu`, which publishes its own items). They implement the engine interfaces `widget.Accessible` and `widget.AccessChildrenProvider`; the actions are in `access_actions.go` next to them (`widget.AccessActionHandler`, identifiers in `AccessInfo.ID`). The tests build the tree with the engine, call `Engine.AccessAction` on the nodes and compare the effect with a real click (`testutil.AccessDo`, `testutil.RequireActionIDs`). They also check that every interactive node has a name, that no name is a bare translation key and that the names follow the language.
 - The focus ring is `gfx.Ring`; the colors come from the theme (`Focus`, and `Canvas` for the inner line of the high-contrast theme).
-- `PIXGO_SNAPSHOTS=<dir> go test ./internal/app -run TestEveryStateRendersAtEveryScale` writes a picture of every page, dialog, menu and the focus ring at 1.0, 1.25, 1.5 and 2.0 in both themes. `PIXGO_SNAPSHOT_LANG=ru` selects the language.
+- `PIXGO_SNAPSHOTS=<dir> go test ./internal/app -run TestEveryStateRendersAtEveryScale` writes a picture of every page, dialog, menu and the focus ring at 1.0, 1.25, 1.5 and 2.0 in both themes. `PIXGO_SNAPSHOT_LANG=de` selects the language (any of the 12 codes).

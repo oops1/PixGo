@@ -4,13 +4,15 @@ This page lists what PixGo does not do, or does only in part, as of 1.1.0. Each 
 
 ## Color
 
-- Embedded ICC profiles, wide gamuts (Display P3, Rec. 2020) and HDR curves (PQ, HLG) are not applied. A picture is shown with its numbers read as sRGB, so some colors differ slightly from the original.
-- Pictures with 10, 12 or 16 bits per channel are reduced to 8 bits.
+- Color management applies embedded ICC profiles and CICP descriptions and tone maps PQ and HLG pictures to the SDR display (see [formats.md](formats.md#color)). It is not a calibrated pipeline: highlights above the 203-nit reference white of an HDR picture end at white, the same curve is used for every picture, and the display stays 8-bit SDR.
+- Only sRGB, or the profile of the monitor the window is on (Windows), is the destination. On Linux, and when the monitor profile cannot be read, it is sRGB. A saved copy of a converted picture carries the profile it was converted to: none for sRGB, the monitor profile otherwise (a lossless JPEG copy keeps the original file and its profile).
+- CMYK profiles of CMYK JPEG files are not used; those pictures keep the simple conversion of the decoder. JPEG XL values above 1.0 are clamped. `gAMA` and `cHRM` of PNG are ignored. Only relative colorimetric (with black point compensation) and perceptual intents exist.
+- With **Color management** off, pictures are shown as in 1.1: numbers read as sRGB and reduced to 8 bits.
 - The gain map and the depth map of phone photos are ignored; the base picture is shown.
 
 ## Formats
 
-- RAW files show the JPEG preview stored in the file, marked "Preview". The sensor data is not developed. A DNG file without a JPEG preview cannot be shown.
+- DNG files are developed from the sensor data (2 by 2 Bayer and linear raw, lossless JPEG, Deflate and uncompressed data); lens corrections, gain maps and camera profiles are not applied, so the colors are not those of other raw converters. DNG files with floating point samples, X-Trans or Quad Bayer sensors, or lossy compression show their embedded preview. Other RAW formats (CR2, CR3, NEF, ARW, ORF, RW2, PEF, RAF) show the JPEG preview stored in the file, marked "Preview"; their sensor data is not developed. A file whose preview is needed but absent cannot be shown.
 - HEIC: overlays, derived images and the `mini` brand are refused as unsupported. HEIC needs the HEVC codec, which is covered by patents; PixGo grants no license to them. Build with the tag `noheic` or switch HEIC off in Settings → Formats if this matters to you.
 - AVIF: an animated file that has no `meta` box is refused as unsupported.
 - JPEG XL: an animation with an embedded ICC profile or a permuted table of contents is refused; the color profile of a still picture and metadata compressed with Brotli are not read.
