@@ -177,15 +177,15 @@ func TestOpenMenuExposesItsItems(t *testing.T) {
 		}
 		tr := appTree(a, lang)
 		testutil.RequireNamed(t, tr)
-		menu := testutil.FindAccess(tr, widget.RoleGroup, i18n.T("access.menu"))
-		if menu == nil {
-			t.Fatalf("%s: menu group missing: %s", lang, testutil.DescribeAccess(tr))
+		menu := testutil.FindAccess(tr, widget.RoleMenu, i18n.T("access.menu"))
+		if menu == nil || !testutil.HasState(menu, widget.StatePopup) || testutil.HasState(menu, widget.StateOffscreen) {
+			t.Fatalf("%s: open menu node %+v: %s", lang, menu, testutil.DescribeAccess(tr))
 		}
 		for _, it := range a.menuItems() {
 			if it.Separator {
 				continue
 			}
-			n := inside(tr, widget.RoleButton, it.Text, menu.Bounds)
+			n := inside(tr, widget.RoleMenuItem, it.Text, menu.Bounds)
 			if n == nil {
 				t.Errorf("%s: menu item %q missing in %s", lang, it.Text, testutil.DescribeAccess(tr))
 				continue
@@ -196,8 +196,9 @@ func TestOpenMenuExposesItsItems(t *testing.T) {
 		}
 	}
 	a.menu.Close()
-	if testutil.FindAccess(appTree(a, "en"), widget.RoleGroup, "Menu") != nil {
-		t.Error("closed menu is still in the tree")
+	closed := testutil.FindAccess(appTree(a, "en"), widget.RoleMenu, "Menu")
+	if closed == nil || !testutil.HasState(closed, widget.StateOffscreen) || len(closed.Children) != 0 {
+		t.Errorf("closed menu node %+v", closed)
 	}
 }
 

@@ -33,6 +33,7 @@ var engineFree = []string{
 	"internal/jpegxform",
 	"internal/jpegdec",
 	"internal/par",
+	"internal/edit",
 }
 
 var vendorCodecs = map[string]string{
@@ -147,6 +148,7 @@ func TestDependenciesPointDownward(t *testing.T) {
 		"internal/jpegxform": {"internal/ui", "internal/app", "internal/viewer", "internal/imaging", "internal/render"},
 		"internal/jpegdec":   {"internal/ui", "internal/app", "internal/viewer", "internal/imaging", "internal/render", "internal/codec"},
 		"internal/par":       {"internal/ui", "internal/app", "internal/viewer", "internal/imaging", "internal/render", "internal/codec", "internal/thumbs", "internal/settings"},
+		"internal/edit":      {"internal/ui", "internal/app", "internal/viewer", "internal/render"},
 	}
 	for _, fi := range scan(t) {
 		if fi.isTest {

@@ -92,9 +92,18 @@ type Decoder interface {
 	Decode(ctx context.Context, r io.ReaderAt, size int64, o Options) (*Image, error)
 }
 
+type Metadata struct {
+	EXIF []byte
+	ICC  []byte
+	XMP  []byte
+}
+
+func (m Metadata) Empty() bool { return len(m.EXIF) == 0 && len(m.ICC) == 0 && len(m.XMP) == 0 }
+
 type EncodeOptions struct {
 	Quality  int
 	Lossless bool
+	Metadata Metadata
 }
 
 type Encoder interface {

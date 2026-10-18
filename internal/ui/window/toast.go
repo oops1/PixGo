@@ -60,3 +60,5 @@ func (r *Root) drawToast(c widget.DrawContext, l Layout) {
 	baseline := rect.Min.Y + (rect.Dy()+toastFont.Ascent()-4)/2 - textOpticalRise(toastFont)
 	toastFont.DrawFit(c, r.toastText, rect.Min.X+toastPadX, baseline, rect.Dx()-2*toastPadX, t.Text)
 }
+
+func (r *Root) ToastText() string { return r.toastText }

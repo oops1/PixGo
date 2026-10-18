@@ -32,10 +32,16 @@ const (
 	JPEGLossless
 )
 
-func (k Kind) lossless() bool { return k == WebP || k == JPEGLossless }
+const GPS Kind = 1 << 7
+
+func (k Kind) base() Kind { return k &^ GPS }
+
+func (k Kind) hasGPS() bool { return k&GPS != 0 }
+
+func (k Kind) lossless() bool { return k.base() == WebP || k.base() == JPEGLossless }
 
 func (k Kind) hintKey() string {
-	switch k {
+	switch k.base() {
 	case WebP:
 		return "save.options.webpHint"
 	case JPEGLossless:
@@ -79,6 +85,7 @@ func (m metrics) s(v float64) int { return int(math.Round(v * m.k)) }
 type layout struct {
 	size    image.Point
 	check   image.Rectangle
+	gps     image.Rectangle
 	caption image.Rectangle
 	value   image.Rectangle
 	slider  image.Rectangle
@@ -89,6 +96,7 @@ type layout struct {
 	m        metrics
 	hintText []string
 	hasCheck bool
+	hasGPS   bool
 	gapTotal int
 	squeeze  float64
 }
@@ -136,28 +144,35 @@ func wrap(f gfx.Font, text string, width, maxLines int) []string {
 }
 
 func compute(kind Kind, maxW, maxH int) layout {
-	l := build(kind, maxW, 1)
+	l := buildLines(kind, maxW, 1, hintMaxLines)
 	if maxH <= 0 || l.size.Y <= maxH || l.gapTotal <= 0 {
 		return l
 	}
 	fixed := l.size.Y - l.gapTotal
 	q := min(max(float64(maxH-fixed)/float64(l.gapTotal), minGapShare), 1)
 	for {
-		l = build(kind, maxW, q)
+		l = buildLines(kind, maxW, q, hintMaxLines)
 		if l.size.Y <= maxH || q <= minGapShare {
-			return l
+			break
 		}
 		q = max(q-squeezeStep, minGapShare)
 	}
+	for lines := hintMaxLines - 1; l.size.Y > maxH && lines >= 1 && kind.hasGPS(); lines-- {
+		l = buildLines(kind, maxW, minGapShare, lines)
+	}
+	return l
 }
 
-func build(kind Kind, maxW int, gq float64) layout {
+func build(kind Kind, maxW int, gq float64) layout { return buildLines(kind, maxW, gq, hintMaxLines) }
+
+func buildLines(kind Kind, maxW int, gq float64, hintLines int) layout {
 	m := newMetrics(fonts.TextScale())
 	g := func(v int) int { return int(math.Round(float64(v) * gq)) }
 	lineH, hintH := textHeight(bodyFont), textHeight(hintFont)
-	l := layout{m: m, hasCheck: kind.lossless()}
+	l := layout{m: m, hasCheck: kind.lossless(), hasGPS: kind.hasGPS()}
 
 	checkText := i18n.T("save.lossless")
+	gpsText := i18n.T("save.stripGPS")
 	qualityText := i18n.T("save.quality")
 	saveText := i18n.T("save.options.save")
 	cancelText := i18n.T("dialog.cancel")
@@ -169,7 +184,11 @@ func build(kind Kind, maxW int, gq float64) layout {
 	cancelW := max(m.btnMinW, bodyFont.Measure(nil, cancelText)+2*m.btnPad)
 	buttonsW := saveW + m.btnGap + cancelW
 
-	cw := max(m.s(300), captionW, buttonsW, m.s(220))
+	gpsW := 0
+	if l.hasGPS {
+		gpsW = m.boxSize + m.boxGap + bodyFont.Measure(nil, gpsText)
+	}
+	cw := max(m.s(300), captionW, buttonsW, m.s(220), gpsW)
 	if l.hasCheck {
 		cw = max(cw, checkW)
 	}
@@ -194,6 +213,11 @@ func build(kind Kind, maxW int, gq float64) layout {
 		l.check = image.Rect(m.padX, y, m.padX+min(cw, checkW+m.s(8)), y+rowH)
 		y += rowH + step(m.s(8))
 	}
+	if l.hasGPS {
+		gpsRow := max(m.boxSize, lineH) + m.s(8)
+		l.gps = image.Rect(m.padX, y, m.padX+min(cw, gpsW+m.s(8)), y+gpsRow)
+		y += gpsRow + step(m.s(8))
+	}
 	capH := lineH + m.lineGap
 	l.caption = image.Rect(m.padX, y, m.padX+cw, y+capH)
 	l.value = image.Rect(m.padX+cw-valueW, y, m.padX+cw, y+capH)
@@ -201,7 +225,7 @@ func build(kind Kind, maxW int, gq float64) layout {
 	sliderH := 2*m.thumbR + m.s(8)
 	l.slider = image.Rect(m.padX, y, m.padX+cw, y+sliderH)
 	y += sliderH + step(m.s(6))
-	l.hintText = wrap(hintFont, i18n.T(kind.hintKey()), cw, hintMaxLines)
+	l.hintText = wrap(hintFont, i18n.T(kind.hintKey()), cw, hintLines)
 	hintStep := hintH + m.lineGap
 	l.hint = image.Rect(m.padX, y, m.padX+cw, y+len(l.hintText)*hintStep)
 	y += len(l.hintText)*hintStep + step(m.s(18))

@@ -17,11 +17,11 @@ func (a *App) registerCommands() {
 		CmdZoomFit:         a.Canvas.Fit,
 		CmdZoomWidth:       a.Canvas.FitWidth,
 		CmdZoomToggle:      a.Canvas.ToggleFitActual,
-		CmdRotateRight:     a.Canvas.RotateRight,
-		CmdRotateLeft:      a.Canvas.RotateLeft,
-		CmdRotate180:       a.Canvas.Rotate180,
-		CmdFlipH:           a.Canvas.FlipH,
-		CmdFlipV:           a.Canvas.FlipV,
+		CmdRotateRight:     a.rotateOrEdit(true, a.Canvas.RotateRight),
+		CmdRotateLeft:      a.rotateOrEdit(false, a.Canvas.RotateLeft),
+		CmdRotate180:       a.rotate180OrEdit,
+		CmdFlipH:           a.flipOrEdit(true, a.Canvas.FlipH),
+		CmdFlipV:           a.flipOrEdit(false, a.Canvas.FlipV),
 		CmdFavorite:        func() { a.Ctl.ToggleFavorite() },
 		CmdOpen:            a.OpenGallery,
 		CmdGallery:         a.OpenGallery,
@@ -40,6 +40,9 @@ func (a *App) registerCommands() {
 		CmdInfo:            a.toggleInfo,
 		CmdEscape:          a.escape,
 		CmdCheckUpdates:    a.CheckForUpdates,
+		CmdEditStart:       a.startEdit,
+		CmdCrop:            a.startEdit,
+		CmdResize:          a.startResize,
 	}
 	enabled := map[commands.ID]func() bool{
 		CmdPrev:            a.CanPrev,
@@ -70,6 +73,9 @@ func (a *App) registerCommands() {
 		CmdSlideshow:       a.canSlideshow,
 		CmdSlideshowToggle: a.canSlideshow,
 		CmdEscape:          func() bool { return a.fullscreen || a.slideshowActive() || a.infoOpen },
+		CmdEditStart:       a.canStartEdit,
+		CmdCrop:            a.canStartEdit,
+		CmdResize:          a.canStartEdit,
 	}
 	for _, s := range Specs {
 		a.Commands.Add(commands.Command{
@@ -78,7 +84,7 @@ func (a *App) registerCommands() {
 			Icon:    s.Icon,
 			Keys:    s.Keys,
 			Run:     run[s.ID],
-			Enabled: enabled[s.ID],
+			Enabled: a.gateEnabled(s.ID, enabled[s.ID]),
 		})
 	}
 }

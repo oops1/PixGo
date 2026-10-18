@@ -21,6 +21,7 @@ const (
 	PartSlider
 	PartSave
 	PartCancel
+	PartStripGPS
 )
 
 const (
@@ -35,6 +36,7 @@ type form struct {
 
 	quality  int
 	lossless bool
+	stripGPS bool
 
 	stop     Part
 	hover    Part
@@ -46,12 +48,13 @@ type form struct {
 	capMgr    widget.CaptureManager
 	autofocus bool
 
-	onSave   func()
-	onCancel func()
+	onSave     func()
+	onCancel   func()
+	onLossless func(on bool)
 }
 
 func newForm(kind Kind, lay layout, v Values) *form {
-	f := &form{kind: kind, lay: lay, quality: clampQuality(v.Quality), lossless: kind.lossless() && v.Lossless}
+	f := &form{kind: kind, lay: lay, quality: clampQuality(v.Quality), lossless: kind.lossless() && v.Lossless, stripGPS: kind.hasGPS() && v.StripGPS}
 	f.stop = PartSlider
 	if lay.hasCheck {
 		f.stop = PartCheck
@@ -66,6 +69,8 @@ func (f *form) rect(p Part) image.Rectangle {
 	switch p {
 	case PartCheck:
 		r = f.lay.check
+	case PartStripGPS:
+		r = f.lay.gps
 	case PartSlider:
 		r = f.lay.slider
 	case PartSave:
@@ -83,6 +88,8 @@ func (f *form) enabled(p Part) bool {
 	switch p {
 	case PartCheck:
 		return f.lay.hasCheck
+	case PartStripGPS:
+		return f.lay.hasGPS
 	case PartSlider:
 		return !f.lossless
 	case PartSave, PartCancel:
@@ -93,7 +100,7 @@ func (f *form) enabled(p Part) bool {
 
 func (f *form) stops() []Part {
 	var out []Part
-	for _, p := range []Part{PartCheck, PartSlider, PartSave, PartCancel} {
+	for _, p := range []Part{PartCheck, PartStripGPS, PartSlider, PartSave, PartCancel} {
 		if f.enabled(p) {
 			out = append(out, p)
 		}
@@ -140,9 +147,22 @@ func (f *form) setLossless(on bool) {
 	}
 	f.dragging = false
 	f.Invalidate()
+	if f.onLossless != nil {
+		f.onLossless(on)
+	}
 }
 
-func (f *form) values() Values { return Values{Quality: f.quality, Lossless: f.lossless} }
+func (f *form) setStripGPS(on bool) {
+	if on == f.stripGPS {
+		return
+	}
+	f.stripGPS = on
+	f.Invalidate()
+}
+
+func (f *form) values() Values {
+	return Values{Quality: f.quality, Lossless: f.lossless, StripGPS: f.stripGPS}
+}
 
 func (f *form) track() (x0, x1, cy int) {
 	r := f.rect(PartSlider)
@@ -166,7 +186,7 @@ func (f *form) thumbX() float64 {
 
 func (f *form) hitAt(x, y int) Part {
 	pt := image.Pt(x, y)
-	for _, p := range []Part{PartSave, PartCancel, PartSlider, PartCheck} {
+	for _, p := range []Part{PartSave, PartCancel, PartSlider, PartCheck, PartStripGPS} {
 		if f.enabled(p) && pt.In(f.rect(p)) {
 			return p
 		}
@@ -178,6 +198,8 @@ func (f *form) activate(p Part) {
 	switch p {
 	case PartCheck:
 		f.setLossless(!f.lossless)
+	case PartStripGPS:
+		f.setStripGPS(!f.stripGPS)
 	case PartSave:
 		if f.onSave != nil {
 			f.onSave()
@@ -324,6 +346,9 @@ func (f *form) Draw(c widget.DrawContext) {
 	if f.lay.hasCheck {
 		f.drawCheck(c, t)
 	}
+	if f.lay.hasGPS {
+		f.drawCheckbox(c, t, PartStripGPS, f.stripGPS, i18n.T("save.stripGPS"))
+	}
 	f.drawCaption(c, t)
 	f.drawSlider(c, t)
 	f.drawHint(c, t)
@@ -350,13 +375,17 @@ func (f *form) ring(c widget.DrawContext, t *widget.Theme, r image.Rectangle, ra
 func (f *form) showRing(p Part) bool { return f.focused && f.keyNav && f.stop == p }
 
 func (f *form) drawCheck(c widget.DrawContext, t *widget.Theme) {
+	f.drawCheckbox(c, t, PartCheck, f.lossless, i18n.T("save.lossless"))
+}
+
+func (f *form) drawCheckbox(c widget.DrawContext, t *widget.Theme, p Part, on bool, label string) {
 	m := f.lay.m
-	row := f.rect(PartCheck)
+	row := f.rect(p)
 	top := row.Min.Y + (row.Dy()-m.boxSize)/2
 	box := image.Rect(row.Min.X, top, row.Min.X+m.boxSize, top+m.boxSize)
 	radius := 3 * m.ks
-	hover := f.hover == PartCheck || f.pressed == PartCheck
-	if f.lossless {
+	hover := f.hover == p || f.pressed == p
+	if on {
 		fill := t.Accent
 		if hover {
 			fill = gfx.Blend(t.Accent, color.RGBA{255, 255, 255, 255}, .12)
@@ -371,9 +400,8 @@ func (f *form) drawCheck(c widget.DrawContext, t *widget.Theme) {
 		gfx.FillRound(c, box, radius, fill)
 		gfx.StrokeRound(c, box, radius, 1.3, t.CheckBorder)
 	}
-	label := i18n.T("save.lossless")
 	bodyFont.Draw(c, label, box.Max.X+m.boxGap, baseline(row, bodyFont), t.LabelText)
-	if f.showRing(PartCheck) {
+	if f.showRing(p) {
 		f.ring(c, t, box, radius)
 	}
 }
@@ -476,34 +504,4 @@ func (f *form) drawButton(c widget.DrawContext, t *widget.Theme, p Part, text st
 	if f.showRing(p) {
 		f.ring(c, t, r, radius)
 	}
-}
-
-func (f *form) AccessInfo() widget.AccessInfo {
-	return widget.AccessInfo{Role: widget.RoleGroup, Name: i18n.T("save.options.title"), Bounds: f.Bounds()}
-}
-
-func (f *form) states(p Part, checked bool) []string {
-	var out []string
-	if checked {
-		out = append(out, widget.StateChecked)
-	}
-	if !f.enabled(p) {
-		out = append(out, widget.StateDisabled)
-	}
-	if f.focused && f.stop == p {
-		out = append(out, widget.StateFocused)
-	}
-	return out
-}
-
-func (f *form) AccessChildren() []widget.AccessInfo {
-	var out []widget.AccessInfo
-	if f.lay.hasCheck {
-		out = append(out, widget.AccessInfo{Role: widget.RoleCheckBox, Name: i18n.T("save.lossless"), States: f.states(PartCheck, f.lossless), Bounds: f.rect(PartCheck)})
-	}
-	out = append(out,
-		widget.AccessInfo{Role: widget.RoleSlider, Name: i18n.T("save.quality"), Value: f.valueText(), States: f.states(PartSlider, false), Bounds: f.rect(PartSlider)},
-		widget.AccessInfo{Role: widget.RoleButton, Name: i18n.T("save.options.save"), States: f.states(PartSave, false), Bounds: f.rect(PartSave)},
-		widget.AccessInfo{Role: widget.RoleButton, Name: i18n.T("dialog.cancel"), States: f.states(PartCancel, false), Bounds: f.rect(PartCancel)})
-	return out
 }

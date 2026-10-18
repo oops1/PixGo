@@ -18,7 +18,10 @@ import (
 	"github.com/oops1/PixGo/internal/platform"
 	"github.com/oops1/PixGo/internal/render"
 	"github.com/oops1/PixGo/internal/settings"
+	"github.com/oops1/PixGo/internal/ui/confirm"
+	uiedit "github.com/oops1/PixGo/internal/ui/edit"
 	"github.com/oops1/PixGo/internal/ui/infopanel"
+	"github.com/oops1/PixGo/internal/ui/resize"
 	"github.com/oops1/PixGo/internal/ui/saveopts"
 	"github.com/oops1/PixGo/internal/ui/theme"
 	"github.com/oops1/PixGo/internal/ui/view"
@@ -62,6 +65,12 @@ type App struct {
 	saveDlg                *saveopts.Dialog
 	modalOpen              atomic.Bool
 	modals                 modalTracker
+
+	Editor    *uiedit.Editor
+	editing   bool
+	editPath  string
+	resizeDlg *resize.Dialog
+	ovConfirm *confirm.Dialog
 }
 
 func New(eng *engine.Engine, opt Options) *App {
@@ -85,6 +94,8 @@ func New(eng *engine.Engine, opt Options) *App {
 		t := eng.After(d, fn)
 		return t.Stop
 	}
+	a.Editor = uiedit.New(eng, a.Canvas)
+	a.initEdit()
 	a.Canvas.Chrome = a.Root.Owns
 	a.Canvas.After = a.Root.After
 	a.Canvas.OnChange = func() {
@@ -94,6 +105,7 @@ func New(eng *engine.Engine, opt Options) *App {
 	a.Canvas.OnStep = func(d int) { a.Ctl.Step(d) }
 	a.Canvas.OnActivity = a.Root.Wake
 	a.Ctl.OnChange = func() {
+		a.syncEdit()
 		a.Root.Refresh()
 		a.refreshInfo()
 	}
@@ -168,6 +180,8 @@ func (a *App) CanNext() bool {
 
 func (a *App) Content() widget.Widget {
 	switch {
+	case a.editing && a.page == window.PageViewer:
+		return a.Editor
 	case a.page == window.PageGallery && a.gal != nil:
 		return a.gal.page
 	case a.page == window.PageSettings && a.set != nil:
@@ -250,6 +264,7 @@ func (a *App) applyTheme() {
 		}
 	}
 	a.Canvas.SetBackground(a.background(t))
+	a.Editor.Theme = t
 	a.Eng.Invalidate()
 }
 

@@ -277,7 +277,11 @@ func (r *Root) HandleKey(e widget.KeyEvent) bool {
 	if r.host.Page() != PageViewer {
 		return r.handleGalleryKey(e)
 	}
-	if r.handleFocusKey(e) {
+	if r.editing() {
+		if r.handleEditKey(e) {
+			return true
+		}
+	} else if r.handleFocusKey(e) {
 		return true
 	}
 	ch, ok := ChordOf(e)

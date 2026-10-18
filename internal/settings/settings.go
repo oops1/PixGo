@@ -74,6 +74,7 @@ type Settings struct {
 	RememberWindow        bool   `json:"rememberWindow"`
 	RestoreLastImage      bool   `json:"restoreLastImage"`
 	ConfirmDelete         bool   `json:"confirmDelete"`
+	ConfirmOverwrite      bool   `json:"confirmOverwrite"`
 	AutoHidePanels        bool   `json:"autoHidePanels"`
 	TransparentBackground string `json:"transparentBackground"`
 	SingleWindow          bool   `json:"singleWindow"`
@@ -95,6 +96,7 @@ type Settings struct {
 	SaveJPEGLossless bool `json:"saveJpegLossless"`
 	SaveWebPQuality  int  `json:"saveWebpQuality"`
 	SaveWebPLossless bool `json:"saveWebpLossless"`
+	SaveStripGPS     bool `json:"saveStripGPS"`
 
 	Formats   map[string]Format `json:"formats"`
 	Slideshow Slideshow         `json:"slideshow"`
@@ -118,7 +120,7 @@ func Defaults() Settings {
 		Version: Current,
 
 		Theme: ThemeSystem, Language: LanguageSystem,
-		RememberWindow: true, RestoreLastImage: true, ConfirmDelete: true, AutoHidePanels: true,
+		RememberWindow: true, RestoreLastImage: true, ConfirmDelete: true, ConfirmOverwrite: true, AutoHidePanels: true,
 		TransparentBackground: BackgroundChecker, SingleWindow: true,
 
 		InitialZoom: ZoomFit, Wheel: WheelNavigate, CtrlWheelZoom: true, SmoothZoom: false,

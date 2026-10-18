@@ -198,6 +198,7 @@ func main() {
 	eng.SetFocus(a.Canvas)
 	win := window.New(&uiwin.KeyRouter{Engine: eng, Target: a.Root}, i18n.T("app.name")).SetResizable(true).SetAppID(appID)
 	win.SetMinSize(minWidth, minHeight)
+	applyInitialPlacement(win, plan, *width > 0 || *height > 0, w, h)
 	win.SetIcon(icons.AppIcon(256), icons.AppIcon(64), icons.AppIcon(32), icons.AppIcon(16))
 	win.SetCornerRadius(uiwin.CornerRadius)
 	win.SetHitTest(func(x, y int) window.HitArea { return window.HitArea(a.Root.HitTest(x, y)) })

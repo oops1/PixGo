@@ -25,7 +25,7 @@ func (p *Panel) AccessChildren() []widget.AccessInfo {
 		return nil
 	}
 	closeRect := image.Rect(o.X+closeBoxX-8, b.Min.Y+closeBoxY-8, o.X+closeBoxX-8+closeHit, b.Min.Y+closeBoxY-8+closeHit)
-	out := []widget.AccessInfo{{Role: widget.RoleButton, Name: i18n.T("info.close"), Bounds: closeRect, States: focusedStates()}}
+	out := []widget.AccessInfo{{ID: idClose, Role: widget.RoleButton, Name: i18n.T("info.close"), Bounds: closeRect, States: focusedStates()}}
 	thumb := image.Rect(o.X+thumbX, o.Y+thumbY, o.X+thumbX+thumbW, o.Y+thumbY+thumbH)
 	if len(p.thumbSrc.Levels) > 0 {
 		out = append(out, widget.AccessInfo{Role: widget.RoleImage, Name: i18n.T("access.thumbnail"), Value: p.model.Name, Bounds: thumb.Intersect(b)})
@@ -38,7 +38,7 @@ func (p *Panel) AccessChildren() []widget.AccessInfo {
 		}
 		out = append(out, widget.AccessInfo{Role: widget.RoleLabel, Name: p.model.Name, Value: value, Bounds: text})
 	}
-	for _, cp := range pl.cards {
+	for ci, cp := range pl.cards {
 		card := cp.rect.Add(o)
 		if !card.Overlaps(b) {
 			for _, rp := range cp.rows {
@@ -55,14 +55,14 @@ func (p *Panel) AccessChildren() []widget.AccessInfo {
 			title := image.Rect(card.Min.X+cardPad, card.Min.Y, card.Max.X-cardPad, card.Min.Y+cp.title+2)
 			out = append(out, widget.AccessInfo{Role: widget.RoleLabel, Name: cp.card.Title, Bounds: title.Intersect(b)})
 		}
-		for _, rp := range cp.rows {
-			out = append(out, p.accessRow(card, cp, rp, b, focusedStates)...)
+		for ri, rp := range cp.rows {
+			out = append(out, p.accessRow(card, cp, rp, ci, ri, b, focusedStates)...)
 		}
 	}
 	return out
 }
 
-func (p *Panel) accessRow(card image.Rectangle, cp cardPos, rp rowPos, view image.Rectangle, focused func() []string) []widget.AccessInfo {
+func (p *Panel) accessRow(card image.Rectangle, cp cardPos, rp rowPos, ci, ri int, view image.Rectangle, focused func() []string) []widget.AccessInfo {
 	lines := max(len(rp.labelLines), len(rp.valueLines), 1)
 	step := max(rp.labelStep, rp.valueStep, 1)
 	lh := lineHeight(labelFont)
@@ -74,10 +74,11 @@ func (p *Panel) accessRow(card image.Rectangle, cp cardPos, rp rowPos, view imag
 	}
 	var out []widget.AccessInfo
 	if rp.row.Copy != "" {
-		out = append(out, widget.AccessInfo{Role: widget.RoleButton, Name: i18n.T("info.copyPath"), Bounds: rp.copyRect.Add(card.Min).Intersect(view), States: focused()})
+		out = append(out, widget.AccessInfo{ID: rowID(idCopy, ci, ri), Role: widget.RoleButton, Name: i18n.T("info.copyPath"), Bounds: rp.copyRect.Add(card.Min).Intersect(view), States: focused()})
 	}
 	if rp.row.Link {
 		info.Role = widget.RoleButton
+		info.ID = rowID(idLink, ci, ri)
 		info.States = focused()
 	}
 	return append([]widget.AccessInfo{info}, out...)

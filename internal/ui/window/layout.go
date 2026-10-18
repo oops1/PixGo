@@ -23,6 +23,7 @@ const (
 	ZoneToolZoomLabel
 	ZoneToolZoomIn
 	ZoneToolRotateRight
+	ZoneToolEdit
 	ZoneToolMore
 	ZoneToolFullscreen
 	ZoneExit
@@ -66,12 +67,13 @@ const (
 	ArrowDiameter   = 41
 	ArrowLeftCX     = 37
 	ArrowRightFromR = 38
-	ToolbarWidth    = 539
+	ToolbarWidth    = 594
 	ToolbarHeight   = 56
 	ToolbarBottom   = 9
 	ToolbarRadius   = 12
 	ToolButtonSize  = 40
 	ToolZoomLabelW  = 56
+	toolMinGap      = 55
 	ResizeBand      = 5
 	ResizeCorner    = 10
 	PanelWidth      = 326
@@ -116,8 +118,9 @@ var toolbarOffsets = [...]struct {
 	{ZoneToolZoomLabel, 268, ToolZoomLabelW},
 	{ZoneToolZoomIn, 323, ToolButtonSize},
 	{ZoneToolRotateRight, 388, ToolButtonSize},
-	{ZoneToolMore, 443, ToolButtonSize},
-	{ZoneToolFullscreen, 504, ToolButtonSize},
+	{ZoneToolEdit, 443, ToolButtonSize},
+	{ZoneToolMore, 498, ToolButtonSize},
+	{ZoneToolFullscreen, 559, ToolButtonSize},
 }
 
 type Options struct {
@@ -264,6 +267,8 @@ func Compute(w, h int, o Options) Layout {
 			bw := t.width
 			if t.kind == ZoneToolZoomLabel {
 				bw = zoomLabelWidth(o.ZoomLabelW, tbLeft, scale)
+			} else {
+				bw = min(bw, int(toolMinGap*scale))
 			}
 			zones = append(zones, Zone{t.kind, image.Rect(cx-bw/2, toolbarCY-ToolButtonSize/2, cx-bw/2+bw, toolbarCY-ToolButtonSize/2+ToolButtonSize)})
 		}

@@ -99,7 +99,7 @@ func (r *Root) size() (int, int) {
 }
 
 func (r *Root) autoHide() bool {
-	return r.host.Page() == PageViewer && (r.host.AutoHide() || r.host.Fullscreen())
+	return r.host.Page() == PageViewer && !r.editing() && (r.host.AutoHide() || r.host.Fullscreen())
 }
 
 func (r *Root) overlayVisible() bool { return !r.autoHide() || r.shown }
@@ -123,7 +123,7 @@ func (r *Root) options() Options {
 		o.Holes = r.host.HeaderHoles()
 		return o
 	}
-	if r.overlayVisible() {
+	if r.overlayVisible() && !r.editing() {
 		o.Toolbar = true
 		o.Arrows = r.host.State() == StateReady && (r.host.CanPrev() || r.host.CanNext())
 	}
@@ -146,7 +146,7 @@ func (r *Root) Layout() Layout {
 func (r *Root) fullOverlayLayout() Layout {
 	w, h := r.size()
 	o := r.options()
-	o.Toolbar, o.Arrows = true, true
+	o.Toolbar, o.Arrows = !r.editing(), !r.editing()
 	return Compute(w, h, o)
 }
 

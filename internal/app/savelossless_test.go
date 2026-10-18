@@ -235,13 +235,14 @@ func TestSwitchingLosslessOffEncodesWithTheChosenQualityAndRemembersIt(t *testin
 
 	r.key(widget.KeySpace)
 	r.key(widget.KeyTab)
+	r.key(widget.KeyTab)
 	r.key(widget.KeyLeft)
 	r.key(widget.KeyEnter)
 
 	if got := r.waitFile(t, "out.jpg"); string(got) != "ENC-jpeg" {
 		t.Fatalf("file content %q", got)
 	}
-	if call := r.jpeg.last(); call.opts != (codec.EncodeOptions{Quality: 89}) {
+	if call := r.jpeg.last(); !sameOptions(call.opts, (codec.EncodeOptions{Quality: 89})) {
 		t.Fatalf("encoded with %+v", call.opts)
 	}
 	r.settle()

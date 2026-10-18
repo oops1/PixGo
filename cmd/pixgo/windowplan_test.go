@@ -243,3 +243,30 @@ func TestLastFileSurvivesWithRememberWindowOffEndToEnd(t *testing.T) {
 		t.Fatalf("%+v %v", loaded, err)
 	}
 }
+
+type fakePlacer struct {
+	bounds    []int
+	maximized bool
+}
+
+func (f *fakePlacer) SetInitialBounds(x, y, w, h int) { f.bounds = []int{x, y, w, h} }
+
+func (f *fakePlacer) SetInitialMaximized(v bool) { f.maximized = v }
+
+func TestInitialPlacementIsHandedToTheWindowBeforeItIsShown(t *testing.T) {
+	var f fakePlacer
+	applyInitialPlacement(&f, windowPlan{W: 900, H: 600, X: -1500, Y: 120, HasPos: true, Maximize: true}, false, 900, 600)
+	if len(f.bounds) != 4 || f.bounds[0] != -1500 || f.bounds[1] != 120 || f.bounds[2] != 900 || f.bounds[3] != 600 || !f.maximized {
+		t.Fatalf("bounds %v maximized %v", f.bounds, f.maximized)
+	}
+	var none fakePlacer
+	applyInitialPlacement(&none, windowPlan{W: 900, H: 600}, false, 900, 600)
+	if none.bounds != nil || none.maximized {
+		t.Fatalf("nothing saved, yet bounds %v maximized %v", none.bounds, none.maximized)
+	}
+	var forced fakePlacer
+	applyInitialPlacement(&forced, windowPlan{W: 900, H: 600, X: 10, Y: 10, HasPos: true, Maximize: true}, true, 640, 480)
+	if forced.bounds != nil || forced.maximized {
+		t.Fatal("an explicit -width or -height must win over the saved placement")
+	}
+}

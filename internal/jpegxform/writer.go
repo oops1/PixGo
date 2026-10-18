@@ -42,7 +42,7 @@ func walkBlocks(ctx context.Context, h *header, grids []grid, pl *plan, visit fu
 				pc := &pl.comps[ci]
 				for v := 0; v < pc.outV; v++ {
 					for hh := 0; hh < pc.outH; hh++ {
-						visit(ci, pl.fetch(&grids[ci], ci, mx*pc.outH+hh, my*pc.outV+v, &scratch))
+						visit(ci, pl.fetch(&grids[ci], ci, (pl.offX+mx)*pc.outH+hh, (pl.offY+my)*pc.outV+v, &scratch))
 					}
 				}
 			}
@@ -51,7 +51,7 @@ func walkBlocks(ctx context.Context, h *header, grids []grid, pl *plan, visit fu
 	return nil
 }
 
-func writeJPEG(ctx context.Context, w io.Writer, h *header, grids []grid, pl *plan) error {
+func writeJPEG(ctx context.Context, w io.Writer, h *header, grids []grid, pl *plan, o Options) error {
 	dcGroups := groupTables(h, func(c *component) int { return c.dcTable })
 	acGroups := groupTables(h, func(c *component) int { return c.acTable })
 	nc := len(h.fr.comps)
@@ -82,7 +82,7 @@ func writeJPEG(ctx context.Context, w io.Writer, h *header, grids []grid, pl *pl
 		acSpecs[i] = optimalSpec(&acFreq[i])
 		acEnc[i] = acSpecs[i].encoder()
 	}
-	head := outputHeader(h, pl, dcSpecs, acSpecs, dcGroups, acGroups)
+	head := outputHeader(h, pl, o, dcSpecs, acSpecs, dcGroups, acGroups)
 	if _, err := w.Write(head); err != nil {
 		return err
 	}
@@ -129,21 +129,30 @@ func transposeQuant(v [64]uint16) [64]uint16 {
 	return out
 }
 
-func outputHeader(h *header, pl *plan, dcSpecs, acSpecs []tableSpec, dcGroups, acGroups tableGroups) []byte {
+func outputHeader(h *header, pl *plan, o Options, dcSpecs, acSpecs []tableSpec, dcGroups, acGroups tableGroups) []byte {
 	change := exifChange{
 		oldWidth: h.fr.width, oldHeight: h.fr.height,
 		newWidth: pl.outW, newHeight: pl.outH,
 		swapResolution: pl.op.Transposes(),
-		transformed:    pl.op != Identity,
+		transformed:    pl.op != Identity || !o.Crop.Empty(),
 	}
+	rewrite := !o.Crop.Empty() || o.StripGPS
 	out := []byte{0xFF, markerSOI}
 	for _, s := range h.segments {
 		if s.marker == markerAPP0+2 && isMPF(s.payload) {
 			continue
 		}
-		fixExifSegment(s.payload, change)
-		fixXMPSegment(s.payload)
-		out = appendSegment(out, s.marker, s.payload)
+		payload := s.payload
+		if rewrite {
+			var keep bool
+			if payload, keep = rewriteSegment(s, pl, o, change); !keep {
+				continue
+			}
+		} else {
+			fixExifSegment(payload, change)
+			fixXMPSegment(payload)
+		}
+		out = appendSegment(out, s.marker, payload)
 	}
 	var used [4]bool
 	wide := false

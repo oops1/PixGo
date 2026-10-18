@@ -32,15 +32,16 @@ func TestMockupMainWindow(t *testing.T) {
 		{ZoneMin, 645, 24},
 		{ZoneMax, 693, 24},
 		{ZoneClose, 741, 24},
-		{ZoneToolGallery, 147, 466.5},
-		{ZoneToolDelete, 206, 466.5},
-		{ZoneToolRotateLeft, 273, 466.5},
-		{ZoneToolZoomOut, 329, 466.5},
-		{ZoneToolZoomLabel, 383.5, 466.5},
-		{ZoneToolZoomIn, 437.5, 466.5},
-		{ZoneToolRotateRight, 502.5, 466.5},
-		{ZoneToolMore, 558, 466.5},
-		{ZoneToolFullscreen, 619, 466.5},
+		{ZoneToolGallery, 119.5, 466.5},
+		{ZoneToolDelete, 178.5, 466.5},
+		{ZoneToolRotateLeft, 245.5, 466.5},
+		{ZoneToolZoomOut, 301.5, 466.5},
+		{ZoneToolZoomLabel, 355.5, 466.5},
+		{ZoneToolZoomIn, 410.5, 466.5},
+		{ZoneToolRotateRight, 475.5, 466.5},
+		{ZoneToolEdit, 530.5, 466.5},
+		{ZoneToolMore, 585.5, 466.5},
+		{ZoneToolFullscreen, 646.5, 466.5},
 	} {
 		x, y := center(l.Rect(c.k))
 		near(t, zoneName(c.k), x, y, c.cx, c.cy, 1)
@@ -49,8 +50,8 @@ func TestMockupMainWindow(t *testing.T) {
 	near(t, "prev arrow", px, py, 37.5, 257.5, 1)
 	nx, ny := center(l.Next)
 	near(t, "next arrow", nx, ny, 731.5, 257.5, 1)
-	if l.Toolbar != image.Rect(115, 439, 654, 495) {
-		t.Errorf("toolbar = %v, want (115,439)-(654,495)", l.Toolbar)
+	if l.Toolbar != image.Rect(88, 439, 682, 495) {
+		t.Errorf("toolbar = %v, want (88,439)-(682,495)", l.Toolbar)
 	}
 	if l.Content != image.Rect(1, 49, 769, 503) {
 		t.Errorf("content = %v", l.Content)
@@ -61,7 +62,7 @@ func zoneName(k ZoneKind) string {
 	return map[ZoneKind]string{
 		ZoneInfo: "info", ZoneFavorite: "favorite", ZoneMore: "more", ZoneMin: "min", ZoneMax: "max", ZoneClose: "close",
 		ZoneToolGallery: "gallery", ZoneToolDelete: "delete", ZoneToolRotateLeft: "rotate-left", ZoneToolZoomOut: "zoom-out",
-		ZoneToolZoomLabel: "zoom-label", ZoneToolZoomIn: "zoom-in", ZoneToolRotateRight: "rotate-right",
+		ZoneToolZoomLabel: "zoom-label", ZoneToolZoomIn: "zoom-in", ZoneToolRotateRight: "rotate-right", ZoneToolEdit: "edit",
 		ZoneToolMore: "tool-more", ZoneToolFullscreen: "fullscreen",
 	}[k]
 }
@@ -76,7 +77,7 @@ func TestHitPriority(t *testing.T) {
 		{image.Pt(300, 24), ZoneDrag},
 		{image.Pt(29, 24), ZoneBack},
 		{image.Pt(502, 24), ZoneInfo},
-		{image.Pt(383, 466), ZoneToolZoomLabel},
+		{image.Pt(355, 466), ZoneToolZoomLabel},
 		{image.Pt(37, 258), ZonePrev},
 		{image.Pt(400, 250), ZoneNone},
 		{image.Pt(0, 0), ZoneResizeTopLeft},

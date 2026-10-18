@@ -37,6 +37,9 @@ const (
 	CmdBack            commands.ID = "app.back"
 	CmdMore            commands.ID = "app.more"
 	CmdZoomToggle      commands.ID = "view.zoomToggle"
+	CmdEditStart       commands.ID = "edit.start"
+	CmdCrop            commands.ID = "edit.crop"
+	CmdResize          commands.ID = "edit.resize"
 )
 
 type Spec struct {
@@ -81,4 +84,7 @@ var Specs = []Spec{
 	{CmdBack, "cmd.back", "back", nil},
 	{CmdMore, "cmd.more", "more", nil},
 	{CmdZoomToggle, "zoom.label", "", nil},
+	{CmdEditStart, "cmd.edit", "edit", []commands.Chord{commands.C(commands.Ctrl, 'E')}},
+	{CmdCrop, "cmd.crop", "crop", nil},
+	{CmdResize, "cmd.resize", "resize", nil},
 }

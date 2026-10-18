@@ -136,3 +136,20 @@ func fileExists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
 }
+
+type initialPlacer interface {
+	SetInitialBounds(x, y, w, h int)
+	SetInitialMaximized(v bool)
+}
+
+func applyInitialPlacement(win initialPlacer, p windowPlan, sizeForced bool, w, h int) {
+	if sizeForced {
+		return
+	}
+	if p.HasPos {
+		win.SetInitialBounds(p.X, p.Y, w, h)
+	}
+	if p.Maximize {
+		win.SetInitialMaximized(true)
+	}
+}

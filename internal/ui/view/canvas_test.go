@@ -358,3 +358,32 @@ func TestRotate180KeepsTheFittedExtent(t *testing.T) {
 		t.Errorf("rect after a half turn %v, want %v", rect, before)
 	}
 }
+
+func TestTheViewerBufferIsAlwaysOpaqueAsPromisedToTheEngine(t *testing.T) {
+	translucent := image.NewNRGBA(image.Rect(0, 0, 60, 40))
+	for i := 0; i < len(translucent.Pix); i += 4 {
+		translucent.Pix[i], translucent.Pix[i+1], translucent.Pix[i+2], translucent.Pix[i+3] = 200, 40, 90, uint8(i/4%256)
+	}
+	clear := render.Source{Levels: imaging.BuildPyramid(translucent, 16), Width: 60, Height: 40}
+	checker := render.Background{Canvas: color.RGBA{1, 2, 3, 255}, Kind: render.BgChecker, Checker: [2]color.RGBA{{200, 200, 200, 255}, {90, 90, 90, 255}}, Cell: 8}
+	for name, setup := range map[string]func(r *rig){
+		"empty":                 func(r *rig) {},
+		"translucent on solid":  func(r *rig) { r.c.SetImage(clear, codec.OrientNormal, viewer.ZoomActual) },
+		"translucent on checks": func(r *rig) { r.c.SetBackground(checker); r.c.SetImage(clear, codec.OrientNormal, viewer.ZoomFit) },
+		"opaque rotated":        func(r *rig) { r.c.SetImage(source(300, 120), codec.OrientRotate90, viewer.ZoomFit) },
+	} {
+		t.Run(name, func(t *testing.T) {
+			r := newRig(t)
+			setup(r)
+			r.frame()
+			if r.c.buf == nil {
+				t.Fatal("no buffer was drawn")
+			}
+			for i := 3; i < len(r.c.buf.Pix); i += 4 {
+				if r.c.buf.Pix[i] != 0xff {
+					t.Fatalf("pixel %d has alpha %d; the buffer is declared opaque", i/4, r.c.buf.Pix[i])
+				}
+			}
+		})
+	}
+}

@@ -1,0 +1,6 @@
+go test fuzz v1
+[]byte("0")
+[]byte("<exif:GPS")
+uint16(99)
+uint16(0)
+byte('\x01')

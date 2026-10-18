@@ -11,7 +11,7 @@ import (
 
 var (
 	titleZones   = []ZoneKind{ZoneBack, ZoneInfo, ZoneFavorite, ZoneMore}
-	toolZones    = []ZoneKind{ZoneToolGallery, ZoneToolDelete, ZoneToolRotateLeft, ZoneToolZoomOut, ZoneToolZoomLabel, ZoneToolZoomIn, ZoneToolRotateRight, ZoneToolMore, ZoneToolFullscreen}
+	toolZones    = []ZoneKind{ZoneToolGallery, ZoneToolDelete, ZoneToolRotateLeft, ZoneToolZoomOut, ZoneToolZoomLabel, ZoneToolZoomIn, ZoneToolRotateRight, ZoneToolEdit, ZoneToolMore, ZoneToolFullscreen}
 	arrowZones   = []ZoneKind{ZonePrev, ZoneNext}
 	captionZones = []ZoneKind{ZoneMin, ZoneMax, ZoneClose}
 	slideZones   = []ZoneKind{ZoneSlidePlay, ZoneSlideSettings, ZoneSlideExit, ZoneExit}
@@ -110,7 +110,7 @@ func (r *Root) zoneAccess(l Layout, k ZoneKind) (widget.AccessInfo, bool) {
 	if rect.Empty() {
 		return widget.AccessInfo{}, false
 	}
-	info := widget.AccessInfo{Role: widget.RoleButton, Name: r.zoneLabel(k), Description: r.zoneShortcut(k), Bounds: rect}
+	info := widget.AccessInfo{ID: zoneID(k), Role: widget.RoleButton, Name: r.zoneLabel(k), Description: r.zoneShortcut(k), Bounds: rect}
 	var states []string
 	switch k {
 	case ZoneInfo:

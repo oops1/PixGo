@@ -48,6 +48,7 @@ func DefaultActions() map[ZoneKind]commands.ID {
 		ZoneToolZoomLabel:   "view.zoomToggle",
 		ZoneToolZoomIn:      "view.zoomIn",
 		ZoneToolRotateRight: "view.rotateRight",
+		ZoneToolEdit:        "edit.start",
 		ZoneToolMore:        "app.more",
 		ZoneToolFullscreen:  "view.fullscreen",
 		ZoneExit:            "view.fullscreen",
@@ -336,7 +337,7 @@ func (r *Root) drawToolButton(c widget.DrawContext, l Layout, z Zone) {
 	name := map[ZoneKind]string{
 		ZoneToolGallery: "gallery", ZoneToolDelete: "delete", ZoneToolRotateLeft: "rotate-left",
 		ZoneToolZoomOut: "zoom-out", ZoneToolZoomIn: "zoom-in", ZoneToolRotateRight: "rotate-right",
-		ZoneToolMore: "more", ZoneToolFullscreen: "fullscreen",
+		ZoneToolEdit: "edit", ZoneToolMore: "more", ZoneToolFullscreen: "fullscreen",
 	}[z.Kind]
 	if z.Kind == ZoneToolFullscreen && r.host.Fullscreen() {
 		name = "fullscreen-exit"

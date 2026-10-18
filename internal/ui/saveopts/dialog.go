@@ -13,11 +13,19 @@ const screenMargin = 12
 type Values struct {
 	Quality  int
 	Lossless bool
+	StripGPS bool
+}
+
+type Option func(*Dialog)
+
+func WithLosslessWatch(fn func(on bool)) Option {
+	return func(d *Dialog) { d.watch = fn }
 }
 
 func (v Values) normalized(kind Kind) Values {
 	v.Quality = clampQuality(v.Quality)
 	v.Lossless = v.Lossless && kind.lossless()
+	v.StripGPS = v.StripGPS && kind.hasGPS()
 	return v
 }
 
@@ -28,11 +36,15 @@ type Dialog struct {
 	kind   Kind
 	result func(Values, bool)
 	done   bool
+	watch  func(on bool)
 }
 
-func Show(host widget.ModalShower, kind Kind, initial Values, result func(Values, bool)) *Dialog {
+func Show(host widget.ModalShower, kind Kind, initial Values, result func(Values, bool), opts ...Option) *Dialog {
 	initial = initial.normalized(kind)
 	d := &Dialog{host: host, kind: kind, result: result}
+	for _, o := range opts {
+		o(d)
+	}
 	d.dlg = widget.NewDialog(i18n.T("save.options.title"), 0, 0)
 	titleH := d.dlg.TitleHeight
 	maxW, maxH := 0, 0
@@ -45,6 +57,7 @@ func Show(host widget.ModalShower, kind Kind, initial Values, result func(Values
 	d.dlg.SetBounds(image.Rect(0, 0, lay.size.X, titleH+lay.size.Y))
 	d.form = newForm(kind, lay, initial)
 	d.form.SetBounds(image.Rect(0, titleH, lay.size.X, titleH+lay.size.Y))
+	d.form.onLossless = d.watch
 	d.form.onSave = d.save
 	d.form.onCancel = d.cancel
 	d.dlg.AddChild(d.form)
@@ -52,6 +65,9 @@ func Show(host widget.ModalShower, kind Kind, initial Values, result func(Values
 	d.dlg.CancelAction = d.dismissed
 	d.dlg.OnLanguageChange(func() { d.dlg.SetTitle(i18n.T("save.options.title")) })
 	host.ShowModal(d.dlg)
+	if d.watch != nil {
+		d.watch(d.form.lossless)
+	}
 	return d
 }
 
@@ -76,7 +92,7 @@ func (d *Dialog) dismissed() { d.finish(false, false) }
 
 func (d *Dialog) Done() bool { return d.done }
 
-func (d *Dialog) Kind() Kind { return d.kind }
+func (d *Dialog) Kind() Kind { return d.kind.base() }
 
 func (d *Dialog) Values() Values { return d.form.values() }
 

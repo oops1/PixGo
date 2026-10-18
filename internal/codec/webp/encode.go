@@ -1,6 +1,7 @@
 package webp
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"image"
@@ -52,10 +53,23 @@ func (Encoder) Encode(w io.Writer, img *image.NRGBA, o codec.EncodeOptions) erro
 	if o.Lossless {
 		quality = losslessEffort
 	}
-	return vpx.Encode(w, img, vpx.EncodeOptions{
+	opts := vpx.EncodeOptions{
 		Quality:  quality,
 		Lossless: o.Lossless,
 		Method:   encodeMethod,
 		Exact:    o.Lossless,
-	})
+	}
+	if o.Metadata.Empty() {
+		return vpx.Encode(w, img, opts)
+	}
+	var buf bytes.Buffer
+	if err := vpx.Encode(&buf, img, opts); err != nil {
+		return err
+	}
+	data, err := addMetadata(buf.Bytes(), o.Metadata, bounds.Dx(), bounds.Dy())
+	if err != nil {
+		return err
+	}
+	_, err = w.Write(data)
+	return err
 }

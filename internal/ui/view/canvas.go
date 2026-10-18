@@ -57,6 +57,7 @@ type Canvas struct {
 	src     render.Source
 	exif    codec.Orientation
 	buf     *image.RGBA
+	shown   image.Image
 	preview bool
 	detail  render.Detail
 	post    func(fn func())
@@ -268,6 +269,7 @@ func (c *Canvas) Draw(ctx widget.DrawContext) {
 	}
 	if c.buf == nil || c.buf.Bounds().Dx() != p.X || c.buf.Bounds().Dy() != p.Y {
 		c.buf = image.NewRGBA(image.Rect(0, 0, p.X, p.Y))
+		c.shown = widget.OpaqueImage(c.buf)
 		c.dirty = true
 	}
 	if c.dirty {
@@ -278,7 +280,7 @@ func (c *Canvas) Draw(ctx widget.DrawContext) {
 		render.Render(c.buf, c.src, m, c.Background)
 		c.dirty = false
 	}
-	ctx.DrawImageScaled(c.buf, b.Min.X, b.Min.Y, b.Dx(), b.Dy())
+	ctx.DrawImageScaled(c.shown, b.Min.X, b.Min.Y, b.Dx(), b.Dy())
 }
 
 func (c *Canvas) toPhysical(x, y int) (float64, float64) {

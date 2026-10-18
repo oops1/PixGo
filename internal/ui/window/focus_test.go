@@ -89,7 +89,7 @@ func sameZones(a, b []ZoneKind) bool {
 
 var viewerCycle = []ZoneKind{
 	ZoneToolGallery, ZoneToolDelete, ZoneToolRotateLeft, ZoneToolZoomOut, ZoneToolZoomLabel, ZoneToolZoomIn,
-	ZoneToolRotateRight, ZoneToolMore, ZoneToolFullscreen, ZonePrev, ZoneNext,
+	ZoneToolRotateRight, ZoneToolEdit, ZoneToolMore, ZoneToolFullscreen, ZonePrev, ZoneNext,
 	ZoneBack, ZoneInfo, ZoneFavorite, ZoneMore, ZoneNone,
 }
 
@@ -105,7 +105,7 @@ func TestTabWalksEveryViewerControlAndWraps(t *testing.T) {
 func TestShiftTabWalksBackwards(t *testing.T) {
 	r := newAccessRig(t, "en", nil)
 	got := r.focusTrail(len(viewerCycle), widget.ModShift)
-	want := []ZoneKind{ZoneMore, ZoneFavorite, ZoneInfo, ZoneBack, ZoneNext, ZonePrev, ZoneToolFullscreen, ZoneToolMore, ZoneToolRotateRight, ZoneToolZoomIn, ZoneToolZoomLabel, ZoneToolZoomOut, ZoneToolRotateLeft, ZoneToolDelete, ZoneToolGallery, ZoneNone}
+	want := []ZoneKind{ZoneMore, ZoneFavorite, ZoneInfo, ZoneBack, ZoneNext, ZonePrev, ZoneToolFullscreen, ZoneToolMore, ZoneToolEdit, ZoneToolRotateRight, ZoneToolZoomIn, ZoneToolZoomLabel, ZoneToolZoomOut, ZoneToolRotateLeft, ZoneToolDelete, ZoneToolGallery, ZoneNone}
 	if !sameZones(got, want) {
 		t.Errorf("shift-tab order %v\nwant %v", got, want)
 	}
@@ -254,7 +254,7 @@ func TestPanelJoinsTheCycleAndKeepsItsOwnStops(t *testing.T) {
 	r := newAccessRig(t, "en", func(h *fakeHost) { h.info = true; h.panel = panel })
 	want := []ZoneKind{
 		ZoneToolGallery, ZoneToolDelete, ZoneToolRotateLeft, ZoneToolZoomOut, ZoneToolZoomLabel, ZoneToolZoomIn,
-		ZoneToolRotateRight, ZoneToolMore, ZoneToolFullscreen, ZonePrev, ZoneNext, ZonePanel,
+		ZoneToolRotateRight, ZoneToolEdit, ZoneToolMore, ZoneToolFullscreen, ZonePrev, ZoneNext, ZonePanel,
 	}
 	got := r.focusTrail(len(want), 0)
 	if !sameZones(got, want) {

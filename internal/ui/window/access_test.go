@@ -16,7 +16,7 @@ var accessTitles = map[commands.ID]string{
 	"app.back": "cmd.back", "view.info": "cmd.info", "file.favorite": "cmd.favorite.add", "app.more": "cmd.more",
 	"nav.prev": "cmd.prev", "nav.next": "cmd.next", "view.gallery": "cmd.gallery", "file.delete": "cmd.delete",
 	"view.rotateLeft": "cmd.rotateLeft", "view.zoomOut": "cmd.zoomOut", "view.zoomToggle": "zoom.label",
-	"view.zoomIn": "cmd.zoomIn", "view.rotateRight": "cmd.rotateRight", "view.fullscreen": "cmd.fullscreen",
+	"view.zoomIn": "cmd.zoomIn", "view.rotateRight": "cmd.rotateRight", "edit.start": "cmd.edit", "view.fullscreen": "cmd.fullscreen",
 	"slideshow.start": "cmd.slideshow", "slideshow.toggle": "cmd.slideshowPause",
 }
 

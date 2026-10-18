@@ -12,6 +12,7 @@ import (
 	"github.com/oops1/PixGo/internal/codec"
 	"github.com/oops1/PixGo/internal/codec/internal/convert"
 	"github.com/oops1/PixGo/internal/codec/internal/guard"
+	"github.com/oops1/PixGo/internal/codec/internal/splice"
 	"github.com/oops1/PixGo/internal/meta/exif"
 )
 
@@ -230,5 +231,9 @@ func (Encoder) Encode(w io.Writer, img *image.NRGBA, o codec.EncodeOptions) erro
 		return errors.New("png: nothing to encode")
 	}
 	encoder := stdpng.Encoder{CompressionLevel: stdpng.DefaultCompression}
-	return encoder.Encode(w, img)
+	out := splice.New(w, metadataOffset, metadataChunks(o.Metadata))
+	if err := encoder.Encode(out, img); err != nil {
+		return err
+	}
+	return out.Flush()
 }

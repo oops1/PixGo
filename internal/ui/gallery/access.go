@@ -23,11 +23,11 @@ func (a *addressField) AccessInfo() widget.AccessInfo {
 	return widget.AccessInfo{Role: widget.RoleTextInput, Name: i18n.T("gallery.address"), Value: a.GetText(), Bounds: a.Bounds()}
 }
 
-func (p *Page) control(role widget.AccessRole, name string, bounds image.Rectangle, s stop, states ...string) widget.AccessInfo {
+func (p *Page) control(id string, role widget.AccessRole, name string, bounds image.Rectangle, s stop, states ...string) widget.AccessInfo {
 	if p.focus == s {
 		states = append(states, widget.StateFocused)
 	}
-	return widget.AccessInfo{Role: role, Name: name, Bounds: bounds, States: states}
+	return widget.AccessInfo{ID: id, Role: role, Name: name, Bounds: bounds, States: states}
 }
 
 func disabledUnless(on bool) []string {
@@ -52,16 +52,16 @@ func (p *Page) AccessChildren() []widget.AccessInfo {
 func (p *Page) accessHeader() []widget.AccessInfo {
 	g, s := p.geo, p.snap
 	out := []widget.AccessInfo{
-		p.control(widget.RoleButton, i18n.T("cmd.historyBack"), g.back, stopBack, disabledUnless(s.canBack)...),
-		p.control(widget.RoleButton, i18n.T("cmd.historyForward"), g.forward, stopForward, disabledUnless(s.canForward)...),
-		p.control(widget.RoleButton, i18n.T("cmd.historyUp"), g.up, stopUp, disabledUnless(s.canUp)...),
+		p.control(idBack, widget.RoleButton, i18n.T("cmd.historyBack"), g.back, stopBack, disabledUnless(s.canBack)...),
+		p.control(idForward, widget.RoleButton, i18n.T("cmd.historyForward"), g.forward, stopForward, disabledUnless(s.canForward)...),
+		p.control(idUp, widget.RoleButton, i18n.T("cmd.historyUp"), g.up, stopUp, disabledUnless(s.canUp)...),
 	}
 	if !p.editing {
-		address := p.control(widget.RoleTextInput, i18n.T("gallery.address"), g.address, stopAddress, widget.StateReadOnly)
+		address := p.control(idAddress, widget.RoleTextInput, i18n.T("gallery.address"), g.address, stopAddress, widget.StateReadOnly)
 		address.Value = s.loc.Display()
 		out = append(out, address)
 	}
-	filter := p.control(widget.RoleButton, i18n.T("gallery.filter"), g.filter, stopFilter)
+	filter := p.control(idFilter, widget.RoleButton, i18n.T("gallery.filter"), g.filter, stopFilter)
 	filter.Value = i18n.T("gallery.filterAll")
 	if s.format != "" {
 		filter.Value = s.format
@@ -70,10 +70,10 @@ func (p *Page) accessHeader() []widget.AccessInfo {
 	if p.editing {
 		refresh = i18n.T("access.go")
 	}
-	out = append(out, filter, p.control(widget.RoleButton, refresh, g.refresh, stopRefresh))
-	list := widget.AccessInfo{Role: widget.RoleRadioButton, Name: i18n.T("gallery.viewList"), Bounds: g.viewList, States: p.viewStates(s.mode == ViewList)}
-	grid := widget.AccessInfo{Role: widget.RoleRadioButton, Name: i18n.T("gallery.viewGrid"), Bounds: g.viewGrid, States: p.viewStates(s.mode == ViewGrid)}
-	thumbs := p.control(widget.RoleButton, i18n.T("gallery.thumbSize"), g.thumbs, stopThumbs)
+	out = append(out, filter, p.control(idRefresh, widget.RoleButton, refresh, g.refresh, stopRefresh))
+	list := widget.AccessInfo{ID: idViewList, Role: widget.RoleRadioButton, Name: i18n.T("gallery.viewList"), Bounds: g.viewList, States: p.viewStates(s.mode == ViewList)}
+	grid := widget.AccessInfo{ID: idViewGrid, Role: widget.RoleRadioButton, Name: i18n.T("gallery.viewGrid"), Bounds: g.viewGrid, States: p.viewStates(s.mode == ViewGrid)}
+	thumbs := p.control(idThumbs, widget.RoleButton, i18n.T("gallery.thumbSize"), g.thumbs, stopThumbs)
 	thumbs.Value = i18n.T("gallery.thumbPx", s.side)
 	return append(out, list, grid, thumbs)
 }
@@ -104,7 +104,7 @@ func (p *Page) accessPlaces() []widget.AccessInfo {
 			out = append(out, widget.AccessInfo{Role: widget.RoleLabel, Name: e.Label, Bounds: rect})
 			continue
 		}
-		info := widget.AccessInfo{Role: widget.RoleRadioButton, Name: e.Label, Bounds: rect}
+		info := widget.AccessInfo{ID: placeID(r.index), Role: widget.RoleRadioButton, Name: e.Label, Bounds: rect}
 		if e.Selected {
 			info.States = append(info.States, widget.StateSelected)
 		}
@@ -139,7 +139,7 @@ func (p *Page) accessItems() []widget.AccessInfo {
 			continue
 		}
 		item := s.items[i]
-		info := widget.AccessInfo{Role: widget.RoleRadioButton, Name: item.Name, Bounds: rect}
+		info := widget.AccessInfo{ID: itemID(i), Role: widget.RoleRadioButton, Name: item.Name, Bounds: rect}
 		if item.Dir {
 			info.Value = i18n.T("gallery.folder")
 		} else {
@@ -168,8 +168,8 @@ func (p *Page) accessFooter() []widget.AccessInfo {
 		out = append(out, widget.AccessInfo{Role: widget.RoleLabel, Name: status, Description: i18n.T("access.statusBar"), Bounds: g.status})
 	}
 	out = append(out,
-		p.control(widget.RoleButton, i18n.T("cmd.open"), g.open, stopOpen, disabledUnless(selected)...),
-		p.control(widget.RoleButton, i18n.T("gallery.openMenu"), g.more, stopMore, disabledUnless(selected)...),
+		p.control(idOpen, widget.RoleButton, i18n.T("cmd.open"), g.open, stopOpen, disabledUnless(selected)...),
+		p.control(idMore, widget.RoleButton, i18n.T("gallery.openMenu"), g.more, stopMore, disabledUnless(selected)...),
 	)
 	if p.bubble != "" {
 		out = append(out, widget.AccessInfo{Role: widget.RoleLabel, Name: p.bubble, Bounds: p.bubbleArea()})

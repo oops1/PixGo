@@ -1,5 +1,7 @@
 package jpegxform
 
+import "image"
+
 type blockMap struct {
 	perm [blockSize]uint8
 	sign [blockSize]int16
@@ -64,6 +66,7 @@ type plan struct {
 	outMX, outMY int
 	outW, outH   int
 	cropW, cropH int
+	offX, offY   int
 	comps        []planComp
 }
 
@@ -89,6 +92,10 @@ func edgeCrop(fr *frame, op Op) (cropW, cropH int, perfect bool) {
 
 func newPlan(fr *frame, op Op) *plan {
 	cropW, cropH, _ := edgeCrop(fr, op)
+	return newPlanFor(fr, op, cropW, cropH)
+}
+
+func newPlanFor(fr *frame, op Op, cropW, cropH int) *plan {
 	p := &plan{op: op, cropW: cropW, cropH: cropH}
 	p.srcMX = (cropW + fr.mcuW - 1) / fr.mcuW
 	p.srcMY = (cropH + fr.mcuH - 1) / fr.mcuH
@@ -106,6 +113,16 @@ func newPlan(fr *frame, op Op) *plan {
 		}
 		p.comps[i] = pc
 	}
+	return p
+}
+
+func newCropPlan(fr *frame, op Op, g cropGeometry, r image.Rectangle) *plan {
+	p := newPlanFor(fr, op, fr.width, fr.height)
+	p.outW, p.outH = r.Dx(), r.Dy()
+	p.outMX = (p.outW + g.cellX - 1) / g.cellX
+	p.outMY = (p.outH + g.cellY - 1) / g.cellY
+	p.offX = (r.Min.X + g.padX) / g.cellX
+	p.offY = (r.Min.Y + g.padY) / g.cellY
 	return p
 }
 

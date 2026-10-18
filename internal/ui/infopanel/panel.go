@@ -103,6 +103,7 @@ type Panel struct {
 	OnCopy    func(text string)
 	OnReveal  func()
 	OnOpenURL func(url string)
+	OnFocus   func()
 
 	model Model
 

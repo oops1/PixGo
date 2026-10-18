@@ -214,7 +214,7 @@ func TestConfirmingJPEGWritesWithTheChosenQualityAndRemembersIt(t *testing.T) {
 	if got := r.waitFile(t, "out.jpg"); string(got) != "ENC-jpeg" {
 		t.Fatalf("file content %q", got)
 	}
-	if call := r.jpeg.last(); call.opts != (codec.EncodeOptions{Quality: 79}) || call.w != 600 || call.h != 400 {
+	if call := r.jpeg.last(); !sameOptions(call.opts, (codec.EncodeOptions{Quality: 79})) || call.w != 600 || call.h != 400 {
 		t.Fatalf("encoded with %+v", call)
 	}
 	r.settle()
@@ -318,7 +318,7 @@ func TestPNGAndBMPAreSavedWithoutAnyDialog(t *testing.T) {
 			if r.app.saveDlg != nil {
 				t.Fatal("a dialog appeared for a format without options")
 			}
-			if tc.enc(r).last().opts != (codec.EncodeOptions{}) {
+			if !sameOptions(tc.enc(r).last().opts, (codec.EncodeOptions{})) {
 				t.Fatalf("encoded with %+v", tc.enc(r).last().opts)
 			}
 		})
@@ -351,7 +351,7 @@ func TestWebPOffersLosslessAndRemembersBothChoices(t *testing.T) {
 	r.key(widget.KeyEnter)
 
 	r.waitFile(t, "out.webp")
-	if call := r.webp.last(); call.opts != (codec.EncodeOptions{Quality: 80, Lossless: true}) {
+	if call := r.webp.last(); !sameOptions(call.opts, (codec.EncodeOptions{Quality: 80, Lossless: true})) {
 		t.Fatalf("encoded with %+v", call.opts)
 	}
 	r.settle()
@@ -373,12 +373,13 @@ func TestWebPLossyWritesTheChosenQuality(t *testing.T) {
 
 	r.key(widget.KeySpace)
 	r.key(widget.KeyTab)
+	r.key(widget.KeyTab)
 	r.key(widget.KeyEnd)
 	r.key(widget.KeyLeft)
 	r.key(widget.KeyEnter)
 
 	r.waitFile(t, "out.webp")
-	if call := r.webp.last(); call.opts != (codec.EncodeOptions{Quality: 99}) {
+	if call := r.webp.last(); !sameOptions(call.opts, (codec.EncodeOptions{Quality: 99})) {
 		t.Fatalf("encoded with %+v", call.opts)
 	}
 	r.settle()

@@ -12,6 +12,7 @@ import (
 	"github.com/oops1/PixGo/internal/codec"
 	"github.com/oops1/PixGo/internal/codec/internal/convert"
 	"github.com/oops1/PixGo/internal/codec/internal/guard"
+	"github.com/oops1/PixGo/internal/codec/internal/splice"
 	"github.com/oops1/PixGo/internal/jpegdec"
 	"github.com/oops1/PixGo/internal/meta/exif"
 )
@@ -306,5 +307,9 @@ func (Encoder) Encode(w io.Writer, img *image.NRGBA, o codec.EncodeOptions) erro
 		return errors.New("jpeg: nothing to encode")
 	}
 	flattened := convert.OverBackground(img, color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff})
-	return stdjpeg.Encode(w, flattened, &stdjpeg.Options{Quality: ClampQuality(o.Quality)})
+	out := splice.New(w, soiLength, metadataSegments(o.Metadata))
+	if err := stdjpeg.Encode(out, flattened, &stdjpeg.Options{Quality: ClampQuality(o.Quality)}); err != nil {
+		return err
+	}
+	return out.Flush()
 }

@@ -18,13 +18,13 @@ func (p *Page) AccessChildren() []widget.AccessInfo {
 	}
 	p.ensureLayout()
 	g := p.geo
-	back := widget.AccessInfo{Role: widget.RoleButton, Name: i18n.T("cmd.back"), Bounds: g.back}
+	back := widget.AccessInfo{ID: idBack, Role: widget.RoleButton, Name: i18n.T("cmd.back"), Bounds: g.back}
 	if p.focus == focusBack {
 		back.States = []string{widget.StateFocused}
 	}
 	out := []widget.AccessInfo{back}
 	for s := Section(0); s < sectionCount; s++ {
-		info := widget.AccessInfo{Role: widget.RoleRadioButton, Name: i18n.T(sectionKeys[s]), Bounds: navRowRect(s)}
+		info := widget.AccessInfo{ID: navID(s), Role: widget.RoleRadioButton, Name: i18n.T(sectionKeys[s]), Bounds: navRowRect(s)}
 		if s == p.sec {
 			info.States = []string{widget.StateSelected}
 			if p.focus == focusNav {
@@ -43,7 +43,7 @@ func (p *Page) AccessChildren() []widget.AccessInfo {
 }
 
 func (p *Page) itemAccess(it *item, off image.Point) (widget.AccessInfo, bool) {
-	info := widget.AccessInfo{Bounds: it.r.Add(off).Intersect(p.geo.view)}
+	info := widget.AccessInfo{ID: itemID(it), Bounds: it.r.Add(off).Intersect(p.geo.view)}
 	var states []string
 	if it.on {
 		states = append(states, widget.StateChecked)

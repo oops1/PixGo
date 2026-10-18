@@ -32,6 +32,7 @@ func (a *App) toggleInfo() {
 				a.Root.Toast(i18n.T("toast.pathCopied"))
 			}
 			a.info.OnReveal = a.reveal
+			a.info.OnFocus = a.Root.FocusPanel
 			a.info.OnOpenURL = func(u string) {
 				go window.OpenURL(u)
 			}

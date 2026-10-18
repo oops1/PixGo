@@ -43,6 +43,7 @@ type fakeHost struct {
 	panel      widget.Widget
 
 	contentOverride widget.Widget
+	editing         bool
 }
 
 func (h *fakeHost) Page() Page                     { return h.page }
@@ -51,7 +52,7 @@ func (h *fakeHost) HeaderHoles() []image.Rectangle { return h.holes }
 func newHost() *fakeHost {
 	h := &fakeHost{reg: commands.NewRegistry(), content: &fakeContent{has: true}, state: StateReady, canPrev: true, canNext: true}
 	for _, id := range []commands.ID{"app.back", "view.info", "file.favorite", "app.more", "nav.prev", "nav.next", "view.gallery", "file.delete",
-		"view.rotateLeft", "view.zoomOut", "view.zoomToggle", "view.zoomIn", "view.rotateRight", "view.fullscreen", "slideshow.start", "slideshow.toggle"} {
+		"view.rotateLeft", "view.zoomOut", "view.zoomToggle", "view.zoomIn", "view.rotateRight", "edit.start", "view.fullscreen", "slideshow.start", "slideshow.toggle"} {
 		id := id
 		h.reg.Add(commands.Command{ID: id, Run: func() { h.ran = append(h.ran, id) }})
 	}
@@ -217,11 +218,11 @@ func TestCaptionButtonsInvokeOps(t *testing.T) {
 
 func TestToolbarButtonsRunCommands(t *testing.T) {
 	r := newRig(t, nil)
-	r.click(206, 466)
-	r.click(329, 466)
-	r.click(437, 466)
-	r.click(383, 466)
-	r.click(619, 466)
+	r.click(178, 466)
+	r.click(301, 466)
+	r.click(410, 466)
+	r.click(355, 466)
+	r.click(646, 466)
 	want := []commands.ID{"file.delete", "view.zoomOut", "view.zoomIn", "view.zoomToggle", "view.fullscreen"}
 	if len(r.host.ran) != len(want) {
 		t.Fatalf("ran %v, want %v", r.host.ran, want)
@@ -256,7 +257,7 @@ func TestReleaseOutsideDoesNotClick(t *testing.T) {
 func TestDisabledCommandDoesNothing(t *testing.T) {
 	r := newRig(t, nil)
 	r.root.Actions[ZoneToolDelete] = "app.disabled"
-	r.click(206, 466)
+	r.click(178, 466)
 	if len(r.host.ran) != 0 {
 		t.Errorf("disabled command ran: %v", r.host.ran)
 	}
@@ -304,7 +305,7 @@ func TestOverlayAutoHidesAndWakes(t *testing.T) {
 	if r.root.overlayVisible() {
 		t.Fatal("overlay still visible after the idle timer")
 	}
-	if got := r.root.Layout().ZoneAt(image.Pt(206, 466)).Kind; got != ZoneNone {
+	if got := r.root.Layout().ZoneAt(image.Pt(178, 466)).Kind; got != ZoneNone {
 		t.Errorf("hidden toolbar still hit-testable: zone %d", got)
 	}
 	r.root.OnMouseMove(300, 300)
@@ -318,7 +319,7 @@ func TestOverlayAutoHidesAndWakes(t *testing.T) {
 
 func TestOverlayStaysWhileHovered(t *testing.T) {
 	r := newRig(t, func(h *fakeHost) { h.autoHide = true })
-	r.root.OnMouseMove(206, 466)
+	r.root.OnMouseMove(178, 466)
 	r.ts.fireAll()
 	if !r.root.overlayVisible() {
 		t.Fatal("overlay hid while the pointer was over the toolbar")
@@ -443,7 +444,7 @@ func TestExitButtonOnlyInFullscreen(t *testing.T) {
 func TestTooltipAppearsAfterDelayWithShortcutAndHidesOnLeave(t *testing.T) {
 	r := newRig(t, nil)
 	r.host.reg.Add(commands.Command{ID: "view.rotateLeft", Title: "cmd.rotateLeft", Keys: []commands.Chord{commands.C(commands.Shift, 'R')}, Run: func() {}})
-	r.root.OnMouseMove(273, 467)
+	r.root.OnMouseMove(245, 467)
 	if r.root.tip.text != "" {
 		t.Fatalf("tooltip shown before the delay: %q", r.root.tip.text)
 	}

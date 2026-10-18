@@ -26,6 +26,7 @@ func (a *App) menuLayout() []menuEntry {
 		{id: CmdCopy}, {id: CmdCopyImage}, {id: CmdCopyPath}, {id: CmdReveal}, {sep: true},
 		{id: CmdZoomFit}, {id: CmdZoomWidth}, {id: CmdZoomActual}, {sep: true},
 		{id: CmdRotateRight}, {id: CmdRotateLeft}, {id: CmdRotate180}, {id: CmdFlipH}, {id: CmdFlipV}, {sep: true},
+		{id: CmdCrop}, {id: CmdResize}, {sep: true},
 		{id: CmdFavorite}, {id: CmdInfo}, {id: CmdFullscreen}, {id: CmdSlideshow}, {sep: true},
 		{id: CmdDelete}, {sep: true},
 		{id: CmdSettings},
