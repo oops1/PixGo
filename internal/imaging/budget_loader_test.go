@@ -2,7 +2,9 @@ package imaging
 
 import (
 	"image"
+	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -140,17 +142,55 @@ func TestLoaderTinyBudgetStillCompletesEveryJob(t *testing.T) {
 	r := newRig(t, 4)
 	r.cache.SetBudget(1)
 	var reqs []Request
-	var paths []string
+	ready := map[string]bool{}
+	r.loader.Subscribe(func(p string) {
+		if s := r.loader.slots[p]; s != nil && s.entry.State == StateReady {
+			ready[p] = true
+		}
+	})
 	for _, n := range []string{"a", "b", "c", "d", "e", "f"} {
-		p := r.file(n)
-		paths = append(paths, p)
-		reqs = append(reqs, req(p, PrioCurrent))
+		reqs = append(reqs, req(r.file(n), PrioCurrent))
 	}
 	r.loader.Want(reqs)
-	for _, p := range paths {
-		r.waitState(p, StateReady)
+	r.waitFor("every job to become ready once", func() bool { return len(ready) == len(reqs) })
+	r.waitFor("the loader to go idle", func() bool {
+		return r.loader.Pending() == 0 && r.cache.Reserved() == 0 && r.cache.Waiting() == 0
+	})
+	for _, rq := range reqs {
+		if n := r.fake.count(strings.TrimSuffix(filepath.Base(rq.Path), ".fake")); n != 1 {
+			t.Fatalf("%s decoded %d times", filepath.Base(rq.Path), n)
+		}
 	}
-	r.waitFor("reservations to drain", func() bool { return r.cache.Reserved() == 0 && r.cache.Waiting() == 0 })
+}
+
+func TestLoaderKeepsAFinishedPictureUntilTheUIHasIt(t *testing.T) {
+	r := newRig(t, 2)
+	r.cache.SetBudget(1)
+	a, b := r.file("a"), r.file("b")
+	ready := map[string]bool{}
+	r.loader.Subscribe(func(p string) {
+		if s := r.loader.slots[p]; s != nil && s.entry.State == StateReady {
+			ready[filepath.Base(p)] = true
+		}
+	})
+	idle := func(what string, cond func() bool) {
+		deadline := time.Now().Add(5 * time.Second)
+		for !cond() {
+			if time.Now().After(deadline) {
+				t.Fatalf("timeout waiting for %s", what)
+			}
+			time.Sleep(time.Millisecond)
+		}
+	}
+	r.loader.Want([]Request{req(a, PrioCurrent)})
+	idle("a to be decoded", func() bool { return r.fake.count("a") == 1 && r.loader.Pending() == 0 })
+	r.loader.Want([]Request{req(a, PrioCurrent), req(b, PrioCurrent)})
+	idle("b to be decoded", func() bool { return r.fake.count("b") == 1 && r.loader.Pending() == 0 })
+	r.waitFor("both pictures to be delivered", func() bool { return ready["a.fake"] && ready["b.fake"] })
+	r.waitFor("the loader to go idle", func() bool { return r.loader.Pending() == 0 })
+	if na, nb := r.fake.count("a"), r.fake.count("b"); na != 1 || nb != 1 {
+		t.Fatalf("decoded a %d and b %d times; a picture evicted before the UI saw it is decoded again", na, nb)
+	}
 }
 
 func TestLoaderCancelledCurrentJobLeavesNoReservation(t *testing.T) {

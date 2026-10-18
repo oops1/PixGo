@@ -95,7 +95,7 @@ func (l *Loader) run(j *job) {
 		if d.Detail != nil {
 			l.noteHeavy(j)
 		}
-		l.publish(j, StateReady, d.Info, d, nil)
+		l.deliver(j, d, false)
 		return
 	} else if ok && d.ColorStamp != stamp {
 		l.cache.Remove(j.path)
@@ -153,8 +153,7 @@ func (l *Loader) runTiled(j *job, td codec.TiledDecoder, src *codec.Source, file
 		if d.Detail != nil {
 			l.noteHeavy(j)
 		}
-		l.cache.Put(d)
-		l.publish(j, StateReady, d.Info, d, nil)
+		l.deliver(j, d, true)
 		return true, d.Detail != nil
 	case j.ctx.Err() != nil:
 		return true, false
@@ -223,8 +222,7 @@ func (l *Loader) finish(j *job, key Key, info codec.Info, img *codec.Image, stam
 		Color:      rep,
 		ColorStamp: stamp,
 	}
-	l.cache.Put(d)
-	l.publish(j, StateReady, d.Info, d, nil)
+	l.deliver(j, d, true)
 }
 
 func (l *Loader) previewScale(j *job, info codec.Info) int {
@@ -339,4 +337,19 @@ func (l *Loader) openTiled(j *job, td codec.TiledDecoder, src *codec.Source, fil
 	opt := TileOptions{Budget: l.tileBudget.Load(), Workers: l.tileWorkerCount()}
 	d.Detail = NewTileManager(tr, levels, shift, w, h, opt, file)
 	return d, nil
+}
+
+func (l *Loader) deliver(j *job, d *Decoded, put bool) {
+	l.cache.hold(d.Key)
+	if put {
+		l.cache.Put(d)
+	}
+	if j.ctx.Err() != nil {
+		l.cache.letGo(d.Key)
+		return
+	}
+	l.post(func() {
+		defer l.cache.letGo(d.Key)
+		l.apply(j, StateReady, d.Info, d, nil)
+	})
 }

@@ -193,3 +193,19 @@ func (c *Cache) unlockAndDrop(survivor *Decoded) {
 		}
 	}
 }
+
+func (c *Cache) hold(k Key) {
+	c.Pin(k)
+}
+
+func (c *Cache) letGo(k Key) {
+	ck := makeCacheKey(k)
+	c.mu.Lock()
+	if n := c.pinned[ck]; n > 1 {
+		c.pinned[ck] = n - 1
+	} else {
+		delete(c.pinned, ck)
+	}
+	c.evictLocked(c.order.Front())
+	c.unlockAndRelease(nil)
+}
