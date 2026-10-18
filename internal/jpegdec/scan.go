@@ -261,14 +261,14 @@ func bandRowsFor(f *frame, g *geometry) int {
 	return min(max(bandTargetBlocks/max(perRow, 1), 1), maxBandRows)
 }
 
-func (d *Decoder) decodeStreaming(ctx context.Context, shift int) (*image.NRGBA, error) {
+func (d *Decoder) decodeStreaming(ctx context.Context, shift int, mode colorMode) (*image.NRGBA, error) {
 	g := d.f.geometry(shift, shift)
 	dst := image.NewNRGBA(image.Rect(0, 0, g.outW, g.outH))
 	var rec *indexRecorder
 	if d.index.Load() == nil && d.CanRegion() {
 		rec = newIndexRecorder(d, g)
 	}
-	if err := d.runStreaming(ctx, g, dst, rec); err != nil {
+	if err := d.runStreaming(ctx, g, dst, rec, mode); err != nil {
 		return nil, err
 	}
 	if rec != nil {
@@ -288,7 +288,7 @@ func (d *Decoder) ensureIndex(ctx context.Context) (*checkpointIndex, error) {
 	}
 	g := d.f.geometry(MaxShift, MaxShift)
 	rec := newIndexRecorder(d, g)
-	if err := d.runStreaming(ctx, g, nil, rec); err != nil {
+	if err := d.runStreaming(ctx, g, nil, rec, d.mode); err != nil {
 		return nil, err
 	}
 	ix := rec.finish()
@@ -307,7 +307,7 @@ func (d *Decoder) BuildIndex(ctx context.Context) error {
 	return err
 }
 
-func (d *Decoder) runStreaming(ctx context.Context, g *geometry, dst *image.NRGBA, rec *indexRecorder) error {
+func (d *Decoder) runStreaming(ctx context.Context, g *geometry, dst *image.NRGBA, rec *indexRecorder, mode colorMode) error {
 	s := newStream(ctx, d.reader, d.size)
 	defer s.release()
 	s.seek(d.scanOffset)
@@ -319,7 +319,7 @@ func (d *Decoder) runStreaming(ctx context.Context, g *geometry, dst *image.NRGB
 		return d.runIndexOnly(ctx, ss, rec)
 	}
 	quant := dequantTables(d.f)
-	r := newRecon(d.f, d.mode, g, &quant)
+	r := newRecon(d.f, mode, g, &quant)
 	workers := d.workerCount()
 	parallel := workers > 1 && g.myy > 1 && (d.opt.Workers > 0 || g.outW*g.outH >= parallelPixels)
 	if parallel {

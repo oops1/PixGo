@@ -397,7 +397,7 @@ func (d *Decoder) Prepare(ctx context.Context, shift int) error {
 	return nil
 }
 
-func (d *Decoder) decodeCoefficients(ctx context.Context, shift int) (*image.NRGBA, error) {
+func (d *Decoder) decodeCoefficients(ctx context.Context, shift int, mode colorMode) (*image.NRGBA, error) {
 	g := d.f.geometry(shift, shift)
 	rect := image.Rect(0, 0, g.outW, g.outH)
 	for {
@@ -407,26 +407,26 @@ func (d *Decoder) decodeCoefficients(ctx context.Context, shift int) (*image.NRG
 		d.storeMu.RLock()
 		if st := d.store; st != nil && st.shift <= shift {
 			defer d.storeMu.RUnlock()
-			return d.reconstruct(ctx, st, shift, rect)
+			return d.reconstruct(ctx, st, shift, rect, mode)
 		}
 		d.storeMu.RUnlock()
 	}
 }
 
-func (d *Decoder) regionCoefficients(ctx context.Context, shift int, rect image.Rectangle) (*image.NRGBA, error) {
+func (d *Decoder) regionCoefficients(ctx context.Context, shift int, rect image.Rectangle, mode colorMode) (*image.NRGBA, error) {
 	d.storeMu.RLock()
 	defer d.storeMu.RUnlock()
 	st := d.store
 	if st == nil || st.shift > shift {
 		return nil, UnsupportedError("region access finer than the decoded level")
 	}
-	return d.reconstruct(ctx, st, shift, rect)
+	return d.reconstruct(ctx, st, shift, rect, mode)
 }
 
-func (d *Decoder) reconstruct(ctx context.Context, st *coefStore, shift int, rect image.Rectangle) (*image.NRGBA, error) {
+func (d *Decoder) reconstruct(ctx context.Context, st *coefStore, shift int, rect image.Rectangle, mode colorMode) (*image.NRGBA, error) {
 	g := d.f.geometry(shift, st.shift)
 	out := image.NewNRGBA(image.Rect(0, 0, rect.Dx(), rect.Dy()))
-	r := newRecon(d.f, d.mode, g, &st.quant)
+	r := newRecon(d.f, mode, g, &st.quant)
 	mx0, mx1 := rect.Min.X/g.mcuW, (rect.Max.X-1)/g.mcuW
 	my0, my1 := rect.Min.Y/g.mcuH, (rect.Max.Y-1)/g.mcuH
 	cols := mx1 - mx0 + 1

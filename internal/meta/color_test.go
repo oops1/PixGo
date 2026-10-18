@@ -257,3 +257,39 @@ func FuzzReadColor(f *testing.F) {
 		}
 	})
 }
+
+func TestCMYKColorOfAJPEGKeepsOnlyCMYKProfiles(t *testing.T) {
+	cmyk := colorProfile("CMYK", 300)
+	rgb := colorProfile("RGB ", 300)
+	read := func(data []byte) codec.ColorInfo {
+		return ReadCMYKColor(context.Background(), bytes.NewReader(data), int64(len(data)))
+	}
+	got := read(colorJPEG(iccSegment(2, 2, cmyk[150:]), iccSegment(1, 2, cmyk[:150])))
+	if !bytes.Equal(got.ICC, cmyk) || got.CICP != nil {
+		t.Fatalf("%d bytes, cicp %+v", len(got.ICC), got.CICP)
+	}
+	if got := read(colorJPEG(iccSegment(1, 1, rgb))); !got.Empty() {
+		t.Fatal("RGB profile accepted for CMYK data")
+	}
+	if got := read(colorJPEG(iccSegment(1, 2, cmyk[:150]))); !got.Empty() {
+		t.Fatal("incomplete profile accepted")
+	}
+	if got := read(colorJPEG()); !got.Empty() {
+		t.Fatal("profile invented")
+	}
+	if got := readColor(t, colorJPEG(iccSegment(1, 1, cmyk)), codec.JPEG); !got.Empty() {
+		t.Fatal("ReadColor must keep ignoring CMYK profiles")
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	data := colorJPEG(iccSegment(1, 1, cmyk))
+	if got := ReadCMYKColor(ctx, bytes.NewReader(data), int64(len(data))); !got.Empty() {
+		t.Fatal("cancelled context")
+	}
+	if got := ReadCMYKColor(nil, nil, 0); !got.Empty() {
+		t.Fatal("nil reader")
+	}
+	if CMYKProfile(rgb) != nil || CMYKProfile(cmyk) == nil || ColorProfile(cmyk) != nil {
+		t.Fatal("profile selection")
+	}
+}

@@ -10,6 +10,8 @@ const (
 	colorRGB
 	colorCMYK
 	colorYCCK
+	colorInkCMYK
+	colorInkYCCK
 )
 
 func ycbcrToRGB(y, cb, cr uint8) (uint8, uint8, uint8) {
@@ -182,8 +184,42 @@ func convertYCCK(dst []byte, rs *rowSet, first, n int) {
 	}
 }
 
+func convertInkCMYK(dst []byte, rs *rowSet, first, n int) {
+	for i := 0; i < n; i++ {
+		x := first + i
+		o := i * 4
+		dst[o] = 255 - rs.rows[0][x>>rs.shift[0]]
+		dst[o+1] = 255 - rs.rows[1][x>>rs.shift[1]]
+		dst[o+2] = 255 - rs.rows[2][x>>rs.shift[2]]
+		dst[o+3] = 255 - rs.rows[3][x>>rs.shift[3]]
+	}
+}
+
+func convertInkYCCK(dst []byte, rs *rowSet, first, n int) {
+	for i := 0; i < n; i++ {
+		x := first + i
+		o := i * 4
+		dst[o], dst[o+1], dst[o+2] = ycbcrToRGB(rs.rows[0][x>>rs.shift[0]], rs.rows[1][x>>rs.shift[1]], rs.rows[2][x>>rs.shift[2]])
+		dst[o+3] = 255 - rs.rows[3][x>>rs.shift[3]]
+	}
+}
+
+func inkModeOf(mode colorMode) (colorMode, bool) {
+	switch mode {
+	case colorCMYK:
+		return colorInkCMYK, true
+	case colorYCCK:
+		return colorInkYCCK, true
+	}
+	return mode, false
+}
+
 func convertRow(mode colorMode, dst []byte, rs *rowSet, first, n int) {
 	switch mode {
+	case colorInkCMYK:
+		convertInkCMYK(dst, rs, first, n)
+	case colorInkYCCK:
+		convertInkYCCK(dst, rs, first, n)
 	case colorGray:
 		convertGray(dst, rs, first, n)
 	case colorYCbCr:

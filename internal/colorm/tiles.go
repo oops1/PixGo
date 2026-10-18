@@ -62,6 +62,9 @@ func (m *Manager) WrapTiles(tr codec.TileReader) (codec.TileReader, Report) {
 	if c, ok := tr.(codec.ColorTileReader); ok {
 		ci = c.Color()
 	}
+	if wrapped, rep, ok := m.wrapInkTiles(tr, ci); ok {
+		return wrapped, rep
+	}
 	conv := m.Resolve(ci)
 	rep := conv.Report
 	var deep codec.DeepTileReader

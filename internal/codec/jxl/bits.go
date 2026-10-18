@@ -1,5 +1,7 @@
 package jxl
 
+import "math"
+
 type distribution struct {
 	bits   uint8
 	offset uint32
@@ -133,4 +135,23 @@ func (b *bitReader) extensions() {
 
 func unpackSigned(v uint32) int32 {
 	return int32(v>>1) ^ (int32(^v&1) - 1)
+}
+
+func (b *bitReader) f16() float64 {
+	raw := uint32(b.bits(16))
+	sign, exponent, mantissa := raw>>15, int((raw>>10)&0x1f), float64(raw&0x3ff)
+	var v float64
+	switch exponent {
+	case 31:
+		b.reject()
+		return 0
+	case 0:
+		v = mantissa / 1024 / 16384
+	default:
+		v = (1 + mantissa/1024) * math.Ldexp(1, exponent-15)
+	}
+	if sign != 0 {
+		return -v
+	}
+	return v
 }

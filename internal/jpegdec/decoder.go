@@ -215,7 +215,32 @@ func (d *Decoder) MinShift() int {
 	return MaxShift
 }
 
+func (d *Decoder) Ink() bool {
+	_, ok := inkModeOf(d.mode)
+	return ok
+}
+
+func asCMYK(img *image.NRGBA) *image.CMYK {
+	return &image.CMYK{Pix: img.Pix, Stride: img.Stride, Rect: img.Rect}
+}
+
 func (d *Decoder) Decode(ctx context.Context, shift int) (*image.NRGBA, error) {
+	return d.decode(ctx, shift, d.mode)
+}
+
+func (d *Decoder) DecodeInk(ctx context.Context, shift int) (*image.CMYK, error) {
+	mode, ok := inkModeOf(d.mode)
+	if !ok {
+		return nil, UnsupportedError("ink samples of a file that is not CMYK")
+	}
+	img, err := d.decode(ctx, shift, mode)
+	if err != nil {
+		return nil, err
+	}
+	return asCMYK(img), nil
+}
+
+func (d *Decoder) decode(ctx context.Context, shift int, mode colorMode) (*image.NRGBA, error) {
 	if err := d.checkShift(shift); err != nil {
 		return nil, err
 	}
@@ -223,12 +248,28 @@ func (d *Decoder) Decode(ctx context.Context, shift int) (*image.NRGBA, error) {
 		return nil, err
 	}
 	if d.streaming {
-		return d.decodeStreaming(ctx, shift)
+		return d.decodeStreaming(ctx, shift, mode)
 	}
-	return d.decodeCoefficients(ctx, shift)
+	return d.decodeCoefficients(ctx, shift, mode)
 }
 
 func (d *Decoder) Region(ctx context.Context, shift int, r image.Rectangle) (*image.NRGBA, error) {
+	return d.region(ctx, shift, r, d.mode)
+}
+
+func (d *Decoder) RegionInk(ctx context.Context, shift int, r image.Rectangle) (*image.CMYK, error) {
+	mode, ok := inkModeOf(d.mode)
+	if !ok {
+		return nil, UnsupportedError("ink samples of a file that is not CMYK")
+	}
+	img, err := d.region(ctx, shift, r, mode)
+	if err != nil {
+		return nil, err
+	}
+	return asCMYK(img), nil
+}
+
+func (d *Decoder) region(ctx context.Context, shift int, r image.Rectangle, mode colorMode) (*image.NRGBA, error) {
 	if err := d.checkShift(shift); err != nil {
 		return nil, err
 	}
@@ -244,7 +285,7 @@ func (d *Decoder) Region(ctx context.Context, shift int, r image.Rectangle) (*im
 		if !d.CanRegion() {
 			return nil, UnsupportedError("region access to a file of this size")
 		}
-		return d.regionStreaming(ctx, g, r)
+		return d.regionStreaming(ctx, g, r, mode)
 	}
-	return d.regionCoefficients(ctx, shift, r)
+	return d.regionCoefficients(ctx, shift, r, mode)
 }

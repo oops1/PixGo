@@ -36,8 +36,15 @@ func (l *Loader) wrapTiles(tr codec.TileReader) (codec.TileReader, colorm.Report
 	return m.WrapTiles(tr)
 }
 
+const inkBitsPerPixel = 32
+
 func deepExtraBytes(info codec.Info) int64 {
 	switch info.Format {
+	case codec.JPEG:
+		if info.BitDepth == inkBitsPerPixel {
+			return int64(info.Width) * int64(info.Height) * 4
+		}
+		return 0
 	case codec.PNG, codec.APNG, codec.TIFF:
 	default:
 		return 0

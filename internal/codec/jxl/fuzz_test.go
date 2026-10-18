@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	gjxl "github.com/gen2brain/jxl"
+
 	"github.com/oops1/PixGo/internal/codec"
 	"github.com/oops1/PixGo/internal/codec/internal/testimg"
 )
@@ -29,6 +31,14 @@ func fuzzSeeds(f *testing.F) {
 	f.Add(buildStill(f, 24, 10, 8))
 	f.Add(contained(encodeLossless(f, 16, 16, 42), box("Exif", []byte("exif"))))
 	f.Add(boxed(append([][]byte{containerSignature, ftypBox()}, partial(encodeLossless(f, 16, 16, 43), 3)...)...))
+	for _, hdr := range [][]byte{
+		xybStill(f, encode(f, testimg.Photo(24, 16), gjxl.EncodeOptions{}), tagged(9, 16, 1000)),
+		xybStill(f, encode(f, testimg.Photo(24, 16), gjxl.EncodeOptions{}), tagged(1, 8, 100)),
+		xybStill(f, encode(f, testimg.Noise(20, 12, 5, true), gjxl.EncodeOptions{}), tagged(11, 18, 4000)),
+	} {
+		f.Add(hdr)
+		f.Add(append(append([]byte(nil), hdr...), 0))
+	}
 	bomb := baseHeader(1<<30, 1<<30)
 	f.Add(streamOf(bomb, frameSpec{allDefault: true, entries: []uint32{1}}.write(bomb, 1<<30, 1<<30)))
 }

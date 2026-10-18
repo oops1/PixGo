@@ -68,6 +68,7 @@ type Options struct {
 type Frame struct {
 	Pix   *image.NRGBA
 	Deep  *image.NRGBA64
+	CMYK  *image.CMYK
 	Delay time.Duration
 }
 

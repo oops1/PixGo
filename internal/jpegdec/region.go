@@ -74,7 +74,7 @@ func (w *regionWorker) row(my, mx0 int, out *image.NRGBA, rect image.Rectangle) 
 	return nil
 }
 
-func (d *Decoder) regionStreaming(ctx context.Context, g *geometry, rect image.Rectangle) (*image.NRGBA, error) {
+func (d *Decoder) regionStreaming(ctx context.Context, g *geometry, rect image.Rectangle, mode colorMode) (*image.NRGBA, error) {
 	ix, err := d.ensureIndex(ctx)
 	if err != nil {
 		return nil, err
@@ -84,7 +84,7 @@ func (d *Decoder) regionStreaming(ctx context.Context, g *geometry, rect image.R
 	my0, my1 := rect.Min.Y/g.mcuH, (rect.Max.Y-1)/g.mcuH
 	cols := mx1 - mx0 + 1
 	quant := dequantTables(d.f)
-	r := newRecon(d.f, d.mode, g, &quant)
+	r := newRecon(d.f, mode, g, &quant)
 	rows := my1 - my0 + 1
 	workers := min(d.workerCount(), rows)
 	if rect.Dx()*rect.Dy() < parallelPixels && d.opt.Workers <= 0 {

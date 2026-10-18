@@ -164,6 +164,18 @@ func (d Decoder) Decode(ctx context.Context, r io.ReaderAt, size int64, o codec.
 	if !dec.CanRegion() && int64(levelW)*int64(levelH) > lim.MaxPixels {
 		return nil, guard.TooLarge("%dx%d pixels need the whole level in memory, over the %d pixel limit", levelW, levelH, lim.MaxPixels)
 	}
+	if o.Deep && dec.Ink() {
+		if profile := meta.ReadCMYKColor(ctx, r, size); !profile.Empty() {
+			ink, err := decodeLevelInk(ctx, dec, shift, want, want != level)
+			if err != nil {
+				return nil, classify(ctx, err)
+			}
+			if err := ctx.Err(); err != nil {
+				return nil, err
+			}
+			return &codec.Image{Info: info, Color: profile, Frames: []codec.Frame{{CMYK: ink}}, Scale: scale}, nil
+		}
+	}
 	pix, err := decodeLevel(ctx, dec, shift, want, want != level)
 	if err != nil {
 		return nil, classify(ctx, err)
@@ -187,6 +199,18 @@ func decodeLevel(ctx context.Context, dec *jpegdec.Decoder, shift int, want imag
 	return dec.Region(ctx, shift, want)
 }
 
+func decodeLevelInk(ctx context.Context, dec *jpegdec.Decoder, shift int, want image.Rectangle, partial bool) (*image.CMYK, error) {
+	if !partial {
+		return dec.DecodeInk(ctx, shift)
+	}
+	if !dec.CanRegion() {
+		if err := dec.Prepare(ctx, shift); err != nil {
+			return nil, err
+		}
+	}
+	return dec.RegionInk(ctx, shift, want)
+}
+
 func (d Decoder) OpenTiled(ctx context.Context, r io.ReaderAt, size int64, lim codec.Limits) (codec.TileReader, error) {
 	lim = lim.WithDefaults()
 	if err := guard.CheckSize(size, lim); err != nil {
@@ -204,13 +228,92 @@ func (d Decoder) OpenTiled(ctx context.Context, r io.ReaderAt, size int64, lim c
 		dec.Close()
 		return nil, guard.Corrupt("image has no pixels")
 	}
-	return &tileReader{dec: dec, info: infoOf(header, orientationOf(r, size)), color: meta.ReadColor(ctx, r, size, codec.JPEG)}, nil
+	tiles := &tileReader{dec: dec, info: infoOf(header, orientationOf(r, size))}
+	if dec.Ink() {
+		tiles.color = meta.ReadCMYKColor(ctx, r, size)
+		tiles.ink = !tiles.color.Empty()
+	}
+	if !tiles.ink {
+		tiles.color = meta.ReadColor(ctx, r, size, codec.JPEG)
+	}
+	return tiles, nil
 }
 
 type tileReader struct {
 	dec   *jpegdec.Decoder
 	info  codec.Info
 	color codec.ColorInfo
+	ink   bool
+}
+
+func (t *tileReader) Ink() bool { return t.ink }
+
+func (t *tileReader) OverviewInk(ctx context.Context, shift int) (*image.CMYK, error) {
+	if !t.ink {
+		return nil, guard.Unsupported("no CMYK profile")
+	}
+	if shift < 0 {
+		return nil, guard.Unsupported("negative level %d", shift)
+	}
+	native := min(shift, jpegdec.MaxShift)
+	img, err := t.dec.DecodeInk(ctx, native)
+	if err != nil {
+		return nil, classify(ctx, err)
+	}
+	for n := native; n < shift; n++ {
+		img = halveInk(img)
+	}
+	return img, nil
+}
+
+func (t *tileReader) RegionInk(ctx context.Context, shift int, r image.Rectangle) (*image.CMYK, error) {
+	if !t.ink {
+		return nil, guard.Unsupported("no CMYK profile")
+	}
+	if shift < 0 {
+		return nil, guard.Unsupported("negative level %d", shift)
+	}
+	w, h := codec.LevelSize(t.info.Width, t.info.Height, shift)
+	r = r.Intersect(image.Rect(0, 0, w, h))
+	if r.Empty() {
+		return image.NewCMYK(image.Rectangle{}), nil
+	}
+	if shift <= jpegdec.MaxShift {
+		img, err := t.dec.RegionInk(ctx, shift, r)
+		return img, classify(ctx, err)
+	}
+	extra := shift - jpegdec.MaxShift
+	w3, h3 := codec.LevelSize(t.info.Width, t.info.Height, jpegdec.MaxShift)
+	source := image.Rect(r.Min.X<<uint(extra), r.Min.Y<<uint(extra), r.Max.X<<uint(extra), r.Max.Y<<uint(extra)).Intersect(image.Rect(0, 0, w3, h3))
+	img, err := t.dec.RegionInk(ctx, jpegdec.MaxShift, source)
+	if err != nil {
+		return nil, classify(ctx, err)
+	}
+	for n := 0; n < extra; n++ {
+		img = halveInk(img)
+	}
+	return img, nil
+}
+
+func halveInk(src *image.CMYK) *image.CMYK {
+	w, h := src.Bounds().Dx(), src.Bounds().Dy()
+	nw, nh := (w+1)/2, (h+1)/2
+	dst := image.NewCMYK(image.Rect(0, 0, nw, nh))
+	for y := 0; y < nh; y++ {
+		top := src.Pix[y*2*src.Stride:]
+		bottom := src.Pix[min(2*y+1, h-1)*src.Stride:]
+		out := dst.Pix[y*dst.Stride : y*dst.Stride+nw*4]
+		for x := 0; x < nw; x++ {
+			left := x * 8
+			right := min(2*x+1, w-1) * 4
+			o := x * 4
+			for c := 0; c < 4; c++ {
+				sum := int(top[left+c]) + int(top[right+c]) + int(bottom[left+c]) + int(bottom[right+c])
+				out[o+c] = uint8((sum + 2) >> 2)
+			}
+		}
+	}
+	return dst
 }
 
 func (t *tileReader) Color() codec.ColorInfo { return t.color }

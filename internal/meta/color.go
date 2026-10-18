@@ -9,15 +9,39 @@ import (
 	"github.com/oops1/PixGo/internal/isobmff"
 )
 
-func ColorProfile(icc []byte) []byte {
+func profileOf(icc []byte, spaces ...string) []byte {
 	if len(icc) < iccHeaderSize || len(icc) > MaxICCBytes || string(icc[36:40]) != "acsp" {
 		return nil
 	}
-	switch string(icc[16:20]) {
-	case "RGB ", "GRAY":
-		return icc
+	for _, space := range spaces {
+		if string(icc[16:20]) == space {
+			return icc
+		}
 	}
 	return nil
+}
+
+func ColorProfile(icc []byte) []byte { return profileOf(icc, "RGB ", "GRAY") }
+
+func CMYKProfile(icc []byte) []byte { return profileOf(icc, "CMYK") }
+
+func ReadCMYKColor(ctx context.Context, r io.ReaderAt, size int64) codec.ColorInfo {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if r == nil || size < 0 || ctx.Err() != nil {
+		return codec.ColorInfo{}
+	}
+	in := input{r: ctxReaderAt{ctx: ctx, r: r}, size: size}
+	found := blocks{colorOnly: true}
+	scanJPEG(ctx, in, &found)
+	if ctx.Err() != nil {
+		return codec.ColorInfo{}
+	}
+	if profile := CMYKProfile(found.icc); profile != nil {
+		return codec.ColorInfo{ICC: bytes.Clone(profile)}
+	}
+	return codec.ColorInfo{}
 }
 
 func NewColor(icc []byte, cicp *codec.CICP) codec.ColorInfo {

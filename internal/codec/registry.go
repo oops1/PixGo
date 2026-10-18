@@ -188,7 +188,7 @@ func (r *Registry) Probe(ctx context.Context, src *Source, lim Limits) (d Decode
 func (r *Registry) Decode(ctx context.Context, d Decoder, src *Source, o Options) (img *Image, err error) {
 	defer recoverInto(d, &err)
 	img, err = d.Decode(ctx, src.R, src.Size, o)
-	if err == nil && (img == nil || len(img.Frames) == 0 || img.Frames[0].Pix == nil && img.Frames[0].Deep == nil) {
+	if err == nil && (img == nil || len(img.Frames) == 0 || img.Frames[0].Pix == nil && img.Frames[0].Deep == nil && img.Frames[0].CMYK == nil) {
 		err = ErrCorrupt
 	}
 	return img, err

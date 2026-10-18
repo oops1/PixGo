@@ -230,6 +230,10 @@ func (c *Conv) Tile(img *image.NRGBA) {
 }
 
 func (c *Conv) Frame(f *codec.Frame) error {
+	if f.CMYK != nil {
+		f.Pix, f.CMYK = naiveInk(f.CMYK), nil
+		return nil
+	}
 	if f.Deep != nil {
 		t := c.T
 		if t == nil {
@@ -267,6 +271,9 @@ func (c *Conv) Image(img *codec.Image) (Report, error) {
 }
 
 func (m *Manager) ConvertImage(img *codec.Image) (Report, error) {
+	if hasInk(img) {
+		return m.convertInk(img)
+	}
 	return m.Resolve(img.Color).Image(img)
 }
 

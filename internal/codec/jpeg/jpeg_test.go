@@ -354,17 +354,20 @@ func FuzzDecode(f *testing.F) {
 	f.Add(withExifOrientation(base, true, 6), uint8(2), uint16(1), uint16(1), uint16(5), uint16(5))
 	f.Add(hugeHeader(300, 200), uint8(8), uint16(0), uint16(0), uint16(0), uint16(0))
 	f.Add(base, uint8(4), uint16(2), uint16(3), uint16(4), uint16(3))
+	for _, ink := range cmykFiles(f) {
+		f.Add(withICC(f, ink, testimg.SampleICCSpace("CMYK", 300), 200), uint8(2), uint16(1), uint16(1), uint16(5), uint16(5))
+	}
 	f.Fuzz(func(t *testing.T, data []byte, scale uint8, x, y, w, h uint16) {
 		lim := testimg.SmallLimits()
 		Decoder{}.Sniff(data)
 		Decoder{}.Probe(context.Background(), bytes.NewReader(data), int64(len(data)), lim)
-		options := codec.Options{Limits: lim, Scale: int(scale % 12)}
+		options := codec.Options{Limits: lim, Scale: int(scale % 12), Deep: x&1 == 1}
 		if w != 0 && h != 0 {
 			region := image.Rect(int(x%64), int(y%64), int(x%64)+int(w%48), int(y%64)+int(h%48))
 			options.Region = &region
 		}
 		img, err := Decoder{}.Decode(context.Background(), bytes.NewReader(data), int64(len(data)), options)
-		if err == nil && (img == nil || img.First() == nil) {
+		if err == nil && (img == nil || img.First() == nil && img.Frames[0].CMYK == nil) {
 			t.Fatal("success without pixels")
 		}
 		if err != nil {
@@ -381,6 +384,9 @@ func FuzzTileReader(f *testing.F) {
 	base := encodeStd(f, rgbaOf(testimg.Photo(40, 30)), 80)
 	f.Add(base, uint8(0), uint16(3), uint16(4), uint16(20), uint16(15))
 	f.Add(base, uint8(5), uint16(0), uint16(0), uint16(9), uint16(9))
+	for _, ink := range cmykFiles(f) {
+		f.Add(withICC(f, ink, testimg.SampleICCSpace("CMYK", 300), 200), uint8(3), uint16(2), uint16(2), uint16(9), uint16(9))
+	}
 	f.Add(hugeHeader(300, 200), uint8(1), uint16(0), uint16(0), uint16(8), uint16(8))
 	f.Fuzz(func(t *testing.T, data []byte, shift uint8, x, y, w, h uint16) {
 		lim := testimg.SmallLimits()
@@ -392,6 +398,12 @@ func FuzzTileReader(f *testing.F) {
 		}
 		defer tr.Close()
 		level := int(shift % 7)
+		if ik, ok := tr.(codec.InkTileReader); ok && ik.Ink() {
+			cw, ch := codec.LevelSize(tr.Info().Width, tr.Info().Height, int(shift%7))
+			if ink, err := ik.OverviewInk(context.Background(), int(shift%7)); err == nil && ink.Bounds() != image.Rect(0, 0, cw, ch) {
+				t.Fatalf("ink overview %v, want %dx%d", ink.Bounds(), cw, ch)
+			}
+		}
 		overview, err := tr.Overview(context.Background(), level)
 		if err != nil {
 			testimg.RequireCodecError(t, err)

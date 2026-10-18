@@ -3,6 +3,7 @@ package jxl
 import (
 	"bytes"
 	"encoding/binary"
+	"math"
 	"testing"
 
 	gjxl "github.com/gen2brain/jxl"
@@ -137,6 +138,7 @@ type headerSpec struct {
 	transferEnum    uint32
 	gammaBits       uint32
 	toneMapping     bool
+	intensityBits   uint64
 	extensions      bool
 	transformData   bool
 	allDefault      bool
@@ -266,7 +268,7 @@ func (s headerSpec) write() ([]byte, int) {
 		w.flag(true)
 	} else {
 		w.flag(false)
-		extraFields := s.orientation > 1 || s.intrinsic || s.preview || s.animated
+		extraFields := s.orientation > 1 || s.intrinsic || s.preview || s.animated || s.toneMapping
 		w.flag(extraFields)
 		if extraFields {
 			w.bits(uint64(max(s.orientation, 1)-1), 3)
@@ -312,7 +314,7 @@ func (s headerSpec) write() ([]byte, int) {
 		if extraFields {
 			w.flag(!s.toneMapping)
 			if s.toneMapping {
-				w.bits(0x3c00, 16)
+				w.bits(cmp64(s.intensityBits, 0x3c00), 16)
 				w.bits(0, 16)
 				w.flag(false)
 				w.bits(0, 16)
@@ -683,4 +685,17 @@ func partial(codestream []byte, parts int) [][]byte {
 		boxes = append(boxes, box("jxlp", binary.BigEndian.AppendUint32(nil, index), codestream[i*size:end]))
 	}
 	return boxes
+}
+
+func cmp64(v, fallback uint64) uint64 {
+	if v != 0 {
+		return v
+	}
+	return fallback
+}
+
+func halfBits(v float64) uint64 {
+	exponent := math.Floor(math.Log2(v))
+	mantissa := math.Round((v/math.Ldexp(1, int(exponent)) - 1) * 1024)
+	return uint64(int(exponent)+15)<<10 | uint64(mantissa)
 }

@@ -16,6 +16,8 @@ const (
 	primariesCustom   = 2
 	transferSRGB      = 13
 	maxExtraChannels  = 256
+
+	defaultIntensityTarget = 255
 )
 
 var errNeedMoreData = errors.New("jxl: header continues past the data read")
@@ -46,6 +48,7 @@ type imageHeader struct {
 	embeddedProfile bool
 	encoding        colorEncoding
 	endBit          int
+	intensityTarget float64
 }
 
 func (h imageHeader) transposes() bool { return h.orientation >= 5 && h.orientation <= 8 }
@@ -244,7 +247,7 @@ func readTransformData(b *bitReader, xybEncoded bool) {
 
 func parseImageHeader(data []byte) (imageHeader, error) {
 	b := newBitReader(data)
-	header := imageHeader{orientation: 1, bitsPerSample: 8, xybEncoded: true}
+	header := imageHeader{orientation: 1, bitsPerSample: 8, xybEncoded: true, intensityTarget: defaultIntensityTarget}
 	if b.bits(8) != 0xff || b.bits(8) != 0x0a {
 		return header, guard.Corrupt("jxl: bad codestream signature")
 	}
@@ -281,7 +284,10 @@ func parseImageHeader(data []byte) (imageHeader, error) {
 		header.xybEncoded = b.flag()
 		header.colorSpace, header.embeddedProfile, header.encoding = readColorEncoding(b)
 		if extraFields && !b.flag() {
-			b.skip(16 + 16 + 1 + 16)
+			if target := b.f16(); target > 0 {
+				header.intensityTarget = target
+			}
+			b.skip(16 + 1 + 16)
 		}
 		b.extensions()
 	}

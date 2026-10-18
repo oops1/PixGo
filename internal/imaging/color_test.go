@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"image"
+	"image/color"
 	"io"
 	"os"
 	"path/filepath"
@@ -81,6 +82,10 @@ func (c *colorCodec) Decode(ctx context.Context, r io.ReaderAt, size int64, o co
 	img := &codec.Image{Info: codec.Info{Format: "col", Width: 64, Height: 48, Frames: 1}, Color: colorOf(kind)}
 	if o.Deep && kind == "pq" {
 		img.Frames = []codec.Frame{{Deep: testDeep(64, 48, 38054)}}
+		return img, nil
+	}
+	if o.Deep && kind == "ink" {
+		img.Frames = []codec.Frame{{CMYK: testInk(64, 48)}}
 		return img, nil
 	}
 	img.Frames = []codec.Frame{{Pix: testPix(64, 48)}}
@@ -302,5 +307,61 @@ func TestWrappedTileReaderConvertsDeepTiles(t *testing.T) {
 	same, rep2 := off.WrapTiles(base)
 	if same != codec.TileReader(base) || rep2.Managed {
 		t.Fatal("a disabled manager must hand the reader back untouched")
+	}
+}
+
+func testInk(w, h int) *image.CMYK {
+	img := image.NewCMYK(image.Rect(0, 0, w, h))
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			copy(img.Pix[img.PixOffset(x, y):], []uint8{uint8(x * 4), uint8(y * 5), uint8(x + y), uint8(x * y % 90)})
+		}
+	}
+	return img
+}
+
+func TestLoaderConvertsInkFramesAndDropsThem(t *testing.T) {
+	for _, enabled := range []bool{true, false} {
+		r := newColorRig(t, enabled, false)
+		if !enabled {
+			r.loader.SetColor(nil)
+		}
+		e := r.load("ink")
+		if enabled && !r.codec.options[0].Deep {
+			t.Fatal("Deep not requested")
+		}
+		if !enabled {
+			continue
+		}
+		f := e.Img.Frames[0]
+		if f.CMYK != nil || f.Pix == nil {
+			t.Fatalf("ink frame left behind: %+v", f)
+		}
+		src := testInk(64, 48)
+		for _, p := range [][2]int{{0, 0}, {10, 20}, {63, 47}} {
+			c := src.CMYKAt(p[0], p[1])
+			r8, g8, b8 := color.CMYKToRGB(c.C, c.M, c.Y, c.K)
+			if got := f.Pix.NRGBAAt(p[0], p[1]); got != (color.NRGBA{R: r8, G: g8, B: b8, A: 255}) {
+				t.Fatalf("(%d,%d) = %v", p[0], p[1], got)
+			}
+		}
+		if len(e.Img.Levels) == 0 || e.Img.Levels[0] != f.Pix {
+			t.Fatal("pyramid not built from the converted frame")
+		}
+	}
+}
+
+func TestInkJPEGReservesRoomForTheConvertedCopy(t *testing.T) {
+	cmyk := codec.Info{Format: codec.JPEG, Width: 100, Height: 50, BitDepth: 32}
+	if got := deepExtraBytes(cmyk); got != 100*50*4 {
+		t.Fatalf("CMYK JPEG reserve %d", got)
+	}
+	rgb := codec.Info{Format: codec.JPEG, Width: 100, Height: 50, BitDepth: 24}
+	if got := deepExtraBytes(rgb); got != 0 {
+		t.Fatalf("RGB JPEG reserve %d", got)
+	}
+	png := codec.Info{Format: codec.PNG, Width: 100, Height: 50, BitDepth: 32}
+	if got := deepExtraBytes(png); got != 0 {
+		t.Fatalf("RGBA PNG reserve %d", got)
 	}
 }

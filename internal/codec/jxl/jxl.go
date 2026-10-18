@@ -17,12 +17,13 @@ import (
 )
 
 const (
-	formatTag          = "jxl"
-	serialThreads      = 1
-	maxWorkingSetBytes = 3 << 30
-	workingBytesPlane  = 10
-	frameBytesPlane    = 4
-	frameBytesNRGBA    = 4
+	formatTag           = "jxl"
+	serialThreads       = 1
+	maxWorkingSetBytes  = 3 << 30
+	workingBytesPlane   = 10
+	frameBytesPlane     = 4
+	frameBytesNRGBA     = 4
+	deepFrameExtraBytes = 4
 )
 
 type Decoder struct {
@@ -181,10 +182,19 @@ func (d Decoder) Decode(ctx context.Context, r io.ReaderAt, size int64, o codec.
 	if err := guard.CheckFrames(lim, found.frames, found.width, found.height); err != nil {
 		return nil, err
 	}
-	if need := workingSet(found); need > maxWorkingSetBytes {
+	plan, hdr := found.header.hdrPlan()
+	hdr = hdr && o.Deep
+	need := workingSet(found)
+	if hdr {
+		need += int64(found.width) * int64(found.height) * deepFrameExtraBytes
+	}
+	if need > maxWorkingSetBytes {
 		return nil, guard.TooLarge("jxl: decoding would need about %d MiB", need>>20)
 	}
 	source := guard.Stream(ctx, r, size)
+	if hdr {
+		return d.decodeHDR(ctx, source, found, plan, lim)
+	}
 	var result *jxl.JXL
 	err = shield.Run(formatTag, func() error {
 		var err error

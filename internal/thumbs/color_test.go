@@ -91,3 +91,35 @@ func TestThumbnailKeysSeparateColorManagedFiles(t *testing.T) {
 		t.Fatalf("tag %q", m.Tag())
 	}
 }
+
+type inkCodec struct{ colorCodec }
+
+func (c *inkCodec) Decode(ctx context.Context, r io.ReaderAt, size int64, o codec.Options) (*codec.Image, error) {
+	img := &codec.Image{Info: codec.Info{Format: "col", Width: 40, Height: 30, Frames: 1}}
+	if o.Deep {
+		ink := image.NewCMYK(image.Rect(0, 0, 40, 30))
+		for i := 0; i < 40*30; i++ {
+			copy(ink.Pix[4*i:], []byte{0, 255, 255, 0})
+		}
+		img.Frames = []codec.Frame{{CMYK: ink}}
+		return img, nil
+	}
+	img.Frames = []codec.Frame{{Pix: solid(40, 30, color.NRGBA{R: 255, A: 255})}}
+	return img, nil
+}
+
+func TestThumbnailsOfInkFramesAreConverted(t *testing.T) {
+	reg := codec.NewRegistry()
+	reg.RegisterDecoder(&inkCodec{})
+	m := colorm.NewManager(nil)
+	m.Configure(colorm.Config{Enabled: true})
+	h := newHarness(t, reg, Options{Color: m})
+	p := h.write("a.col", []byte("COL x"))
+	th := h.get(p, 64)
+	if th.Err != nil || th.Img == nil {
+		t.Fatalf("%+v", th)
+	}
+	if px := th.Img.Pix; px[0] < 250 || px[1] > 5 || px[2] > 5 || px[3] != 255 {
+		t.Fatalf("magenta+yellow ink became %v", px[:4])
+	}
+}

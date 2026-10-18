@@ -24,3 +24,10 @@ type DeepTileReader interface {
 	OverviewDeep(ctx context.Context, shift int) (*image.NRGBA64, error)
 	RegionDeep(ctx context.Context, shift int, r image.Rectangle) (*image.NRGBA64, error)
 }
+
+type InkTileReader interface {
+	TileReader
+	Ink() bool
+	OverviewInk(ctx context.Context, shift int) (*image.CMYK, error)
+	RegionInk(ctx context.Context, shift int, r image.Rectangle) (*image.CMYK, error)
+}
