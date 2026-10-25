@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+- Sharper interface text: the heights of letters are aligned to whole pixels and thin strokes of dark text are drawn denser, while light text on the dark theme no longer spreads. Line widths and the layout stay exactly as before. Comes with headless-gui v3.42.0.
+
 ## [1.3.1] - 2026-10-18
 
 ### Fixed

@@ -9,7 +9,7 @@ require (
 	github.com/gen2brain/h265 v0.2.3
 	github.com/gen2brain/jxl v0.2.0
 	github.com/gen2brain/vpx v0.2.1
-	github.com/oops1/headless-gui/v3 v3.38.0
+	github.com/oops1/headless-gui/v3 v3.42.0
 	golang.org/x/image v0.46.0
 	golang.org/x/sys v0.49.0
 )

@@ -146,6 +146,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+	eng.SetTextQuality(engine.TextQuality{Hinting: true, Contrast: engine.DefaultTextContrast})
 	if uiScale > 0 {
 		if *screenshot != "" || perf != nil {
 			eng.SetScale(uiScale)
