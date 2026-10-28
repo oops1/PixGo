@@ -184,7 +184,7 @@ func (c *Controller) Title() string {
 		return i18n.T("app.name")
 	}
 	w, h := c.info.Width, c.info.Height
-	if w <= 0 || h <= 0 {
+	if w <= 0 || h <= 0 || c.info.Model {
 		return c.Name()
 	}
 	if c.exif.Valid() {

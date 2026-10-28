@@ -23,6 +23,13 @@ var editDefs = map[string]def{
 			gfx.Capsule(11.2, 5.6, 14.4, 8.8, 1.3),
 		)
 	}),
+	"cube-3d": mono(20, 20, func() gfx.Shape {
+		return gfx.Union(
+			closed(1.4, 10, 1.9, 17.2, 5.9, 17.2, 14.1, 10, 18.1, 2.8, 14.1, 2.8, 5.9),
+			gfx.Path(1.4, 2.8, 5.9, 10, 9.9, 17.2, 5.9),
+			gfx.Capsule(10, 9.9, 10, 18.1, 1.4),
+		)
+	}),
 	"crop": mono(20, 20, func() gfx.Shape {
 		return gfx.Union(
 			gfx.Path(1.5, 5.2, 1.6, 5.2, 14.8, 18.4, 14.8),

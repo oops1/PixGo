@@ -71,6 +71,7 @@ var metricsByKind = map[CardKind]kindMetrics{
 	CardColor:  {20, 40, 19.4, 12, 137},
 	CardGPS:    {20, 40, 19.4, 12, 137},
 	CardNote:   {20, 30, 19.4, 12, 12},
+	CardModel:  {20, 40, 19.4, 12, 137},
 }
 
 type Engine interface {

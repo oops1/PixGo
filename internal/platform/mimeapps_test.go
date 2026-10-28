@@ -88,7 +88,7 @@ func TestDesktopFileMatchesSupportedMimeTypes(t *testing.T) {
 			listed = splitList(v)
 		}
 	}
-	want := append([]string(nil), ImageMimeTypes...)
+	want := append(append([]string(nil), ImageMimeTypes...), ModelMimeTypes...)
 	sort.Strings(listed)
 	sort.Strings(want)
 	if strings.Join(listed, ",") != strings.Join(want, ",") {

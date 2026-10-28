@@ -52,6 +52,9 @@ func (a *App) gateEnabled(id commands.ID, f func() bool) func() bool {
 		if a.editing && !editAllowed[id] {
 			return false
 		}
+		if a.m3d.active && blockedIn3D[id] {
+			return false
+		}
 		if f == nil {
 			return true
 		}
@@ -75,7 +78,10 @@ func (a *App) rotate180OrEdit() {
 		a.Editor.Rotate(true)
 		return
 	}
-	a.Canvas.Rotate180()
+	a.or3D(a.Canvas.Rotate180, func() {
+		a.View3D.Turn(true)
+		a.View3D.Turn(true)
+	})()
 }
 
 func (a *App) flipOrEdit(h bool, plain func()) func() {
@@ -99,6 +105,8 @@ func (a *App) editRefusal() string {
 	}
 	info := a.Ctl.Info()
 	switch {
+	case info.Model:
+		return "edit.refused.model"
 	case info.Vector || info.Format == codec.SVG:
 		return "edit.refused.vector"
 	case info.Animated || info.Frames > 1:

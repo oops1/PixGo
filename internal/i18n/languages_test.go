@@ -210,19 +210,19 @@ var sameAsEnglish = map[string]bool{
 	"settings.language.it": true, "settings.language.pt-BR": true, "settings.language.pl": true,
 	"settings.language.cs": true, "settings.language.nl": true, "settings.language.tr": true,
 	"settings.displayProfile.srgb": true, "info.hdr": true, "info.profileCICP": true,
-	"print.unit.cm": true, "print.paper.photo": true,
+	"print.unit.cm": true, "print.paper.photo": true, "info.mesh.sizeValue": true, "info.mesh.volumeValue": true,
 }
 
 var sameWords = map[string][]string{
 	"de":    {"key.plus", "key.minus", "cmd.slideshowPause", "zoom.label", "update.title", "gallery.desktop", "gallery.videos", "gallery.downloads", "unit.megabytes", "unit.megapixels", "info.name", "info.format", "info.software", "settings.about.version", "edit.aspect.orig", "resize.original", "settings.language.system", "print.margin.normal"},
-	"fr":    {"key.plus", "cmd.slideshowPause", "zoom.label", "gallery.documents", "info.format", "info.sizes", "info.dimensions", "info.flash", "info.latitude", "info.longitude", "info.altitude", "settings.section.formats", "settings.about.version", "open.filter.images", "access.menu", "resize.unit.px", "print.orient.portrait", "print.orientation"},
+	"fr":    {"key.plus", "cmd.slideshowPause", "zoom.label", "gallery.documents", "info.format", "info.sizes", "info.dimensions", "info.flash", "info.latitude", "info.longitude", "info.altitude", "settings.section.formats", "settings.about.version", "open.filter.images", "access.menu", "resize.unit.px", "print.orient.portrait", "print.orientation", "info.mesh.triangles", "info.mesh.volume"},
 	"es":    {"zoom.label", "unit.megabytes", "unit.megapixels", "info.flash", "info.software", "info.color", "settings.section.general", "edit.aspect.orig", "resize.original", "print.margin.normal"},
-	"it":    {"zoom.label", "gallery.desktop", "gallery.fileSystem", "unit.files.one", "unit.megabytes", "unit.megapixels", "info.file", "info.flash", "info.software", "access.menu", "format.bitDepth", "print.unit.in"},
-	"pt-BR": {"zoom.label", "gallery.downloads", "unit.items.one", "unit.megabytes", "unit.megapixels", "info.megapixels", "info.flash", "info.software", "info.latitude", "info.longitude", "info.altitude", "access.menu", "edit.aspect.orig", "resize.unit.px", "resize.original", "print.margin.normal"},
-	"pl":    {"key.plus", "key.minus", "gallery.folder", "unit.megabytes", "info.format", "info.model", "access.menu"},
-	"cs":    {"key.plus", "key.minus", "unit.megabytes", "info.model", "info.software", "slideshow.interval"},
-	"nl":    {"key.plus", "zoom.label", "viewer.frames", "update.title", "gallery.recent", "gallery.downloads", "gallery.items", "unit.items.one", "unit.items.few", "unit.items.many", "unit.megabytes", "unit.megapixels", "info.megapixels", "info.camera", "info.model", "info.lens", "info.software", "slideshow.interval", "settings.about.platform", "access.menu", "resize.unit.px", "format.bitDepth", "print.printer"},
-	"tr":    {"unit.megabytes", "unit.megapixels", "info.model", "info.lens", "settings.about.platform", "format.bitDepth", "print.margin.normal"},
+	"it":    {"zoom.label", "gallery.desktop", "gallery.fileSystem", "unit.files.one", "unit.megabytes", "unit.megapixels", "info.file", "info.flash", "info.software", "access.menu", "format.bitDepth", "print.unit.in", "info.mesh.volume"},
+	"pt-BR": {"zoom.label", "gallery.downloads", "unit.items.one", "unit.megabytes", "unit.megapixels", "info.megapixels", "info.flash", "info.software", "info.latitude", "info.longitude", "info.altitude", "access.menu", "edit.aspect.orig", "resize.unit.px", "resize.original", "print.margin.normal", "info.mesh.volume"},
+	"pl":    {"key.plus", "key.minus", "gallery.folder", "unit.megabytes", "info.format", "info.model", "access.menu", "info.mesh"},
+	"cs":    {"key.plus", "key.minus", "unit.megabytes", "info.model", "info.software", "slideshow.interval", "info.mesh"},
+	"nl":    {"key.plus", "zoom.label", "viewer.frames", "update.title", "gallery.recent", "gallery.downloads", "gallery.items", "unit.items.one", "unit.items.few", "unit.items.many", "unit.megabytes", "unit.megapixels", "info.megapixels", "info.camera", "info.model", "info.lens", "info.software", "slideshow.interval", "settings.about.platform", "access.menu", "resize.unit.px", "format.bitDepth", "print.printer", "info.mesh", "info.mesh.volume"},
+	"tr":    {"unit.megabytes", "unit.megapixels", "info.model", "info.lens", "settings.about.platform", "format.bitDepth", "print.margin.normal", "info.mesh"},
 }
 
 func TestNothingLeftUntranslated(t *testing.T) {

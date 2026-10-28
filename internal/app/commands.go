@@ -11,14 +11,14 @@ func (a *App) registerCommands() {
 		CmdNext:            func() { a.Ctl.Step(1) },
 		CmdFirst:           func() { a.Ctl.First() },
 		CmdLast:            func() { a.Ctl.Last() },
-		CmdZoomIn:          a.Canvas.ZoomIn,
-		CmdZoomOut:         a.Canvas.ZoomOut,
-		CmdZoomActual:      a.Canvas.Actual,
-		CmdZoomFit:         a.Canvas.Fit,
+		CmdZoomIn:          a.or3D(a.Canvas.ZoomIn, a.View3D.ZoomIn),
+		CmdZoomOut:         a.or3D(a.Canvas.ZoomOut, a.View3D.ZoomOut),
+		CmdZoomActual:      a.or3D(a.Canvas.Actual, a.View3D.Reset),
+		CmdZoomFit:         a.or3D(a.Canvas.Fit, a.View3D.Reset),
 		CmdZoomWidth:       a.Canvas.FitWidth,
-		CmdZoomToggle:      a.Canvas.ToggleFitActual,
-		CmdRotateRight:     a.rotateOrEdit(true, a.Canvas.RotateRight),
-		CmdRotateLeft:      a.rotateOrEdit(false, a.Canvas.RotateLeft),
+		CmdZoomToggle:      a.or3D(a.Canvas.ToggleFitActual, a.View3D.Reset),
+		CmdRotateRight:     a.rotateOrEdit(true, a.or3D(a.Canvas.RotateRight, func() { a.View3D.Turn(true) })),
+		CmdRotateLeft:      a.rotateOrEdit(false, a.or3D(a.Canvas.RotateLeft, func() { a.View3D.Turn(false) })),
 		CmdRotate180:       a.rotate180OrEdit,
 		CmdFlipH:           a.flipOrEdit(true, a.Canvas.FlipH),
 		CmdFlipV:           a.flipOrEdit(false, a.Canvas.FlipV),
@@ -45,6 +45,7 @@ func (a *App) registerCommands() {
 		CmdEditStart:       a.startEdit,
 		CmdCrop:            a.startEdit,
 		CmdResize:          a.startResize,
+		CmdView3D:          a.toggleView3D,
 	}
 	enabled := map[commands.ID]func() bool{
 		CmdPrev:            a.CanPrev,
@@ -76,10 +77,11 @@ func (a *App) registerCommands() {
 		CmdInfo:            a.hasFile,
 		CmdSlideshow:       a.canSlideshow,
 		CmdSlideshowToggle: a.canSlideshow,
-		CmdEscape:          func() bool { return a.fullscreen || a.slideshowActive() || a.infoOpen },
+		CmdEscape:          func() bool { return a.fullscreen || a.slideshowActive() || a.infoOpen || a.m3d.active },
 		CmdEditStart:       a.canStartEdit,
 		CmdCrop:            a.canStartEdit,
 		CmdResize:          a.canStartEdit,
+		CmdView3D:          a.canView3D,
 	}
 	for _, s := range Specs {
 		a.Commands.Add(commands.Command{

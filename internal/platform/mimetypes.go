@@ -36,6 +36,16 @@ var ImageMimeTypes = []string{
 	"image/x-pentax-pef",
 }
 
+var ModelMimeTypes = []string{
+	"model/stl",
+	"model/x.stl-ascii",
+	"model/x.stl-binary",
+	"application/sla",
+	"model/step",
+	"application/step",
+	"model/x-step",
+}
+
 const DefaultDesktopID = "pixgo.desktop"
 
 var desktopID atomic.Value

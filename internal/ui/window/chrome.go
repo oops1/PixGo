@@ -60,7 +60,14 @@ func DefaultActions() map[ZoneKind]commands.ID {
 	}
 }
 
+const View3DCommand commands.ID = "view.3d"
+
 func (r *Root) command(k ZoneKind) *commands.Command {
+	if k == ZoneToolEdit && r.host.Registry() != nil {
+		if shows, _ := r.model(); shows {
+			return r.host.Registry().Get(View3DCommand)
+		}
+	}
 	id, ok := r.Actions[k]
 	if !ok || r.host.Registry() == nil {
 		return nil
@@ -373,6 +380,14 @@ func (r *Root) drawToolButton(c widget.DrawContext, l Layout, z Zone) {
 	}[z.Kind]
 	if z.Kind == ZoneToolFullscreen && r.host.Fullscreen() {
 		name = "fullscreen-exit"
+	}
+	if z.Kind == ZoneToolEdit {
+		if shows, active := r.model(); shows {
+			name = "cube-3d"
+			if active && on && !(r.hover == z.Kind) {
+				gfx.FillRound(c, z.Rect.Inset(2), 6, t.OverlayHover)
+			}
+		}
 	}
 	drawIcon(c, name, cx, cy, col)
 }

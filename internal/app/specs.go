@@ -40,6 +40,7 @@ const (
 	CmdMore            commands.ID = "app.more"
 	CmdZoomToggle      commands.ID = "view.zoomToggle"
 	CmdEditStart       commands.ID = "edit.start"
+	CmdView3D          commands.ID = "view.3d"
 	CmdCrop            commands.ID = "edit.crop"
 	CmdResize          commands.ID = "edit.resize"
 )
@@ -90,5 +91,6 @@ var Specs = []Spec{
 	{CmdZoomToggle, "zoom.label", "", nil},
 	{CmdEditStart, "cmd.edit", "edit", []commands.Chord{commands.C(commands.Ctrl, 'E')}},
 	{CmdCrop, "cmd.crop", "crop", nil},
+	{CmdView3D, "cmd.view3d", "cube-3d", []commands.Chord{commands.C(0, '3')}},
 	{CmdResize, "cmd.resize", "resize", nil},
 }

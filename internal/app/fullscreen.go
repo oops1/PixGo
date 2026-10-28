@@ -62,6 +62,10 @@ func (a *App) emulateFullscreen(on bool) {
 }
 
 func (a *App) escape() {
+	if a.m3d.active {
+		a.exitView3D()
+		return
+	}
 	active := a.slideshowActive()
 	a.slideEnteredFullscreen = false
 	if active {

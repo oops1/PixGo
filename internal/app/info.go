@@ -1,6 +1,7 @@
 package app
 
 import (
+	"math"
 	"os"
 
 	"github.com/oops1/headless-gui/v3/widget"
@@ -10,6 +11,7 @@ import (
 	"github.com/oops1/PixGo/internal/fsutil"
 	"github.com/oops1/PixGo/internal/i18n"
 	"github.com/oops1/PixGo/internal/meta"
+	"github.com/oops1/PixGo/internal/model3d"
 	"github.com/oops1/PixGo/internal/ui/infopanel"
 	uiwindow "github.com/oops1/PixGo/internal/ui/window"
 )
@@ -75,6 +77,27 @@ func (a *App) refreshInfo() {
 		a.info.SetThumbnail(d.Source(), a.Ctl.ExifOrientation())
 	}
 	if a.Ctl.Status() != StatusReady {
+		return
+	}
+	if in.Info.Model {
+		a.Ctl.Async("model", func(ctx contextT) (any, error) {
+			m, _, err := model3d.Load(ctx, path)
+			if err != nil {
+				return nil, err
+			}
+			return &infopanel.ModelFacts{
+				Size:      [3]float64{float64(m.Max[0] - m.Min[0]), float64(m.Max[1] - m.Min[1]), float64(m.Max[2] - m.Min[2])},
+				Triangles: m.Triangles(),
+				Parts:     m.Parts,
+				Volume:    math.Abs(m.Volume()),
+			}, nil
+		}, func(v any, err error) {
+			if err != nil || a.Ctl.Path() != path || !a.infoOpen {
+				return
+			}
+			in.Model, _ = v.(*infopanel.ModelFacts)
+			a.info.SetModel(infopanel.BuildModel(in))
+		})
 		return
 	}
 	a.Ctl.Async("meta", func(ctx contextT) (any, error) {

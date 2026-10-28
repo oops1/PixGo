@@ -63,7 +63,7 @@ const (
 	DefaultSaveWebPQuality = 80
 )
 
-var OptionalFormats = []string{"apng", "avif", "jxl", "heic", "raw"}
+var OptionalFormats = []string{"apng", "avif", "jxl", "heic", "raw", "stl", "step"}
 
 type Format struct {
 	Enabled bool `json:"enabled"`

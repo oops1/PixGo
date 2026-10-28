@@ -283,6 +283,8 @@ func (r *Root) HandleKey(e widget.KeyEvent) bool {
 		}
 	} else if r.handleFocusKey(e) {
 		return true
+	} else if r.viewing3D() && r.handleEditKey(e) {
+		return true
 	}
 	ch, ok := ChordOf(e)
 	if !ok {

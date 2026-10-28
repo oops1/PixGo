@@ -27,6 +27,7 @@ import (
 	"github.com/oops1/PixGo/internal/ui/saveopts"
 	"github.com/oops1/PixGo/internal/ui/theme"
 	"github.com/oops1/PixGo/internal/ui/view"
+	"github.com/oops1/PixGo/internal/ui/view3d"
 	"github.com/oops1/PixGo/internal/ui/window"
 )
 
@@ -69,6 +70,9 @@ type App struct {
 	modalOpen              atomic.Bool
 	modals                 modalTracker
 
+	View3D *view3d.Viewer
+	m3d    model3DState
+
 	Editor    *uiedit.Editor
 	editing   bool
 	editPath  string
@@ -109,6 +113,7 @@ func New(eng *engine.Engine, opt Options) *App {
 	}
 	a.Editor = uiedit.New(eng, a.Canvas)
 	a.initEdit()
+	a.initView3D()
 	a.Canvas.Chrome = a.Root.Owns
 	a.Canvas.After = a.Root.After
 	a.Canvas.OnChange = func() {
@@ -118,6 +123,7 @@ func New(eng *engine.Engine, opt Options) *App {
 	a.Canvas.OnStep = func(d int) { a.Ctl.Step(d) }
 	a.Canvas.OnActivity = a.Root.Wake
 	a.Ctl.OnChange = func() {
+		a.sync3D()
 		a.syncEdit()
 		a.Root.Refresh()
 		a.refreshInfo()
@@ -144,7 +150,12 @@ func (a *App) Registry() *commands.Registry { return a.Commands }
 
 func (a *App) Title() string { return a.Ctl.Title() }
 
-func (a *App) ZoomText() string { return i18n.T("zoom.percent", a.Canvas.ZoomPercent()) }
+func (a *App) ZoomText() string {
+	if s, ok := a.zoomText3D(); ok {
+		return s
+	}
+	return i18n.T("zoom.percent", a.Canvas.ZoomPercent())
+}
 
 func (a *App) State() window.ContentState {
 	switch a.Ctl.Status() {
@@ -195,6 +206,8 @@ func (a *App) Content() widget.Widget {
 	switch {
 	case a.editing && a.page == window.PageViewer:
 		return a.Editor
+	case a.m3d.active && a.page == window.PageViewer && a.View3D.HasScene():
+		return a.View3D
 	case a.page == window.PageGallery && a.gal != nil:
 		return a.gal.page
 	case a.page == window.PageSettings && a.set != nil:
@@ -279,11 +292,15 @@ func (a *App) applyTheme() {
 		}
 	}
 	a.Canvas.SetBackground(a.background(t))
+	a.View3D.SetBackground(t.Canvas)
 	a.Editor.Theme = t
 	a.Eng.Invalidate()
 }
 
 func (a *App) background(t *theme.Theme) render.Background {
+	if mb, ok := a.modelBackground(t); ok {
+		return mb
+	}
 	bg := render.Background{Canvas: t.Canvas, Kind: render.BgSolid, Fill: t.Canvas, Checker: [2]color.RGBA{t.Checker1, t.Checker2}, Cell: 8}
 	switch a.Settings.Get().TransparentBackground {
 	case settings.BackgroundWhite:

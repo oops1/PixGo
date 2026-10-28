@@ -21,6 +21,7 @@ const (
 	CardColor
 	CardGPS
 	CardNote
+	CardModel
 )
 
 type Row struct {
@@ -56,12 +57,17 @@ type Input struct {
 	HasCreated bool
 	Meta       *meta.Metadata
 	Color      colorm.Report
+	Model      *ModelFacts
 }
 
 func BuildModel(in Input) Model {
 	m := Model{Path: in.Path, Name: in.Name, Format: formatLine(in.Info), FormatNote: formatNote(in.Info)}
 	if in.FileSize > 0 {
 		m.FileSize = i18n.FormatBytes(in.FileSize)
+	}
+	if in.Info.Model {
+		m.Cards = append(m.Cards, modelCard(in.Model), fileCard(in))
+		return m
 	}
 	m.Cards = append(m.Cards, sizesCard(in), fileCard(in))
 	var extra []Card

@@ -112,6 +112,9 @@ Root: HKA; Subkey: "Software\Classes\.heic\OpenWithProgids"; ValueType: string; 
 Root: HKA; Subkey: "Software\Classes\.heif\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
 Root: HKA; Subkey: "Software\Classes\.hif\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
 Root: HKA; Subkey: "Software\Classes\.jxl\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
+Root: HKA; Subkey: "Software\Classes\.stl\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
+Root: HKA; Subkey: "Software\Classes\.step\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
+Root: HKA; Subkey: "Software\Classes\.stp\OpenWithProgids"; ValueType: string; ValueName: "{#ProgId}"; ValueData: ""; Flags: uninsdeletevalue; Tasks: assoc
 
 Root: HKA; Subkey: "Software\Classes\Applications\{#AppExe}"; ValueType: string; ValueName: "FriendlyAppName"; ValueData: "{#AppName}"; Flags: uninsdeletekey; Tasks: assoc
 Root: HKA; Subkey: "Software\Classes\Applications\{#AppExe}\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#AppExe}"" ""%1"""; Tasks: assoc
@@ -150,6 +153,9 @@ Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: st
 Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".heif"; ValueData: "{#ProgId}"; Tasks: assoc
 Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".hif"; ValueData: "{#ProgId}"; Tasks: assoc
 Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".jxl"; ValueData: "{#ProgId}"; Tasks: assoc
+Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".stl"; ValueData: "{#ProgId}"; Tasks: assoc
+Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".step"; ValueData: "{#ProgId}"; Tasks: assoc
+Root: HKA; Subkey: "Software\PixGo\Capabilities\FileAssociations"; ValueType: string; ValueName: ".stp"; ValueData: "{#ProgId}"; Tasks: assoc
 Root: HKA; Subkey: "Software\RegisteredApplications"; ValueType: string; ValueName: "{#AppName}"; ValueData: "Software\PixGo\Capabilities"; Flags: uninsdeletevalue; Tasks: assoc
 
 [Run]

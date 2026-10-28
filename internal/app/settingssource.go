@@ -54,6 +54,8 @@ var optionalFormats = map[string]optionalFormat{
 	"heic": {nameKey: "settings.format.heic", noteKey: "settings.format.heic.note", extensions: []string{".heic", ".heif"}},
 	"raw": {nameKey: "settings.format.raw", noteKey: "settings.format.raw.note",
 		extensions: []string{".cr2", ".cr3", ".nef", ".arw", ".dng", ".raf", ".orf", ".rw2", ".pef"}},
+	"stl":  {nameKey: "settings.format.stl", noteKey: "settings.format.stl.note", extensions: []string{".stl"}},
+	"step": {nameKey: "settings.format.step", noteKey: "settings.format.step.note", extensions: []string{".step", ".stp"}},
 }
 
 func extensionLabels(exts []string) []string {
