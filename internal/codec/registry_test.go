@@ -179,3 +179,28 @@ func TestExtensionsDropOnlyTheSwitchedOffDecoder(t *testing.T) {
 		t.Fatalf("after switching on: %d extensions, want 4", n)
 	}
 }
+
+type claimingStub struct{ stubDecoder }
+
+func (claimingStub) ClaimsByExtension() bool { return true }
+
+func TestDetectFallsBackToAClaimingDecoderByExtension(t *testing.T) {
+	r := stubRegistry()
+	r.RegisterDecoder(claimingStub{stubDecoder{id: STL, exts: []string{".stl"}}})
+	if d, ok := r.Detect([]byte("\x00\x01binary"), "part.STL"); !ok || d.ID() != STL {
+		t.Fatalf("binary .stl not claimed: %v %v", d, ok)
+	}
+	if d, ok := r.Detect([]byte("PNG...."), "part.stl"); !ok || d.ID() != PNG {
+		t.Fatalf("a sniffed signature must win over the claim: %v %v", d, ok)
+	}
+	if _, ok := r.Detect([]byte("\x00\x01binary"), "part.obj"); ok {
+		t.Fatal("unknown extension must stay unknown")
+	}
+	if _, ok := r.Detect([]byte("\x00\x01binary"), "photo.png"); ok {
+		t.Fatal("a non-claiming decoder must not be chosen by extension alone")
+	}
+	r.SetEnabled(STL, false)
+	if _, ok := r.Detect([]byte("\x00\x01binary"), "part.stl"); ok {
+		t.Fatal("a switched-off decoder must not claim")
+	}
+}

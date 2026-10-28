@@ -138,6 +138,9 @@ func (r *Registry) Detect(head []byte, path string) (Decoder, bool) {
 	if len(sniffed) > 0 {
 		return sniffed[0], true
 	}
+	if c, ok := byExt.(ExtensionClaimer); ok && c.ClaimsByExtension() {
+		return byExt, true
+	}
 	return nil, false
 }
 

@@ -25,6 +25,8 @@ const (
 	HEIC ID = "heic"
 	JXL  ID = "jxl"
 	RAW  ID = "raw"
+	STL  ID = "stl"
+	STEP ID = "step"
 )
 
 var (
@@ -46,6 +48,7 @@ type Info struct {
 	BitDepth    int
 	Vector      bool
 	Preview     bool
+	Model       bool
 }
 
 type FrameSel int
@@ -94,6 +97,10 @@ type Decoder interface {
 	Sniff(head []byte) bool
 	Probe(ctx context.Context, r io.ReaderAt, size int64, lim Limits) (Info, error)
 	Decode(ctx context.Context, r io.ReaderAt, size int64, o Options) (*Image, error)
+}
+
+type ExtensionClaimer interface {
+	ClaimsByExtension() bool
 }
 
 type Metadata struct {
