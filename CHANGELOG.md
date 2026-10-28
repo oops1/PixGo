@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **3D models: STL and STEP.** STL (binary and ASCII) and STEP files (AP203, AP214, AP242: solids, assemblies, colors) open like pictures: the part is drawn from one angle on the plain background of the window, also in the gallery, the slideshow and print. The **3D** button, which takes the place of the pencil for a model, or the `3` key turns the picture into a model you can turn with the mouse, move with the right button and zoom with the wheel; the arrow keys turn it by 15°, R by 90°, double-click or Home returns to the first view, Esc leaves. Going to the next model keeps the 3D view. STEP surfaces are triangulated by PixGo itself, without a CAD kernel.
+- The information panel shows the size of a model in millimeters, its volume, the number of triangles and the number of parts of an assembly.
+- STL and STEP can be switched off in **Settings → Formats**; the installer and the Linux desktop file offer PixGo in **Open with** for them without making it the default program.
+
 ## [1.3.2] - 2026-10-25
 
 ### Changed

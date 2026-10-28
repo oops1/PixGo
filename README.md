@@ -54,6 +54,7 @@ The photos in the screenshots are public domain (CC0), see [docs/screenshots/CRE
 - Rotation and flips, EXIF orientation applied automatically; Save as JPEG, PNG, BMP or WebP with a choice of quality, and lossless rotation of JPEG files.
 - Printing (Ctrl+P) and Export to PDF with one dialog on Windows and Linux: printer, copies, paper, orientation, fit, fill, actual size or a custom size, margins and a live preview of the page; the page is built at 300 dpi from the full-resolution picture.
 - JPEG, PNG, APNG, GIF, BMP, TIFF, WebP (also animated), SVG, ICO and CUR, AVIF, JPEG XL, HEIC and the embedded preview of RAW files; animated files play. Details and limits: [docs/formats.md](docs/formats.md).
+- 3D models: STL and STEP files are shown as a picture of the part; the **3D** button lets you turn it with the mouse, move it and zoom in. The information panel gives the size in millimeters, the volume and the number of triangles. Details: [docs/formats.md](docs/formats.md#3d-models-stl-and-step).
 - Formats are detected by signature, not by extension.
 - Information panel with EXIF, color profile and GPS.
 - Dark and light themes, interface in 12 languages (English, Russian, Ukrainian, German, French, Spanish, Italian, Brazilian Portuguese, Polish, Czech, Dutch, Turkish) that follows the system language and switches live in Settings; the text follows the size of the system font (`-font-size` overrides it); sharp on displays up to 200 % scale.
@@ -96,6 +97,7 @@ It writes `~/.config/mimeapps.list`; no extra tools are needed. `install.sh --se
 | Rotate or flip | **R** turns right, **Shift+R** left; **H** and **V** flip; Rotate 180° is in the menu |
 | Crop, resize, or bake a rotation into the file | **Ctrl+E** (the pencil in the bar, or **Crop** and **Resize** in the menu). Drag the corners and edges of the frame, choose an aspect ratio (free, original, square, 4:3, 3:2, 16:9), rotate or flip, then **Save a copy** (writes `name (2).jpg` next to the original), or use the arrow for **Save** (replaces the original after a confirmation) and **Save as**. **Esc** cancels. Animations and SVG cannot be edited |
 | Resize | In the edit mode press **Resize**: width and height in pixels or percent, proportions kept |
+| Turn a 3D model | **3** or the **3D** button (in place of the pencil for STL and STEP files): drag to turn, drag with the right button to move, the wheel to zoom, double-click for the first view, **Esc** to leave |
 | Delete | **Delete** moves the file to the recycle bin after a confirmation |
 | See the details | **Ctrl+I** or the information button in the title bar: file, camera, color profile, location |
 | Go full screen or start a slideshow | **F11** (**Alt+Enter**) for full screen, **F5** for the slideshow, **Esc** to leave |
@@ -185,6 +187,8 @@ go test ./...
 | `internal/par` | the shared thread budget |
 | `internal/meta`, `internal/isobmff` | EXIF, GPS, color profile and XMP readers and writers (metadata carried into saved files); the ISO box reader for AVIF and HEIC |
 | `internal/edit` | editing plan: orientation, crop and resize with a Lanczos-3 resampler |
+| `internal/stl`, `internal/step`, `internal/mesh` | STL reader; STEP reader with its own triangulation of B-rep surfaces; the triangle mesh they produce |
+| `internal/render3d`, `internal/model3d` | software rasterizer for models (pictures and the 3D view); loading, caching and drawing models for the codecs |
 | `internal/print` | printing model without the engine: papers, fit, fill, actual and custom placement, the picture resolution from EXIF, JFIF, PNG and BMP, the page raster from normal, tiled and vector pictures |
 | `internal/viewer` | folder, navigation, zoom and pan model, slideshow |
 | `internal/gallery` | gallery model: places, history, listing, thumbnail grid math |

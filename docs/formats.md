@@ -17,10 +17,20 @@ PixGo recognizes a file by its signature, not by its extension. The extension on
 | JPEG XL | `.jxl` | yes, lossless and lossy, animation | no | yes | yes | `nojxl` |
 | HEIC, HEIF | `.heic` `.heif` `.hif` | yes, including tiled photos of phones | no | sequences | yes | `noheic` |
 | RAW | `.cr2` `.cr3` `.nef` `.arw` `.dng` `.orf` `.rw2` `.pef` `.raf` | DNG: developed from the sensor data; the others: embedded preview only | no | no | no | `noraw` |
+| STL | `.stl` | yes, binary and ASCII, drawn as a picture of the model; the **3D** button turns it | no | no | yes | `no3d` |
+| STEP | `.step` `.stp` | yes, AP203, AP214 and AP242 solids and assemblies, drawn like STL | no | no | yes | `no3d` |
 
 "Read" means that the format is shown by the viewer, the gallery and the thumbnails. "Write" is what **Save as** offers.
 
-An optional format (APNG, AVIF, JPEG XL, HEIC, RAW) can also be switched off at run time in **Settings → Formats**; files of a switched-off format disappear from the folder list at once.
+An optional format (APNG, AVIF, JPEG XL, HEIC, RAW, STL, STEP) can also be switched off at run time in **Settings → Formats**; files of a switched-off format disappear from the folder list at once.
+
+## 3D models (STL and STEP)
+
+- **A picture first.** A model is drawn as a picture from one angle (front-right, from above), on the plain background of the window rather than the checkerboard, up to 2048 pixels on the long side. The gallery, the slideshow, printing and **Save as** use that picture.
+- **The 3D view.** The **3D** button (it takes the place of the pencil in the toolbar) or the `3` key turns the picture into a model you can turn with the mouse, move with the right button and zoom with the wheel; see [accessibility.md](accessibility.md#3d-view) for the keys. Esc or the button again returns to the picture.
+- **Information panel.** It shows the size of the model in millimeters (width × depth × height along X, Y, Z), its volume, the number of triangles and, for assemblies, the number of parts.
+- **STL.** Binary and ASCII files, several solids in one file, the colors of VisCAM/SolidView and Materialise files (a color that is the same on every face is ignored). STL has no units; the numbers are taken as millimeters. A binary STL has no signature, so it is recognized by the `.stl` extension. Up to 12 million triangles.
+- **STEP.** ISO 10303-21 files of AP203, AP214 and AP242: solids (B-rep), surface models, faceted solids and the tessellated geometry of AP242, assemblies with their placements, and the colors of faces and solids. The surfaces are turned into triangles by PixGo itself; lengths are converted to millimeters from the units of the file. A face that cannot be triangulated is left out; see [limitations.md](limitations.md#3d-models).
 
 ## RAW and DNG
 

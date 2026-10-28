@@ -24,6 +24,7 @@ Every function that the mouse reaches is reachable from the keyboard. Disabled c
 | Ctrl+G, Ctrl+O | Gallery |
 | Ctrl+, | Settings |
 | Ctrl+E | Edit: crop, resize, rotate and flip (see below) |
+| 3 | 3D view of an STL or STEP model (see below) |
 | Ctrl+Shift+S | Save as |
 | Ctrl+P | Print (**Export to PDF** is in the menu) |
 | Ctrl+C, Ctrl+Shift+C, Ctrl+Shift+R | Copy the file, copy the path, show in the folder |
@@ -57,6 +58,21 @@ Ctrl+E (the pencil in the toolbar, **Crop** and **Resize** in the menu) switches
 The arrow of **Save a copy** opens a menu with **Save** (replaces the original after a confirmation) and **Save as**. The aspect ratio list (Free, Original, Square, 4:3, 3:2, 16:9) and the arrow menu are ordinary menus: Up, Down, Enter, Esc.
 
 The **Resize** dialog has two fields (width, height), the units (pixels or percent) and **Keep proportions**. Tab goes through the width, the height, the two units, the check box, **Apply** and **Cancel**; Up and Down in a field change the number by 1 (Shift: 10); Enter applies, Esc cancels. The confirmation of replacing the original has **Replace**, **Cancel** and **Don't ask again**.
+
+### 3D view
+
+`3` or the **3D** button (in place of the pencil when a model is shown) turns the picture of an STL or STEP model into a model you can turn. Previous and next, the gallery, delete, the information panel and full screen keep working; going to another model keeps the 3D view, going to a picture leaves it. Flip, edit, save as, copy image, print and the slideshow are off until you leave.
+
+| Key or mouse | Action |
+|---|---|
+| Drag | Turn the model |
+| Right or middle drag, Shift+drag | Move the model |
+| Wheel, `+`, `-` | Zoom in and out around the pointer |
+| Left, Right, Up, Down | Turn by 15° |
+| Shift+arrows | Move the model |
+| R, Shift+R | Turn by 90° right / left |
+| Home, `0`, `1`, double click, the zoom label | Back to the first view |
+| Esc, `3` | Leave the 3D view |
 
 ### Print and Export to PDF
 

@@ -21,6 +21,13 @@ This page lists what PixGo does not do, or does only in part, as of 1.3.0. Each 
 - Saving carries the camera data (EXIF), the color profile and the XMP packet into JPEG, PNG and WebP files; BMP has no place for them. A block that does not fit the container (a JPEG segment holds 64 KB) is left out and a notice says so. The thumbnail inside the EXIF is removed, and the orientation is set to normal because the pixels are already turned.
 - SVG is drawn once, up to 1024 pixels on the long side, and then scaled like any other picture, so it becomes soft when zoomed far beyond that. Save as writes that drawing. Printing and Export to PDF draw it again at the size of the page.
 
+## 3D models
+
+- The 3D view shows the model only: there is no measuring, no section view, no wireframe and no export. The picture of a model can be saved as an image like any other picture.
+- STL has no units; the size in the information panel takes them as millimeters. The volume is correct only for closed models.
+- STEP is triangulated by PixGo itself, not by a CAD kernel. Edges on offset curves (`OFFSET_CURVE_3D`) and composite curves without a curve on the surface are not drawn, and the face they bound is left out, so the model may show a hole. Colors given to one occurrence of a part in an assembly (rather than to the part) are not applied. Text, dimensions, annotations and wireframe geometry are not shown. A file of tens of megabytes opens in a fraction of a second; very large assemblies take longer.
+- Models with more than 12 million triangles are refused.
+
 ## Large pictures
 
 - JPEG and TIFF pictures above the decoding limit open in parts, up to 1000 million pixels. Other formats above the limit are refused with a message.
